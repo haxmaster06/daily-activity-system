@@ -1,35 +1,30 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { ThemeProvider } from '@mui/material/styles';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { id } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
+import { I18nProvider, RouterProvider } from 'react-aria-components';
 
-import { damsTheme } from '@/theme/mui-theme';
+declare module 'react-aria-components' {
+  interface RouterConfig {
+    routerOptions: NonNullable<Parameters<ReturnType<typeof useRouter>['push']>[1]>;
+  }
+}
 
 /**
- * Penyedia gaya untuk komponen MUI.
+ * Penyedia perilaku untuk komponen React Aria.
  *
- * `AppRouterCacheProvider` menyisipkan gaya Emotion pada render server sehingga
- * tidak ada kedipan gaya saat halaman pertama dimuat.
+ * `RouterProvider` membuat tautan di dalam komponen React Aria memakai
+ * navigasi Next.js, bukan memuat ulang halaman penuh.
  *
- * `enableCssLayer` menaruh gaya MUI pada CSS layer tersendiri, sehingga utility
- * Tailwind tetap menang tanpa perlu `!important` — keduanya dipakai
- * berdampingan (lihat `docs/standar-interaksi.md` §5.1).
- *
- * Locale date-fns `id` membuat DatePicker menampilkan nama bulan dan hari dalam
- * Bahasa Indonesia (standarisasi §26).
+ * `I18nProvider` dengan locale `id-ID` mengatur nama bulan dan hari pada
+ * Calendar dan DatePicker, serta urutan hari dalam seminggu (standarisasi §26).
  */
 export function UiProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   return (
-    <AppRouterCacheProvider options={{ key: 'mui', enableCssLayer: true }}>
-      <ThemeProvider theme={damsTheme}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={id}>
-          {children}
-        </LocalizationProvider>
-      </ThemeProvider>
-    </AppRouterCacheProvider>
+    <I18nProvider locale="id-ID">
+      <RouterProvider navigate={router.push}>{children}</RouterProvider>
+    </I18nProvider>
   );
 }

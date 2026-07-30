@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
+import { Select } from '@/components/ui/select';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
 import { buatPengguna, perbaruiPengguna } from './actions';
 
@@ -169,51 +170,27 @@ export function UserDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor="departemen" className="field-label">
-              Departemen
-            </label>
-            <select
+            <Select
               id="departemen"
-              value={isi.department_id}
-              onChange={(e) => setIsi({ ...isi, department_id: e.target.value })}
-              aria-invalid={Boolean(pesanKolom('department_id'))}
-              className="field"
-              required
-            >
-              <option value="">Pilih departemen</option>
-              {departemen.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nama}
-                </option>
-              ))}
-            </select>
-            {pesanKolom('department_id') && (
-              <span className="field-error">{pesanKolom('department_id')}</span>
-            )}
+              label="Departemen"
+              placeholder="Pilih departemen"
+              nilai={isi.department_id}
+              opsi={departemen.map((item) => ({ nilai: String(item.id), label: item.nama }))}
+              onUbah={(nilai) => setIsi({ ...isi, department_id: nilai })}
+              galat={pesanKolom('department_id')}
+            />
           </div>
 
           <div>
-            <label htmlFor="role" className="field-label">
-              Role
-            </label>
-            <select
+            <Select
               id="role"
-              value={isi.role_id}
-              onChange={(e) => setIsi({ ...isi, role_id: e.target.value })}
-              aria-invalid={Boolean(pesanKolom('role_id'))}
-              className="field"
-              required
-            >
-              <option value="">Pilih role</option>
-              {role.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nama}
-                </option>
-              ))}
-            </select>
-            {pesanKolom('role_id') && (
-              <span className="field-error">{pesanKolom('role_id')}</span>
-            )}
+              label="Role"
+              placeholder="Pilih role"
+              nilai={isi.role_id}
+              opsi={role.map((item) => ({ nilai: String(item.id), label: item.nama }))}
+              onUbah={(nilai) => setIsi({ ...isi, role_id: nilai })}
+              galat={pesanKolom('role_id')}
+            />
           </div>
         </div>
 

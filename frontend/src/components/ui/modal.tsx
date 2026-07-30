@@ -1,8 +1,10 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
+import { Dialog, Heading, Modal as AriaModal, ModalOverlay } from 'react-aria-components';
 import { X } from 'lucide-react';
+
+import { cn } from '@/lib/cn';
 
 interface ModalProps {
   terbuka: boolean;
@@ -24,7 +26,14 @@ interface ModalProps {
 /**
  * Modal untuk form ringkas (≤ 8 field) dan dialog konfirmasi (standar §22.1).
  *
- * Dapat ditutup dengan Escape dan klik area luar — perilaku bawaan Radix.
+ * Memakai React Aria (docs/standar-interaksi.md §5.1): fokus terkunci di dalam
+ * modal, dikembalikan ke pemicunya saat ditutup, dan isi di belakangnya
+ * disembunyikan dari pembaca layar.
+ *
+ * Gerakan masuk-keluar memakai atribut `data-entering` dan `data-exiting`
+ * milik React Aria, sehingga animasinya ditangani CSS — komponen tetap
+ * menerima input selama animasi berjalan.
+ *
  * Form panjang atau yang punya lampiran memakai halaman tersendiri.
  */
 export function Modal({
@@ -37,44 +46,58 @@ export function Modal({
   lebar = 'sedang',
 }: ModalProps) {
   return (
-    <Dialog.Root open={terbuka} onOpenChange={(nilai) => !nilai && onTutup()}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="anim-latar fixed inset-0 z-40 bg-ink/25" />
-        <Dialog.Content
-          className={`anim-modal fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-modal bg-surface shadow-modal ${
-            lebar === 'lebar' ? 'sm:max-w-2xl' : 'sm:max-w-md'
-          }`}
-        >
-          <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
-            <div className="min-w-0">
-              <Dialog.Title className="font-heading text-section-title text-ink">
-                {judul}
-              </Dialog.Title>
-              {keterangan ? (
-                <Dialog.Description className="mt-0.5 text-body text-ink-muted">
-                  {keterangan}
-                </Dialog.Description>
-              ) : (
-                <Dialog.Description className="sr-only">{judul}</Dialog.Description>
+    <ModalOverlay
+      isOpen={terbuka}
+      onOpenChange={(nilai) => !nilai && onTutup()}
+      isDismissable
+      className={cn(
+        'fixed inset-0 z-40 flex items-center justify-center bg-ink/25 p-4',
+        'data-[entering]:animate-memudar-masuk',
+        'data-[exiting]:animate-memudar-keluar',
+      )}
+    >
+      <AriaModal
+        className={cn(
+          'max-h-[85vh] w-full overflow-y-auto rounded-modal bg-surface shadow-modal',
+          'data-[entering]:animate-modal-masuk',
+          'data-[exiting]:animate-modal-keluar',
+          lebar === 'lebar' ? 'sm:max-w-2xl' : 'sm:max-w-md',
+        )}
+      >
+        <Dialog className="outline-none">
+          {({ close }) => (
+            <>
+              <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
+                <div className="min-w-0">
+                  <Heading slot="title" className="font-heading text-section-title text-ink">
+                    {judul}
+                  </Heading>
+                  {keterangan && (
+                    <p className="mt-0.5 text-body text-ink-muted">{keterangan}</p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Tutup"
+                  className="grid size-7 shrink-0 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-ink"
+                >
+                  <X aria-hidden="true" className="size-4" />
+                </button>
+              </div>
+
+              <div className="px-4 py-4">{children}</div>
+
+              {aksi && (
+                <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+                  {aksi}
+                </div>
               )}
-            </div>
-            <Dialog.Close
-              aria-label="Tutup"
-              className="grid size-7 shrink-0 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-ink"
-            >
-              <X aria-hidden="true" className="size-4" />
-            </Dialog.Close>
-          </div>
-
-          <div className="px-4 py-4">{children}</div>
-
-          {aksi && (
-            <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
-              {aksi}
-            </div>
+            </>
           )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </Dialog>
+      </AriaModal>
+    </ModalOverlay>
   );
 }

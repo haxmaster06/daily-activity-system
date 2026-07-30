@@ -60,52 +60,109 @@
 }
 
 @layer utilities {
-  /* Gerakan modal — dipicu atribut data-state milik Radix Dialog. */
-  @keyframes dams-latar-masuk {
+  /*
+   * Gerakan overlay dan popover.
+   *
+   * Dipakai lewat atribut `data-entering` / `data-exiting` milik React Aria
+   * dan `data-state` milik Radix. Ditangani CSS, bukan JavaScript, sehingga
+   * komponen tetap menerima input selama animasi berjalan
+   * (docs/standar-interaksi.md §4.3).
+   */
+  @keyframes dams-memudar-masuk {
     from {
       opacity: 0;
     }
     to {
       opacity: 1;
+    }
+  }
+
+  @keyframes dams-memudar-keluar {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
     }
   }
 
   @keyframes dams-modal-masuk {
     from {
       opacity: 0;
-      transform: translate(-50%, calc(-50% + 10px)) scale(0.96);
+      transform: translateY(8px) scale(0.96);
     }
     to {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      transform: translateY(0) scale(1);
     }
   }
 
   @keyframes dams-modal-keluar {
     from {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
+      transform: scale(1);
     }
     to {
       opacity: 0;
-      transform: translate(-50%, -50%) scale(0.98);
+      transform: scale(0.98);
     }
   }
 
-  .anim-latar[data-state='open'] {
-    animation: dams-latar-masuk 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  @keyframes dams-popover-masuk {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
   }
 
-  .anim-latar[data-state='closed'] {
-    animation: dams-latar-masuk 140ms cubic-bezier(0.16, 1, 0.3, 1) reverse;
+  .animate-memudar-masuk {
+    animation: dams-memudar-masuk 260ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .anim-modal[data-state='open'] {
+  .animate-memudar-keluar {
+    animation: dams-memudar-keluar 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-modal-masuk {
     animation: dams-modal-masuk 380ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .anim-modal[data-state='closed'] {
+  .animate-modal-keluar {
     animation: dams-modal-keluar 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-popover-masuk {
+    animation: dams-popover-masuk 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes dams-drawer-masuk {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes dams-drawer-keluar {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  .animate-drawer-masuk {
+    animation: dams-drawer-masuk 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .animate-drawer-keluar {
+    animation: dams-drawer-keluar 220ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
 

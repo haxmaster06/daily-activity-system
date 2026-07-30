@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/cn';
 import { LABEL_TIPE, TIPE_ANGKA, type OpsiPenyusunKolom, type TipeKolom } from '@/lib/template';
 
@@ -31,6 +32,12 @@ export const KOLOM_KOSONG: DraftKolom = {
   lookup_source: '',
   computed_from: '',
 };
+
+/**
+ * Radix Select tidak menerima string kosong sebagai nilai item, sehingga
+ * pilihan "tanpa master data" memakai penanda tersendiri.
+ */
+const TANPA_MASTER = '__tanpa__';
 
 /** Menurunkan kunci dari label agar administrator tidak perlu mengetiknya. */
 export function kunciDariLabel(label: string): string {
@@ -150,23 +157,17 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                 )}
               </div>
 
-              <div>
-                <label htmlFor={`tipe-${index}`} className="field-label">
-                  Tipe isian
-                </label>
-                <select
-                  id={`tipe-${index}`}
-                  value={item.type}
-                  onChange={(e) => ubahSatu(index, { type: e.target.value as TipeKolom })}
-                  className="field field-sm"
-                >
-                  {opsi.tipe.map((t) => (
-                    <option key={t.nilai} value={t.nilai}>
-                      {LABEL_TIPE[t.nilai] ?? t.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id={`tipe-${index}`}
+                label="Tipe isian"
+                ukuran="sm"
+                nilai={item.type}
+                opsi={opsi.tipe.map((t) => ({
+                  nilai: t.nilai,
+                  label: LABEL_TIPE[t.nilai] ?? t.label,
+                }))}
+                onUbah={(nilai) => ubahSatu(index, { type: nilai as TipeKolom })}
+              />
 
               <div>
                 <label htmlFor={`grup-${index}`} className="field-label">
@@ -184,24 +185,19 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                 </span>
               </div>
 
-              <div>
-                <label htmlFor={`sumber-${index}`} className="field-label">
-                  Ambil pilihan dari master data
-                </label>
-                <select
-                  id={`sumber-${index}`}
-                  value={item.lookup_source}
-                  onChange={(e) => ubahSatu(index, { lookup_source: e.target.value })}
-                  className="field field-sm"
-                >
-                  <option value="">Tidak, ketik manual</option>
-                  {opsi.sumber_master.map((s) => (
-                    <option key={s.nilai} value={s.nilai}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                id={`sumber-${index}`}
+                label="Ambil pilihan dari master data"
+                ukuran="sm"
+                nilai={item.lookup_source || TANPA_MASTER}
+                opsi={[
+                  { nilai: TANPA_MASTER, label: 'Tidak, ketik manual' },
+                  ...opsi.sumber_master,
+                ]}
+                onUbah={(nilai) =>
+                  ubahSatu(index, { lookup_source: nilai === TANPA_MASTER ? '' : nilai })
+                }
+              />
 
               {item.type === 'select' && (
                 <div className="sm:col-span-2">

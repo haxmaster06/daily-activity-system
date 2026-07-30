@@ -10,7 +10,8 @@ Dokumen acuan yang wajib dibaca sebelum mengubah apa pun:
 |---|---|
 | `docs/PRD/PRD.md` | Scope, fitur, database design dasar |
 | `.agents/Standarization/standarization.md` | Standar UI/UX — mengikat tiap halaman |
-| `docs/standar-interaksi.md` | Input praktis, tab, wizard, animasi, aturan library — **menang bila bertentangan dengan standarisasi** |
+| `docs/standar-ui-ux.md` | **Standar UI/UX mengikat** — input, tab, wizard, animasi, navigasi, tabel, form. Menang atas standarisasi bila bertentangan |
+| `docs/standar-library-ui.md` | Library tiap komponen: Radix, React Aria, shadcn, React Bits |
 | `docs/template-departemen.md` | Skema kolom template laporan per departemen |
 | `.agents/Standarization/non-fungsional-requirement.md` | Security, performance, testing, deployment |
 | `Klien_Data/Requirement1.docx` | Kolom tabel per departemen (sumber kebenaran template) — **tidak ada di repo**, lihat catatan di bawah |
@@ -79,12 +80,12 @@ Sumber lengkap: `.agents/Standarization/standarization.md`. Ringkasan yang palin
 * Export **preview-first** — tidak ada unduh langsung.
 * Tanpa gradient dekoratif, card berlebihan, rounded acak, atau deskripsi pengisi ruang.
 * Data yang punya master data memakai Select atau Autocomplete — bukan ketik bebas.
-  Isian turunan diisi otomatis. Rinciannya di `docs/standar-interaksi.md`.
+  Isian turunan diisi otomatis. Rinciannya di `docs/standar-ui-ux.md`.
 * Isi setara yang banyak dikelompokkan dengan Tab; isian berantai memakai Wizard.
-* Animasi **smooth dan dramatis** — lihat nilai gerak di `docs/standar-interaksi.md`.
+* Animasi **halus dan secukupnya** — nilai gerak di `frontend/src/lib/gerak.ts`.
   Menggantikan pembatasan animasi minimal pada standarisasi §12.
-* MUI hanya untuk widget kompleks (Stepper, Autocomplete, DatePicker, Tabs, DataGrid)
-  dan wajib memakai tema DAMS. Tombol, input biasa, kartu, dan tata letak tetap Tailwind.
+* **Seluruh komponen UI memakai Radix UI atau React Aria.** MUI tidak dipakai.
+  Peta komponen lengkap ada di `docs/standar-library-ui.md` §2.
 
 ## Aturan API
 

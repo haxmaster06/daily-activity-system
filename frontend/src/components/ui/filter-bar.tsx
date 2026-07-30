@@ -4,6 +4,14 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 
+import { Select } from '@/components/ui/select';
+
+/**
+ * Radix Select tidak menerima string kosong sebagai nilai item, sehingga
+ * pilihan "Semua" memakai penanda tersendiri yang tidak pernah ditulis ke URL.
+ */
+const SEMUA = '__semua__';
+
 export interface PilihanFilter {
   /** Nama parameter pada URL. */
   kunci: string;
@@ -78,25 +86,21 @@ export function FilterBar({ placeholderCari, pilihan = [] }: FilterBarProps) {
       </form>
 
       {pilihan.map((item) => (
-        <select
+        <Select
           key={item.kunci}
-          aria-label={item.label}
-          value={searchParams.get(item.kunci) ?? ''}
-          onChange={(event) =>
+          id={`filter-${item.kunci}`}
+          ukuran="sm"
+          className="w-auto min-w-40"
+          placeholder={`${item.label}: Semua`}
+          nilai={searchParams.get(item.kunci) ?? SEMUA}
+          opsi={[{ nilai: SEMUA, label: `${item.label}: Semua` }, ...item.opsi]}
+          onUbah={(nilai) =>
             terapkan((params) => {
-              if (event.target.value) params.set(item.kunci, event.target.value);
+              if (nilai && nilai !== SEMUA) params.set(item.kunci, nilai);
               else params.delete(item.kunci);
             })
           }
-          className="field field-sm w-auto pr-7"
-        >
-          <option value="">{item.label}: Semua</option>
-          {item.opsi.map((opsi) => (
-            <option key={opsi.nilai} value={opsi.nilai}>
-              {opsi.label}
-            </option>
-          ))}
-        </select>
+        />
       ))}
 
       {adaFilterAktif && (

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
+import { Select } from '@/components/ui/select';
 import { Wizard } from '@/components/ui/wizard';
 import type { Departemen } from '@/lib/master-data';
 import type { OpsiPenyusunKolom, Template } from '@/lib/template';
@@ -28,6 +29,9 @@ interface Identitas {
   department_id: string;
   is_active: boolean;
 }
+
+/** Radix Select tidak menerima string kosong sebagai nilai item. */
+const SEMUA_DEPARTEMEN = '__semua__';
 
 const IDENTITAS_KOSONG: Identitas = {
   code: '',
@@ -247,26 +251,21 @@ export function TemplateWizard({
                   </span>
                 </div>
 
-                <div>
-                  <label htmlFor="departemen-template" className="field-label">
-                    Departemen
-                  </label>
-                  <select
-                    id="departemen-template"
-                    value={identitas.department_id}
-                    onChange={(e) =>
-                      setIdentitas({ ...identitas, department_id: e.target.value })
-                    }
-                    className="field"
-                  >
-                    <option value="">Semua departemen</option>
-                    {departemen.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nama}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  id="departemen-template"
+                  label="Departemen"
+                  nilai={identitas.department_id || SEMUA_DEPARTEMEN}
+                  opsi={[
+                    { nilai: SEMUA_DEPARTEMEN, label: 'Semua departemen' },
+                    ...departemen.map((d) => ({ nilai: String(d.id), label: d.nama })),
+                  ]}
+                  onUbah={(nilai) =>
+                    setIdentitas({
+                      ...identitas,
+                      department_id: nilai === SEMUA_DEPARTEMEN ? '' : nilai,
+                    })
+                  }
+                />
 
                 <div className="sm:col-span-2">
                   <label htmlFor="keterangan-template" className="field-label">
