@@ -1,20 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Bell, Settings, UserRound } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState } from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Bell, ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
-import { LABEL_ROLE, menuAktif, menuUntukRole, type Role } from '@/lib/nav';
+import { menuAktif, menuUntukRole, type Role } from '@/lib/nav';
 
 export interface PenggunaHeader {
   nama: string;
   role: Role;
+  namaRole: string;
   departemen: string;
-}
-
-interface AppHeaderProps {
-  pengguna: PenggunaHeader;
 }
 
 /**
@@ -25,9 +24,18 @@ interface AppHeaderProps {
  *
  * Dilarang mengganti komponen ini dengan permanent sidebar.
  */
-export function AppHeader({ pengguna }: AppHeaderProps) {
+export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
   const pathname = usePathname();
+  const router = useRouter();
   const menu = menuUntukRole(pengguna.role);
+  const [keluarSedangDiproses, setKeluarSedangDiproses] = useState(false);
+
+  async function keluar() {
+    setKeluarSedangDiproses(true);
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.replace('/login');
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
@@ -58,22 +66,59 @@ export function AppHeader({ pengguna }: AppHeaderProps) {
             </Link>
           )}
 
-          <Link
-            href="/profil"
-            className="ml-1 flex min-w-0 items-center gap-2 rounded-control py-1 pl-1 pr-2 transition-colors duration-fast hover:bg-surface-muted"
-          >
-            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text">
-              <UserRound aria-hidden="true" className="size-4" />
-            </span>
-            <span className="hidden min-w-0 leading-tight sm:block">
-              <span className="block truncate text-caption font-medium text-ink">
-                {pengguna.nama}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger
+              className="ml-1 flex min-w-0 items-center gap-2 rounded-control py-1 pl-1 pr-1.5 transition-colors duration-fast hover:bg-surface-muted"
+              aria-label="Menu akun"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text">
+                <UserRound aria-hidden="true" className="size-4" />
               </span>
-              <span className="block truncate text-meta text-ink-soft">
-                {LABEL_ROLE[pengguna.role]} · {pengguna.departemen}
+              {/* Nama tidak dipotong — `truncate` dilarang untuk isi bermakna
+                  (standar §23.2). Blok ini disembunyikan di layar sempit. */}
+              <span className="hidden text-left leading-tight sm:block">
+                <span className="block whitespace-nowrap text-caption font-medium text-ink">
+                  {pengguna.nama}
+                </span>
+                <span className="block whitespace-nowrap text-meta text-ink-soft">
+                  {pengguna.namaRole} · {pengguna.departemen}
+                </span>
               </span>
-            </span>
-          </Link>
+              <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-ink-soft" />
+            </DropdownMenu.Trigger>
+
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                align="end"
+                sideOffset={6}
+                className="z-40 min-w-48 rounded-card border border-line bg-surface p-1 shadow-modal"
+              >
+                <DropdownMenu.Item asChild>
+                  <Link
+                    href="/profil"
+                    className="flex cursor-pointer items-center gap-2 rounded-control px-2 py-1.5 text-body-lg text-ink-muted outline-none data-[highlighted]:bg-surface-muted data-[highlighted]:text-ink"
+                  >
+                    <UserRound aria-hidden="true" className="size-4" />
+                    Profil Saya
+                  </Link>
+                </DropdownMenu.Item>
+
+                <DropdownMenu.Separator className="my-1 h-px bg-line" />
+
+                <DropdownMenu.Item
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void keluar();
+                  }}
+                  disabled={keluarSedangDiproses}
+                  className="flex cursor-pointer items-center gap-2 rounded-control px-2 py-1.5 text-body-lg text-danger-text outline-none data-[highlighted]:bg-danger-subtle"
+                >
+                  <LogOut aria-hidden="true" className="size-4" />
+                  {keluarSedangDiproses ? 'Keluar...' : 'Keluar'}
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
         </div>
       </div>
 

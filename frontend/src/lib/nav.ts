@@ -32,6 +32,22 @@ export function menuUntukRole(role: Role): MenuUtama[] {
   return MENU_UTAMA.filter((menu) => menu.roles.includes(role));
 }
 
+/**
+ * Apakah role boleh membuka halaman tersebut.
+ *
+ * Menyembunyikan menu saja tidak cukup — alamat halaman tetap dapat diketik
+ * langsung. Halaman terbatas wajib memanggil `wajibAkses` yang memakai fungsi
+ * ini (deny by default, non-fungsional §2.3).
+ *
+ * Halaman yang tidak terdaftar di menu utama dianggap terbuka untuk semua role
+ * yang sudah masuk; pembatasan sebenarnya tetap ditegakkan backend.
+ */
+export function bolehAkses(role: Role, href: string): boolean {
+  const menu = MENU_UTAMA.find((item) => menuAktif(item.href, href));
+
+  return menu === undefined || menu.roles.includes(role);
+}
+
 /** Menu aktif bila path sama persis atau merupakan turunannya (`/laporan/12`). */
 export function menuAktif(hrefMenu: string, pathSaatIni: string): boolean {
   return pathSaatIni === hrefMenu || pathSaatIni.startsWith(`${hrefMenu}/`);

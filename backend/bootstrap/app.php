@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsActive;
 use App\Support\ApiResponse;
 use App\Support\ErrorReference;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -8,6 +9,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -27,6 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             HandleCors::class,
         ]);
+
+        $middleware->alias([
+            'aktif' => EnsureUserIsActive::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
@@ -41,6 +47,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (Throwable $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
+            }
+
+            /*
+             * Sebagian komponen — mis. limiter `throttle` — sudah menyiapkan
+             * response sendiri dan membungkusnya dalam HttpResponseException.
+             * Response itu diteruskan apa adanya, bukan diubah jadi galat 500.
+             */
+            if ($e instanceof HttpResponseException) {
+                return $e->getResponse();
             }
 
             if ($e instanceof ValidationException) {

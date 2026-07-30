@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('health');
 
-Route::middleware('auth:sanctum')->group(function (): void {
-    // Endpoint terautentikasi ditambahkan mulai M1 (Auth & Role).
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware('throttle:login')
+    ->name('login');
+
+Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function (): void {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/me', [AuthController::class, 'me'])->name('me');
+
+    // Endpoint master data dan laporan ditambahkan pada M2 dan M3.
 });

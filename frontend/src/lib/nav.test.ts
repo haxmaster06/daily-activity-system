@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { menuAktif, menuUntukRole } from './nav';
+import { bolehAkses, menuAktif, menuUntukRole } from './nav';
 
 // Matriks visibilitas menu — standar §2.3
 describe('visibilitas menu per role', () => {
@@ -44,5 +44,36 @@ describe('penanda menu aktif', () => {
 
   it('tidak menandai path yang hanya berawalan sama', () => {
     expect(menuAktif('/laporan', '/laporan-lain')).toBe(false);
+  });
+});
+
+// Menyembunyikan menu tidak menghentikan pengguna yang mengetik alamat langsung.
+describe('penjagaan akses halaman', () => {
+  it('menolak Staff membuka Monitoring dan Pengaturan', () => {
+    expect(bolehAkses('staff', '/monitoring')).toBe(false);
+    expect(bolehAkses('staff', '/pengaturan')).toBe(false);
+  });
+
+  it('menolak Staff membuka halaman turunan Monitoring', () => {
+    expect(bolehAkses('staff', '/monitoring/tim/5')).toBe(false);
+  });
+
+  it('menolak Supervisor dan Manager membuka Pengaturan', () => {
+    expect(bolehAkses('supervisor', '/pengaturan')).toBe(false);
+    expect(bolehAkses('manager', '/pengaturan')).toBe(false);
+  });
+
+  it('mengizinkan Supervisor membuka Monitoring', () => {
+    expect(bolehAkses('supervisor', '/monitoring')).toBe(true);
+  });
+
+  it('mengizinkan Administrator membuka seluruh halaman menu', () => {
+    for (const href of ['/dashboard', '/laporan', '/monitoring', '/export', '/pengaturan']) {
+      expect(bolehAkses('administrator', href)).toBe(true);
+    }
+  });
+
+  it('mengizinkan halaman di luar menu utama bagi pengguna yang sudah masuk', () => {
+    expect(bolehAkses('staff', '/profil')).toBe(true);
   });
 });

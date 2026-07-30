@@ -2,24 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
+/**
+ * Seluruh seeder master data bersifat idempotent — `php artisan db:seed` aman
+ * dijalankan berulang dan tidak pernah menghapus data yang sudah ada.
+ */
 class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            RoleSeeder::class,
+            DepartmentSeeder::class,
+            AdministratorSeeder::class,
         ]);
     }
 }

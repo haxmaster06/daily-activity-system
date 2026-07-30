@@ -50,7 +50,13 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Sesi berakhir otomatis (non-fungsional §2.2). Dalam menit.
+    'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION', 480),
+
+    // Dipakai saat pengguna mencentang "Ingat saya" pada halaman masuk.
+    // Sengaja dibatasi seminggu: perangkat di area produksi sering dipakai
+    // bergantian, sehingga sesi tidak boleh berlaku tanpa batas.
+    'expiration_remembered' => (int) env('SANCTUM_TOKEN_EXPIRATION_REMEMBERED', 10080),
 
     /*
     |--------------------------------------------------------------------------
