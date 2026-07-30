@@ -1,4 +1,5 @@
 import { DamsMark } from '@/components/brand/dams-mark';
+import { Alert } from '@/components/ui/alert';
 import { LoginForm } from './login-form';
 
 export const metadata = { title: 'Masuk — DAMS' };
@@ -7,9 +8,9 @@ export const metadata = { title: 'Masuk — DAMS' };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ lanjut?: string }>;
+  searchParams: Promise<{ lanjut?: string; sesi?: string }>;
 }) {
-  const { lanjut } = await searchParams;
+  const { lanjut, sesi } = await searchParams;
 
   // Hanya menerima path internal, agar parameter URL tidak dapat dipakai
   // mengarahkan pengguna ke situs luar setelah masuk (open redirect).
@@ -39,6 +40,14 @@ export default async function LoginPage({
 
           <h1 className="text-page-title text-ink">Selamat Datang</h1>
           <p className="mb-5 mt-0.5 text-body-lg text-ink-muted">Silakan masuk ke akun Anda.</p>
+
+          {sesi === 'berakhir' && (
+            <Alert
+              jenis="galat"
+              pesan="Sesi Anda telah berakhir. Silakan masuk kembali."
+              className="mb-4"
+            />
+          )}
 
           <LoginForm lanjut={tujuan} />
         </div>

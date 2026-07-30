@@ -11,10 +11,16 @@ import { penggunaSaatIni } from '@/lib/session';
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const pengguna = await penggunaSaatIni();
 
-  // Middleware hanya memeriksa keberadaan cookie. Di sini sesi diverifikasi ke
-  // backend, sehingga token kedaluwarsa atau dicabut tetap tertahan.
+  /*
+   * Middleware hanya memeriksa keberadaan cookie. Di sini sesi diverifikasi ke
+   * backend, sehingga token kedaluwarsa atau dicabut tetap tertahan.
+   *
+   * Tujuannya bukan /login melainkan Route Handler pembersih cookie: Server
+   * Component tidak boleh menghapus cookie, dan mengarahkan langsung ke /login
+   * sementara cookie basi masih terpasang akan dilempar balik oleh middleware.
+   */
   if (pengguna === null) {
-    redirect('/login');
+    redirect('/api/auth/sesi-berakhir');
   }
 
   return (
