@@ -11,8 +11,16 @@ Dokumen acuan yang wajib dibaca sebelum mengubah apa pun:
 | `docs/PRD/PRD.md` | Scope, fitur, database design dasar |
 | `.agents/Standarization/standarization.md` | Standar UI/UX — mengikat tiap halaman |
 | `.agents/Standarization/non-fungsional-requirement.md` | Security, performance, testing, deployment |
-| `Klien_Data/Requirement1.docx` | Kolom tabel per departemen (sumber kebenaran template) |
+| `Klien_Data/Requirement1.docx` | Kolom tabel per departemen (sumber kebenaran template) — **tidak ada di repo**, lihat catatan di bawah |
 | `mockup/UI UX Mockup/` | Mockup yang sudah disetujui — implementasi wajib mengikuti |
+
+**`Klien_Data/` sengaja tidak ada di repository.** Berkas Excel dan Word dari
+klien memuat nama karyawan, nama supplier, nomor LOT dan tonase produksi, nama
+petani binaan, serta nomor PO pelanggan. Repository ini publik, sehingga folder
+tersebut masuk `.gitignore` dan tidak pernah di-commit. Berkasnya diletakkan
+manual di `Klien_Data/` pada mesin pengembang. Jangan pernah menyalin isinya —
+nama orang, nama supplier, angka produksi — ke dalam kode, komentar, seeder,
+test, atau pesan commit.
 
 ---
 

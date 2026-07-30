@@ -37,6 +37,16 @@
 /frontend/test-results
 /frontend/coverage
 
+# Berkas asli klien — TIDAK BOLEH masuk repo.
+#
+# Berisi data yang dapat mengidentifikasi orang dan rahasia dagang: nama
+# karyawan, nama supplier, nomor LOT dan tonase produksi, nama petani binaan,
+# serta nomor PO pelanggan. Repository ini publik.
+#
+# Berkas tetap ada di disk pengembang dan dipakai sebagai acuan kolom per
+# departemen, tetapi tidak pernah dibagikan lewat repo.
+/Klien_Data
+
 # Backup database — tidak boleh masuk repo
 /backup
 *.sql
