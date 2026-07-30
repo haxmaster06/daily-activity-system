@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Quality gate: PR tidak boleh di-merge bila salah satu job gagal
+# (non-fungsional §24).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — test & lint
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: dams_db_testing
+          MYSQL_ROOT_PASSWORD: rahasia_ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -prahasia_ci"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql, bcmath, intl, zip, gd
+          coverage: none
+
+      - name: Cache dependency Composer
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: composer-${{ hashFiles('backend/composer.lock') }}
+
+      - run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Siapkan berkas environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Periksa gaya kode
+        run: ./vendor/bin/pint --test
+
+      - name: Jalankan test
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: dams_db_testing
+          DB_USERNAME: root
+          DB_PASSWORD: rahasia_ci
+        run: php artisan test
+
+  frontend:
+    name: Frontend — test, lint & build
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Periksa tipe
+        run: npm run typecheck
+
+      - name: Periksa gaya kode
+        run: npm run lint
+
+      - name: Jalankan test
+        run: npm run test
+
+      - name: Build produksi
+        run: npm run build

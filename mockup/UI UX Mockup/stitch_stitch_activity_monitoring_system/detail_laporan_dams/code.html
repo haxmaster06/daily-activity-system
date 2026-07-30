@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DAMS - Detail Laporan</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#ffffff",
+                        "surface-dim": "#d8dadd",
+                        "primary": "#005bbf",
+                        "on-secondary-fixed": "#00201a",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6d3a00",
+                        "on-background": "#191c1e",
+                        "surface-tint": "#005bc0",
+                        "surface-container-lowest": "#ffffff",
+                        "surface": "#f7f9fc",
+                        "on-surface-variant": "#414754",
+                        "on-secondary-fixed-variant": "#005145",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006b5c",
+                        "on-secondary-container": "#007261",
+                        "secondary-fixed": "#68fadd",
+                        "inverse-primary": "#adc7ff",
+                        "on-surface": "#191c1e",
+                        "tertiary-fixed-dim": "#ffb77a",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#2e1500",
+                        "background": "#f7f9fc",
+                        "tertiary": "#8e4d00",
+                        "surface-container-highest": "#e0e3e6",
+                        "tertiary-container": "#b26200",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#001a41",
+                        "outline": "#727785",
+                        "surface-container-low": "#f2f4f7",
+                        "surface-variant": "#e0e3e6",
+                        "secondary-fixed-dim": "#44ddc1",
+                        "surface-container-high": "#e6e8eb",
+                        "primary-fixed-dim": "#adc7ff",
+                        "primary-fixed": "#d8e2ff",
+                        "primary-container": "#1a73e8",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#eff1f4",
+                        "inverse-surface": "#2d3133",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#eceef1",
+                        "surface-bright": "#f7f9fc",
+                        "secondary-container": "#68fadd",
+                        "tertiary-fixed": "#ffdcc2",
+                        "on-primary-fixed-variant": "#004493",
+                        "outline-variant": "#c1c6d6",
+                        "status-success-bg": "rgba(0, 107, 92, 0.15)",
+                        "status-success-text": "#006b5c",
+                        "status-warning-bg": "rgba(178, 98, 0, 0.15)",
+                        "status-warning-text": "#b26200",
+                        "status-default-bg": "rgba(114, 119, 133, 0.15)",
+                        "status-default-text": "#414754",
+                        "status-info-bg": "rgba(0, 91, 191, 0.15)",
+                        "status-info-text": "#005bbf"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px",
+                        "base": "4px",
+                        "lg": "32px",
+                        "xl": "48px",
+                        "xs": "8px",
+                        "sm": "16px",
+                        "gutter": "24px",
+                        "container-max": "1280px",
+                        "md": "24px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "title-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "60px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    },
+                    "boxShadow": {
+                        "ambient-1": "0px 2px 8px rgba(0, 91, 191, 0.10)",
+                        "ambient-2": "0px 8px 24px rgba(0, 91, 191, 0.10)",
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col antialiased">
+<!-- Top Navigation -->
+<header class="bg-surface-container-lowest w-full top-0 sticky shadow-ambient-1 z-50">
+<div class="flex justify-between items-center px-margin-desktop py-md max-w-container-max mx-auto">
+<div class="flex items-center gap-sm">
+<span class="font-display-lg text-display-lg font-bold text-primary">DAMS</span>
+<nav class="ml-xl hidden md:flex items-center gap-lg">
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" href="#">Analytics</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors" href="#">Inventory</a>
+<a class="font-label-lg text-label-lg text-primary border-b-2 border-primary pb-1" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-colors active:opacity-80">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-colors active:opacity-80">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface-variant ml-2 overflow-hidden border border-outline-variant">
+<img alt="User profile" class="object-cover w-full h-full" data-alt="A small circular profile picture of an industrial systems operator wearing a clean safety vest and hard hat, set against a neutral grey background. The lighting is bright and professional, typical of a corporate headshot. High resolution." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5NOMQ95LygYYYlKIp50VqbIau4GDfgLiYgCfdc803irzH-pZKCGtlHW1N41J51txfxYwSZG5X1xpjhrZEN-1_6cDInsXDy9C6tXFsVp39s3pUiKxw0mJBp0fVCd5xcQ4oqrxHRhFrDZipLMCBXHNyX0qnp0yViq7rqPGOWcoRCWc--2GQcHJdLraIwMrF06GHbdGkNxAgeYYI2TcJTVsDNOCy4rMvcGLtD5MPaKqelvIfPxoFdYoCGQ"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-desktop py-lg flex flex-col gap-md">
+<!-- Breadcrumb -->
+<nav aria-label="Breadcrumb" class="flex items-center gap-xs font-label-lg text-label-lg text-on-surface-variant">
+<a class="hover:text-primary transition-colors" href="#">Dashboard</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<a class="hover:text-primary transition-colors" href="#">Laporan Saya</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-background font-semibold">Detail Laporan</span>
+</nav>
+<!-- Header Card -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-ambient-1 p-gutter flex flex-col md:flex-row justify-between items-start md:items-center gap-gutter border border-outline-variant/30">
+<div class="flex flex-col gap-xs">
+<h1 class="font-headline-lg text-headline-lg text-on-background">Laporan Harian — 30 Juli 2026</h1>
+<div class="flex flex-wrap items-center gap-x-sm gap-y-xs font-body-md text-body-md text-on-surface-variant mt-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span>Pelapor: Ahmad Fauzi</span>
+</div>
+<span class="text-outline-variant hidden md:inline">•</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">factory</span>
+<span>Departemen: Produksi</span>
+</div>
+<span class="text-outline-variant hidden md:inline">•</span>
+<div class="flex items-center gap-2">
+<span>Status:</span>
+<span class="bg-status-info-bg text-status-info-text px-2 py-1 rounded font-label-sm text-label-sm border border-status-info-text/20">Terkirim</span>
+</div>
+</div>
+</div>
+<!-- Export Actions -->
+<div class="flex items-center gap-sm shrink-0">
+<button class="flex items-center gap-2 px-3 py-2 border border-outline hover:border-primary text-on-surface-variant hover:text-primary rounded-lg font-label-lg text-label-lg transition-colors bg-surface-container-lowest hover:bg-surface-container-low focus:ring-2 focus:ring-primary/20">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="hidden lg:inline">Export Excel</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-2 border border-outline hover:border-primary text-on-surface-variant hover:text-primary rounded-lg font-label-lg text-label-lg transition-colors bg-surface-container-lowest hover:bg-surface-container-low focus:ring-2 focus:ring-primary/20">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+<span class="hidden lg:inline">Export PDF</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-2 border border-outline hover:border-primary text-on-surface-variant hover:text-primary rounded-lg font-label-lg text-label-lg transition-colors bg-surface-container-lowest hover:bg-surface-container-low focus:ring-2 focus:ring-primary/20">
+<span class="material-symbols-outlined text-[18px]">print</span>
+<span class="hidden lg:inline">Cetak</span>
+</button>
+</div>
+</div>
+<!-- Activity Table Section -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-ambient-1 overflow-hidden border border-outline-variant/30 flex flex-col">
+<div class="p-gutter border-b border-outline-variant/30 bg-surface-container-low/50">
+<h2 class="font-title-lg text-title-lg text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">list_alt</span>
+                    Daftar Aktivitas Produksi
+                </h2>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-surface font-label-sm text-label-sm text-on-surface-variant border-b border-outline-variant">
+<th class="py-sm px-gutter font-semibold w-16">No</th>
+<th class="py-sm px-gutter font-semibold w-1/4">Aktivitas</th>
+<th class="py-sm px-gutter font-semibold w-1/3">Keterangan</th>
+<th class="py-sm px-gutter font-semibold">Target</th>
+<th class="py-sm px-gutter font-semibold text-right">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low/30 transition-colors">
+<td class="py-md px-gutter text-on-surface-variant">1</td>
+<td class="py-md px-gutter font-medium text-on-background">Proses oven</td>
+<td class="py-md px-gutter text-on-surface-variant">Pemanasan batch A-12 pada suhu 180°C selama 45 menit.</td>
+<td class="py-md px-gutter text-on-surface-variant">500 unit</td>
+<td class="py-md px-gutter text-right">
+<span class="inline-block bg-status-success-bg text-status-success-text px-2 py-1 rounded font-label-sm text-label-sm">Selesai</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low/30 transition-colors">
+<td class="py-md px-gutter text-on-surface-variant">2</td>
+<td class="py-md px-gutter font-medium text-on-background">Proses ayak</td>
+<td class="py-md px-gutter text-on-surface-variant">Penyaringan bahan baku mesh 40 untuk batch A-12.</td>
+<td class="py-md px-gutter text-on-surface-variant">500 unit</td>
+<td class="py-md px-gutter text-right">
+<span class="inline-block bg-status-success-bg text-status-success-text px-2 py-1 rounded font-label-sm text-label-sm">Selesai</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-low/30 transition-colors">
+<td class="py-md px-gutter text-on-surface-variant">3</td>
+<td class="py-md px-gutter font-medium text-on-background">Packing pouch</td>
+<td class="py-md px-gutter text-on-surface-variant">Pengemasan primer menggunakan mesin form-fill-seal line 3.</td>
+<td class="py-md px-gutter text-on-surface-variant">1000 unit</td>
+<td class="py-md px-gutter text-right">
+<span class="inline-block bg-status-warning-bg text-status-warning-text px-2 py-1 rounded font-label-sm text-label-sm">Dalam Proses</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="py-md px-gutter text-on-surface-variant">4</td>
+<td class="py-md px-gutter font-medium text-on-background">Xray checking</td>
+<td class="py-md px-gutter text-on-surface-variant">Pemeriksaan kualitas akhir produk jadi.</td>
+<td class="py-md px-gutter text-on-surface-variant">1000 unit</td>
+<td class="py-md px-gutter text-right">
+<span class="inline-block bg-status-default-bg text-status-default-text px-2 py-1 rounded font-label-sm text-label-sm border border-status-default-text/10">Belum Mulai</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Attachments Section -->
+<section class="bg-surface-container-lowest rounded-2xl shadow-ambient-1 p-gutter border border-outline-variant/30 flex flex-col gap-sm">
+<h3 class="font-title-lg text-title-lg text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">attach_file</span>
+                Lampiran
+            </h3>
+<div class="flex flex-wrap gap-4 mt-2">
+<!-- Attachment 1 -->
+<a class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant hover:border-primary bg-surface-container-lowest hover:bg-primary/5 transition-colors group" href="#">
+<div class="w-10 h-10 rounded bg-surface-variant flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-primary group-hover:underline">laporan_oven_082.pdf</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">2.4 MB</span>
+</div>
+</a>
+<!-- Attachment 2 -->
+<a class="flex items-center gap-3 p-3 rounded-lg border border-outline-variant hover:border-primary bg-surface-container-lowest hover:bg-primary/5 transition-colors group" href="#">
+<div class="w-10 h-10 rounded bg-surface-variant flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">image</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-lg text-label-lg text-primary group-hover:underline">foto_packing.jpg</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">1.1 MB</span>
+</div>
+</a>
+</div>
+</section>
+<!-- Footer Info -->
+<div class="flex flex-col md:flex-row justify-between items-center text-on-surface-variant font-body-md text-[12px] mt-4 mb-xl px-2">
+<span>Dibuat: 30 Juli 2026, 08:15 WIB oleh Ahmad Fauzi</span>
+<span>Terakhir diubah: 30 Juli 2026, 14:30 WIB oleh Ahmad Fauzi</span>
+</div>
+</main>
+<!-- Global Footer Component -->
+<footer class="bg-surface-container-lowest w-full py-md border-t border-outline-variant mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto gap-4">
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant">© 2024 DAMS Internal Manufacturing Systems</span>
+<div class="flex items-center gap-sm font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<span class="text-outline-variant">•</span>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<span class="text-outline-variant">•</span>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

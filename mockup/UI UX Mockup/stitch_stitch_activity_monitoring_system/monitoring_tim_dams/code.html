@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Monitoring Tim - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-background": "#191c1e",
+                      "on-error-container": "#93000a",
+                      "on-secondary-fixed": "#00201a",
+                      "tertiary-container": "#b26200",
+                      "on-tertiary": "#ffffff",
+                      "on-surface": "#191c1e",
+                      "inverse-on-surface": "#eff1f4",
+                      "tertiary-fixed": "#ffdcc2",
+                      "surface-tint": "#005bc0",
+                      "surface-container-low": "#f2f4f7",
+                      "on-primary-fixed": "#001a41",
+                      "tertiary": "#8e4d00",
+                      "on-surface-variant": "#414754",
+                      "error-container": "#ffdad6",
+                      "outline": "#727785",
+                      "primary-fixed": "#d8e2ff",
+                      "primary": "#005bbf",
+                      "error": "#ba1a1a",
+                      "surface-variant": "#e0e3e6",
+                      "secondary-fixed-dim": "#44ddc1",
+                      "on-primary": "#ffffff",
+                      "surface-container-highest": "#e0e3e6",
+                      "primary-container": "#1a73e8",
+                      "on-primary-container": "#ffffff",
+                      "background": "#f7f9fc",
+                      "on-secondary": "#ffffff",
+                      "on-primary-fixed-variant": "#004493",
+                      "on-error": "#ffffff",
+                      "surface-container": "#eceef1",
+                      "primary-fixed-dim": "#adc7ff",
+                      "on-tertiary-fixed-variant": "#6d3a00",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-bright": "#f7f9fc",
+                      "on-secondary-fixed-variant": "#005145",
+                      "outline-variant": "#c1c6d6",
+                      "inverse-primary": "#adc7ff",
+                      "secondary-fixed": "#68fadd",
+                      "on-secondary-container": "#007261",
+                      "surface-container-high": "#e6e8eb",
+                      "secondary-container": "#68fadd",
+                      "surface": "#f7f9fc",
+                      "on-tertiary-container": "#ffffff",
+                      "inverse-surface": "#2d3133",
+                      "surface-dim": "#d8dadd",
+                      "secondary": "#006b5c",
+                      "tertiary-fixed-dim": "#ffb77a",
+                      "on-tertiary-fixed": "#2e1500"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "16px",
+                      "xl": "48px",
+                      "container-max": "1280px",
+                      "margin-desktop": "32px",
+                      "gutter": "24px",
+                      "md": "24px",
+                      "xs": "8px",
+                      "base": "4px",
+                      "sm": "16px",
+                      "lg": "32px"
+              },
+              "fontFamily": {
+                      "title-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "label-sm": [
+                              "Inter"
+                      ],
+                      "label-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-md": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "headline-lg-mobile": [
+                              "Plus Jakarta Sans"
+                      ],
+                      "display-lg": [
+                              "Plus Jakarta Sans"
+                      ]
+              },
+              "fontSize": {
+                      "title-lg": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-lg": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "60px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+<!-- TopNavBar -->
+<header class="w-full top-0 sticky z-50 bg-surface-container-lowest dark:bg-inverse-surface shadow-sm">
+<div class="flex justify-between items-center px-margin-desktop py-base max-w-container-max mx-auto">
+<div class="flex items-center gap-lg">
+<span class="font-display-lg text-display-lg font-bold text-primary dark:text-primary-fixed">DAMS</span>
+<nav class="hidden md:flex gap-sm h-full items-center">
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-lg text-label-lg px-sm py-sm" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-lg text-label-lg px-sm py-sm" href="#">Analytics</a>
+<a class="text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed pb-1 font-label-lg text-label-lg px-sm" href="#">Monitoring</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors font-label-lg text-label-lg px-sm py-sm" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors active:opacity-80 transition-all rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-title-lg">notifications</span>
+</button>
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors active:opacity-80 transition-all rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-title-lg">settings</span>
+</button>
+<img class="w-10 h-10 rounded-full object-cover ml-sm border border-outline-variant" data-alt="A small, circular avatar portrait of a professional supervisor in a corporate setting. High quality, well lit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4N7-bGGySEXKqmA1XFJ7MZAw6X3Ma-QOib-rMx51WAjjw8NxUio0UNpxo49FRTb2YJWvrGklQC3naG01UDFxuRb_x48EIqK8ZuGDE7DbMuAzLnFTnMvqYZvDlvIT3qX4UHPIgB8e_z2Iu14G8HwEvkCFnYUhHBUdL412frYkiShvNhEVo0N8QjwaPEXoSK5mYqORChqN2fOYO9jkjFlGb8VSiChvBWDrirzEFAYTAKI6B_OI2QdZkWw"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col max-w-container-max mx-auto w-full px-margin-desktop py-lg gap-lg">
+<!-- Breadcrumb & Header -->
+<div class="flex flex-col gap-base">
+<div class="flex items-center gap-base text-on-surface-variant font-label-sm text-label-sm">
+<a class="hover:text-primary transition-colors" href="#">Dashboard</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-background">Monitoring Tim</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-background">Monitoring Tim</h1>
+</div>
+<!-- 1. Ringkasan Tim (3 kartu horizontal di atas) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Anggota Tim -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex items-center gap-sm border border-transparent hover:border-primary-fixed-dim transition-colors">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[#1a73e8] text-[28px]" style="font-variation-settings: 'FILL' 1;">group</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-label-lg text-label-lg">Anggota Tim</span>
+<span class="font-headline-md text-headline-md text-on-background">12</span>
+</div>
+</div>
+<!-- Sudah Laporan -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex items-center gap-sm border border-transparent hover:border-primary-fixed-dim transition-colors">
+<div class="w-12 h-12 rounded-full bg-[#ecfdf5] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[#10b981] text-[28px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-label-lg text-label-lg">Sudah Laporan Hari Ini</span>
+<span class="font-headline-md text-headline-md text-on-background">9</span>
+</div>
+</div>
+<!-- Belum Laporan -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex items-center gap-sm border border-transparent hover:border-primary-fixed-dim transition-colors">
+<div class="w-12 h-12 rounded-full bg-[#fff1f2] flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[#f43f5e] text-[28px]" style="font-variation-settings: 'FILL' 1;">error</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-label-lg text-label-lg">Belum Laporan</span>
+<span class="font-headline-md text-headline-md text-on-background">3</span>
+</div>
+</div>
+</section>
+<!-- 2. Filter Bar -->
+<section class="bg-surface-container-lowest p-sm rounded-xl shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-wrap gap-sm items-end justify-between border border-surface-container-low">
+<div class="flex flex-wrap gap-sm w-full md:w-auto">
+<div class="flex flex-col gap-base w-full md:w-48">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Anggota</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant text-on-background rounded-lg p-xs font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow">
+<option>Semua</option>
+<option>Ahmad Fauzi</option>
+<option>Siti Aisyah</option>
+</select>
+</div>
+<div class="flex flex-col gap-base w-full md:w-48">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Tanggal</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant text-on-background rounded-lg p-xs font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow" type="date"/>
+</div>
+<div class="flex flex-col gap-base w-full md:w-48">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Status</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant text-on-background rounded-lg p-xs font-body-md focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow">
+<option>Semua</option>
+<option>Belum Laporan</option>
+<option>Sudah Laporan</option>
+</select>
+</div>
+</div>
+<button class="bg-primary text-on-primary font-label-lg text-label-lg rounded-lg px-md py-xs h-[42px] hover:opacity-90 transition-opacity active:scale-95 shrink-0 w-full md:w-auto">
+                Terapkan
+            </button>
+</section>
+<!-- 3. Grid Card Anggota Tim (Layout 3 kolom) -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a male staff member in a corporate setting. Friendly smile, soft lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4sknxu2CapNqOaXRdlVLZHp3itMkgKoy3Y3iVh4fZTjkS2iNW826MB1CxvX29z08Y5w3LSeMnY8FJq6v4CxbI0O56VPThmuAtY6c6_r_rugPyZXt7gLzk44Sv56J8cNKYgzMXdcFJ1QcEL0WCmB-7Nymh6HYmKImt1MHctQcSKTaJtdMlCBxGke0MAppLjkz-zv30CmPxJQ4U57xUnsT96XaqXzNeiSu8Cee2v_S-Aap-tjtS6cr5kQ"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Ahmad Fauzi</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Sudah Laporan
+                    </span>
+<p class="font-body-md text-body-md text-on-surface-variant">5 aktivitas, 3 selesai</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Lihat Laporan
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a female staff member in a corporate setting. Approachable, clear lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHepqEDcXh0iUrpJqJLLobnFZhxaCiALRWhhmZedmws3o6cOzCc6e1D3zNWtu2khQ2p4gRWvlzV9M0Fn2lo80a4ZoQKy91qfclfwtRAuFtlF1TrOECko_oIvSwW1vfx8cm6-hVbvEOy87z4ZDeb-M2bMiRAiCxOD5huB40Kctw4PynIZZMwlXStRmcZDX823O4sKIdsg1IEFQaGDH95OgrZOIU7d4ZEiqWK0P6oqT_hJyt5bl9PpmHGA"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Siti Aisyah</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Sudah Laporan
+                    </span>
+<p class="font-body-md text-body-md text-on-surface-variant">3 aktivitas, 3 selesai</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Lihat Laporan
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a male staff member. Serious but calm expression, modern office background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOeY_I5OJm4WsmtlrDQvWBbiayLWFCcl6w70SSS_SNM_vH2_7nh9PeKq4uQDyuxCqq_hb63Z2J2pLPQo5-cVWmgKJFSkW1woBNxuh7w_nJfdZUf-41fXZ2yoPI8flR6d4c4JIlWonN0bQTNbVX8iZSIZ9-qnfpXW-A-yvqi6f4_ptyWuNIUFmRSA0xheLFOY2A-0gzyCZ8LL3bktl7nClNaXJwkDWssl8mnmNCHUXACtQvJmtm64KsWg"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Budi Santoso</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#fff1f2] text-[#9f1239] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                        Belum Laporan
+                    </span>
+<p class="font-body-md text-body-md text-outline italic">Belum ada aktivitas tercatat.</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Kirim Pengingat
+                        <span class="material-symbols-outlined text-[16px]">notifications_active</span>
+</a>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a female staff member wearing glasses. Professional attire, well lit." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgUE_xRVh5Cuz43Yr8MYfejJdI07JwyB8VIKpkNhbbjA-6szLdm5CU6Rz0bD-NIR0mh83PRzyXI-VObxs9E8mgaP-JD4Ok0AqO3dkbswjwtNKbKbUw0Ich6_Mef02oR0H6LHkrTlWWszys1SYVjq9U1tLbXkdvLFe7OFE3Xuhf2xaFnkSvPwPlrU6lpZhuJrEnC2HRJCkvqO7N2i_o25sdutJeiJTTLHNItNiJTJCr9zMjl3z_MypmvQ"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Rina Wati</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Sudah Laporan
+                    </span>
+<p class="font-body-md text-body-md text-on-surface-variant">4 aktivitas, 2 selesai</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Lihat Laporan
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a male staff member. Confident smile, subtle background blur." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-NT66o9wIKwtadr4RX4kC8rhAu-PGc6nXFesT-QOEsB0cmHYwof2ccmtffQ4E1aD9ORyrH6ZlwYUFVM6CCkxDIT5tk1DrBEm-AXfcCeGvUFVcfpLV8c2G3ZNub5LHKwEDDKhsTMJvJyaGXqjpdePHFeMlvf1TG4LrKR330_1lK8z4oSLXhrjKlw-vnEp4CBtHZ0MY7VIginu-fO5Js3gVja9sdcPm5g61WjTxoh7v29pzN5ueGANRXQ"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Dedi Kurniawan</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        Sudah Laporan
+                    </span>
+<p class="font-body-md text-body-md text-on-surface-variant">6 aktivitas, 5 selesai</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Lihat Laporan
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest rounded-xl p-sm shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col gap-sm relative group overflow-hidden border border-surface-container-low hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-sm">
+<img class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a senior male staff member. Thoughtful expression, corporate setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaSoIdSDMo6EG_SrDDEc77Er-SWwlGh9EXNfsY3z3_cRUWoYdaRgjVV6OsEXIdJGJ5IzWqmLknKhMQaL4vyf3Myv2QGgGBxYQNfzYlrQyyrhL3he_OUsyLOgkWUeGpwJX3QjRkEmCpSpvRPvi_aNlW94CSnCP5HiFKv8RPlnEe4AVwNkt-s0a334XwBHtSeykqSR0SScDrcMQ0vM09ZwoTaPhw2391VhTkW4aW1Vv4JDX5vH7x_DBwGw"/>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-background">Joko Widodo</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Staff</p>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-base">
+<span class="inline-flex w-max items-center gap-1 bg-[#fff1f2] text-[#9f1239] px-2 py-1 rounded font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                        Belum Laporan
+                    </span>
+<p class="font-body-md text-body-md text-outline italic">Belum ada aktivitas tercatat.</p>
+</div>
+<div class="mt-auto pt-sm border-t border-surface-container-high">
+<a class="text-primary font-label-lg text-label-lg hover:underline inline-flex items-center gap-1" href="#">
+                        Kirim Pengingat
+                        <span class="material-symbols-outlined text-[16px]">notifications_active</span>
+</a>
+</div>
+</div>
+</section>
+<!-- 4. Tabel Riwayat Laporan Tim (di bawah grid) -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0px_2px_8px_rgba(0,91,191,0.1)] flex flex-col border border-surface-container-low overflow-hidden">
+<div class="p-sm border-b border-surface-container-high flex justify-between items-center">
+<h2 class="font-title-lg text-title-lg text-on-background">Riwayat Laporan Terbaru</h2>
+<button class="text-primary font-label-lg text-label-lg hover:underline">Lihat Semua</button>
+</div>
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low text-on-surface-variant font-label-lg text-label-lg">
+<tr>
+<th class="py-sm px-sm font-medium">Nama</th>
+<th class="py-sm px-sm font-medium">Tanggal</th>
+<th class="py-sm px-sm font-medium">Jumlah Aktivitas</th>
+<th class="py-sm px-sm font-medium">Status</th>
+<th class="py-sm px-sm font-medium text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="text-body-md text-on-background font-body-md divide-y divide-surface-container-high">
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-sm px-sm">
+<div class="flex items-center gap-xs">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Tiny avatar of Ahmad Fauzi." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWD5GfZYzae9OhWkQFhqV5fyvCp5uJA613yZaqLmyyjk9fIer9rmurLljbwY71kYK1DzVwluL0V6hY1N61t08xnZzEvDbyvG9Jk1yWKCpYnvdJtECWqpzWfWmsCzYeTrdZf2Uj7YOi1xkxW5-mpUo3k_1uQSsAi-cFccznG5Mp9IFRMuZEw1egOuBPy1jAkGtYtnkK-0HkpCM-RyIxhl4e1S8T50SzQVApLRxVcla4vRGg_YAEJSZpKg"/>
+                                    Ahmad Fauzi
+                                </div>
+</td>
+<td class="py-sm px-sm text-on-surface-variant">24 Okt 2023, 08:30</td>
+<td class="py-sm px-sm">5</td>
+<td class="py-sm px-sm">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-0.5 rounded font-label-sm text-label-sm">Selesai</span>
+</td>
+<td class="py-sm px-sm text-right">
+<button class="text-primary hover:text-primary-fixed-variant p-1 rounded hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-sm px-sm">
+<div class="flex items-center gap-xs">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Tiny avatar of Siti Aisyah." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC5V7HPe-ObCEF8iNb5fQZBIk9wf5gaFQBZKX448N9CXlvVF8gHi_qZrHGvKNm08zKv3M3rgiOJ9HxpezexEXdNiODF2jAZphQdLvCOYNMBTX7KQ8s2rbc4MIFNNreQRu5WTStpQcR5hvhO0524ujhJcA7AGQQATF-a-B1zGD69joKCtajETZwgk9btkwKnbAuS5mfM0EEP3IBOc_yAFih-yxyJBb5sDtXg_d_6wgdW4pTbe8crVapCzQ"/>
+                                    Siti Aisyah
+                                </div>
+</td>
+<td class="py-sm px-sm text-on-surface-variant">24 Okt 2023, 09:15</td>
+<td class="py-sm px-sm">3</td>
+<td class="py-sm px-sm">
+<span class="inline-flex w-max items-center gap-1 bg-[#ecfdf5] text-[#065f46] px-2 py-0.5 rounded font-label-sm text-label-sm">Selesai</span>
+</td>
+<td class="py-sm px-sm text-right">
+<button class="text-primary hover:text-primary-fixed-variant p-1 rounded hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors">
+<td class="py-sm px-sm">
+<div class="flex items-center gap-xs">
+<img class="w-6 h-6 rounded-full object-cover" data-alt="Tiny avatar of Dedi Kurniawan." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAHT2Ib7kRS2zBgDlYS3fqK99DIFi71Yrs_NvDlfiLj82SIZ7QDs8siJm-8J1vqXOn7JmEabI8uOZ-MJtXZCt0JIVTzRfRTiFoZLxP6IlMVjofYHBBOm4rVtufcdCGA5wygIkmw0LE3R27IWE7rNSO8DJ-2qbJYNI5508CjmZhKPcVOlfR5uV08kVo4jiUbHK7KzT2c5Vdf1CB-UZVm6fGX1QQoDJL-9u5TB_E-tb9mfDrCvVfC_u8kUA"/>
+                                    Dedi Kurniawan
+                                </div>
+</td>
+<td class="py-sm px-sm text-on-surface-variant">24 Okt 2023, 10:05</td>
+<td class="py-sm px-sm">6</td>
+<td class="py-sm px-sm">
+<span class="inline-flex w-max items-center gap-1 bg-[#fef3c7] text-[#92400e] px-2 py-0.5 rounded font-label-sm text-label-sm">Dalam Proses</span>
+</td>
+<td class="py-sm px-sm text-right">
+<button class="text-primary hover:text-primary-fixed-variant p-1 rounded hover:bg-primary-fixed transition-colors">
+<span class="material-symbols-outlined text-[20px]">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-md bg-surface-container-lowest dark:bg-inverse-surface border-t border-outline-variant mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto gap-sm">
+<span class="font-label-sm text-label-sm font-bold text-on-surface-variant">© 2024 DAMS Internal Manufacturing Systems</span>
+<div class="flex gap-md font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

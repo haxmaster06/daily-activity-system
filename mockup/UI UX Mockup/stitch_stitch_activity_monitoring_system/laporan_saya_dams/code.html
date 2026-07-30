@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Laporan Saya - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#d8e2ff",
+                        "tertiary-container": "#b26200",
+                        "surface-container-high": "#e6e8eb",
+                        "secondary-fixed": "#68fadd",
+                        "tertiary-fixed-dim": "#ffb77a",
+                        "tertiary-fixed": "#ffdcc2",
+                        "inverse-on-surface": "#eff1f4",
+                        "surface-container-low": "#f2f4f7",
+                        "on-error": "#ffffff",
+                        "surface": "#f7f9fc",
+                        "surface-container": "#eceef1",
+                        "primary-container": "#1a73e8",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#8e4d00",
+                        "outline": "#727785",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#68fadd",
+                        "on-tertiary-fixed-variant": "#6d3a00",
+                        "surface-bright": "#f7f9fc",
+                        "on-surface": "#191c1e",
+                        "surface-variant": "#e0e3e6",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "secondary": "#006b5c",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#e0e3e6",
+                        "on-secondary-container": "#007261",
+                        "on-primary-fixed": "#001a41",
+                        "error": "#ba1a1a",
+                        "background": "#f7f9fc",
+                        "on-primary-fixed-variant": "#004493",
+                        "on-tertiary-fixed": "#2e1500",
+                        "on-secondary-fixed": "#00201a",
+                        "outline-variant": "#c1c6d6",
+                        "on-primary-container": "#ffffff",
+                        "on-secondary-fixed-variant": "#005145",
+                        "surface-tint": "#005bc0",
+                        "on-surface-variant": "#414754",
+                        "primary-fixed-dim": "#adc7ff",
+                        "secondary-fixed-dim": "#44ddc1",
+                        "inverse-primary": "#adc7ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d8dadd",
+                        "primary": "#005bbf",
+                        "on-tertiary-container": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "on-primary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "sm": "16px",
+                        "xs": "8px",
+                        "xl": "48px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "margin-desktop": "32px",
+                        "lg": "32px",
+                        "md": "24px",
+                        "margin-mobile": "16px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "title-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "60px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .custom-shadow-level-1 {
+            box-shadow: 0px 2px 8px rgba(0, 91, 191, 0.1);
+        }
+        .custom-shadow-level-2 {
+            box-shadow: 0px 8px 24px rgba(0, 91, 191, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="w-full top-0 sticky bg-surface-container-lowest shadow-sm z-50">
+<div class="flex justify-between items-center px-margin-desktop py-base max-w-container-max mx-auto h-[64px]">
+<!-- Brand -->
+<div class="flex items-center gap-md">
+<div class="font-display-lg text-display-lg font-bold text-primary">DAMS</div>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center gap-md h-full">
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-sm" href="#">Dashboard</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-sm" href="#">Analytics</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-sm" href="#">Inventory</a>
+<a class="font-label-lg text-label-lg text-primary border-b-2 border-primary h-full flex items-center px-sm mt-[2px]" href="#">Reports</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-sm">
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-xs text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant ml-xs cursor-pointer">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A small circular avatar showing a professional portrait of an industrial worker in a hard hat against a clean, well-lit background. High quality, realistic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBobGPiG_st4c5NG9dnrN-CCm0eOnLK7UlD-LTC5qeeliPaA793aUNmF07ltDZWUceIGOlT8KbJJz5YKY6HpO7mQyLyZE6YZ4k5v4HEyAxSfVH-F4aCT9Foiu2zffMD2OVTYSZ0VUuJEXXsj58NybxyJrTpy_6cRrKSBXMAtS-RC-1d1q_dy4yi6cUv9tQ7mJYBCHQnldkTEbAk_yNTGfpCnLtpycjrBrM7WQPgrbAHCxeqZUcHm4o-lw"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-desktop py-md md:py-lg flex flex-col gap-md">
+<!-- Breadcrumb -->
+<nav aria-label="Breadcrumb" class="flex text-sm text-on-surface-variant font-body-md">
+<ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+<li class="inline-flex items-center">
+<a class="inline-flex items-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+                        Dashboard
+                    </a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-sm mx-1">chevron_right</span>
+<span class="text-on-surface font-label-lg ml-1 md:ml-2">Laporan Saya</span>
+</div>
+</li>
+</ol>
+</nav>
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-background">Laporan Saya</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Kelola dan pantau semua laporan aktivitas Anda.</p>
+</div>
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-md py-sm rounded-lg hover:bg-surface-tint transition-colors shadow-sm flex items-center gap-xs">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Buat Laporan Baru
+            </button>
+</div>
+<!-- Filter Bar -->
+<section class="bg-surface-container-lowest rounded-xl p-sm md:p-md custom-shadow-level-1 flex flex-col lg:flex-row gap-sm lg:items-end">
+<!-- Search -->
+<div class="flex-grow lg:w-1/3">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="search">Pencarian</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="bg-surface border border-outline-variant text-on-surface text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-10 p-2.5 transition-colors" id="search" placeholder="Cari aktivitas..." type="text"/>
+</div>
+</div>
+<!-- Status Dropdown -->
+<div class="flex-grow lg:w-1/4">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="status">Status</label>
+<select class="bg-surface border border-outline-variant text-on-surface text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 transition-colors" id="status">
+<option selected="">Semua</option>
+<option value="draft">Draft</option>
+<option value="terkirim">Terkirim</option>
+<option value="selesai">Selesai</option>
+</select>
+</div>
+<!-- Date Range -->
+<div class="flex-grow lg:w-1/4 flex gap-xs">
+<div class="w-1/2">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="date-start">Dari</label>
+<div class="relative">
+<input class="bg-surface border border-outline-variant text-on-surface text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 transition-colors text-on-surface-variant" id="date-start" type="date"/>
+</div>
+</div>
+<div class="w-1/2">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs" for="date-end">Sampai</label>
+<div class="relative">
+<input class="bg-surface border border-outline-variant text-on-surface text-sm rounded-lg focus:ring-primary focus:border-primary block w-full p-2.5 transition-colors text-on-surface-variant" id="date-end" type="date"/>
+</div>
+</div>
+</div>
+<!-- Action Button -->
+<div class="mt-xs lg:mt-0">
+<button class="w-full lg:w-auto bg-primary text-on-primary font-label-lg text-label-lg px-md py-[10px] rounded-lg hover:bg-surface-tint transition-colors h-[42px]">
+                    Terapkan Filter
+                </button>
+</div>
+</section>
+<!-- Main Data Table -->
+<section class="bg-surface-container-lowest rounded-xl custom-shadow-level-1 overflow-hidden flex flex-col">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm text-on-surface">
+<thead class="text-xs text-on-surface-variant bg-surface-container-low border-b border-surface-variant uppercase font-label-lg">
+<tr>
+<th class="px-md py-sm rounded-tl-lg" scope="col">Tanggal</th>
+<th class="px-md py-sm" scope="col">Departemen</th>
+<th class="px-md py-sm" scope="col">Jumlah Aktivitas</th>
+<th class="px-md py-sm" scope="col">Status</th>
+<th class="px-md py-sm text-right rounded-tr-lg" scope="col">Aksi</th>
+</tr>
+</thead>
+<tbody class="font-body-md divide-y divide-surface-variant">
+<!-- Row 1 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">30 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">5 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-primary/10 text-primary">
+                                    Terkirim
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">29 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">3 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-secondary/10 text-secondary">
+                                    Selesai
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">28 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">4 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-secondary/10 text-secondary">
+                                    Selesai
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">27 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">6 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-tertiary-container/10 text-tertiary-container">
+                                    Draft
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">26 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">2 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-secondary/10 text-secondary">
+                                    Selesai
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="bg-surface-container-lowest hover:bg-[#f0f4f8] transition-colors group cursor-pointer">
+<td class="px-md py-sm font-label-lg text-on-surface">25 Jul 2026</td>
+<td class="px-md py-sm text-on-surface-variant">Produksi</td>
+<td class="px-md py-sm text-on-surface-variant">4 aktivitas</td>
+<td class="px-md py-sm">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-label-lg bg-secondary/10 text-secondary">
+                                    Selesai
+                                </span>
+</td>
+<td class="px-md py-sm text-right space-x-xs">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[20px]" data-icon="visibility">visibility</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="px-md py-sm border-t border-surface-variant flex flex-col md:flex-row items-center justify-between gap-sm bg-surface-container-lowest">
+<span class="text-sm font-body-md text-on-surface-variant">
+                    Menampilkan <span class="font-label-lg text-on-surface">1-6</span> dari <span class="font-label-lg text-on-surface">45</span> laporan
+                </span>
+<nav aria-label="Page navigation">
+<ul class="inline-flex items-center -space-x-px text-sm">
+<li>
+<a class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant rounded-s-lg hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="sr-only">Previous</span>
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</a>
+</li>
+<li>
+<a aria-current="page" class="z-10 flex items-center justify-center px-3 h-8 leading-tight text-primary border border-primary bg-primary/10 hover:bg-primary/20 transition-colors font-label-lg" href="#">1</a>
+</li>
+<li>
+<a class="flex items-center justify-center px-3 h-8 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#">2</a>
+</li>
+<li>
+<a class="flex items-center justify-center px-3 h-8 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#">3</a>
+</li>
+<li>
+<span class="flex items-center justify-center px-3 h-8 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant">...</span>
+</li>
+<li>
+<a class="flex items-center justify-center px-3 h-8 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant hover:bg-surface-container-low hover:text-primary transition-colors" href="#">8</a>
+</li>
+<li>
+<a class="flex items-center justify-center px-3 h-8 leading-tight text-on-surface-variant bg-surface-container-lowest border border-outline-variant rounded-e-lg hover:bg-surface-container-low hover:text-primary transition-colors" href="#">
+<span class="sr-only">Next</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-md bg-surface-container-lowest border-t border-outline-variant mt-auto">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto gap-sm">
+<div class="font-label-sm text-label-sm text-on-surface-variant">
+                © 2024 DAMS Internal Manufacturing Systems
+            </div>
+<div class="flex items-center gap-md font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#ffffff",
+                        "primary": "#005bbf",
+                        "surface-container-low": "#f2f4f7",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#005145",
+                        "on-secondary-container": "#007261",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed-dim": "#adc7ff",
+                        "primary-fixed": "#d8e2ff",
+                        "surface-bright": "#f7f9fc",
+                        "on-tertiary-fixed": "#2e1500",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed": "#ffdcc2",
+                        "on-background": "#191c1e",
+                        "on-surface-variant": "#414754",
+                        "surface-dim": "#d8dadd",
+                        "surface-container-highest": "#e0e3e6",
+                        "outline": "#727785",
+                        "surface-container-high": "#e6e8eb",
+                        "tertiary-fixed-dim": "#ffb77a",
+                        "on-surface": "#191c1e",
+                        "surface-tint": "#005bc0",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#1a73e8",
+                        "tertiary-container": "#b26200",
+                        "on-primary-fixed": "#001a41",
+                        "surface": "#f7f9fc",
+                        "secondary": "#006b5c",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6d3a00",
+                        "secondary-fixed-dim": "#44ddc1",
+                        "inverse-on-surface": "#eff1f4",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed": "#68fadd",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#004493",
+                        "inverse-primary": "#adc7ff",
+                        "background": "#f7f9fc",
+                        "tertiary": "#8e4d00",
+                        "surface-variant": "#e0e3e6",
+                        "surface-container": "#eceef1",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#00201a",
+                        "outline-variant": "#c1c6d6",
+                        "secondary-container": "#68fadd",
+                        "on-tertiary-container": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "margin-desktop": "32px",
+                        "xs": "8px",
+                        "base": "4px",
+                        "md": "24px",
+                        "margin-mobile": "16px",
+                        "xl": "48px",
+                        "sm": "16px",
+                        "lg": "32px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "title-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "60px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1A73E8 0%, #00BFA5 100%);
+        }
+    </style>
+</head>
+<body class="bg-background min-h-screen flex items-center justify-center font-body-md text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<main class="w-full h-screen flex flex-col md:flex-row">
+<!-- Left Side: Branding -->
+<section class="hidden md:flex md:w-1/2 gradient-bg flex-col items-center justify-center p-xl text-center relative overflow-hidden">
+<!-- Decorative Elements -->
+<div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.8) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.8) 0%, transparent 50%);"></div>
+<div class="z-10 flex flex-col items-center max-w-md">
+<div class="bg-surface-container-lowest p-sm rounded-xl shadow-lg mb-lg">
+<img alt="DAMS Logo" class="w-32 h-32 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaTgh2puDA5sZqm8QYRCVnjJ70MH4eZz2sHvVbcsJi-Y7Pz-O5XINjb_EO6CwYd1sqcNUL7tYFbrp02X8mYI88-BsJWekkdpheIA6KxEzVG_4WlQYs7qzJhsRuGdReskHnF75HMNblNwd7SFzq4rAPTL7V92_5fnA1G9YF_hTTUf2M9YjN4rqbxuR2kdihZR1Sj4LmKpu9JyLG-z7iDdF7f6CTnoKAzXXnIuRhPl5Vi5X1NoVU3ZqSHQ"/>
+</div>
+<h1 class="font-display-lg text-display-lg text-on-primary mb-sm">DAMS</h1>
+<p class="font-title-lg text-title-lg text-on-primary opacity-90">Pantau Aktivitas Harian, Tingkatkan Produktivitas</p>
+</div>
+<!-- Footer on Left -->
+<div class="absolute bottom-md text-on-primary opacity-70 font-label-sm text-label-sm">
+                © 2024 DAMS Internal Manufacturing Systems
+            </div>
+</section>
+<!-- Right Side: Login Form -->
+<section class="w-full md:w-1/2 h-full bg-surface-container-lowest flex items-center justify-center p-margin-mobile md:p-margin-desktop relative">
+<!-- Mobile Logo (Hidden on Desktop) -->
+<div class="md:hidden absolute top-lg left-1/2 -translate-x-1/2 flex flex-col items-center">
+<img alt="DAMS Logo" class="w-16 h-16 object-contain mb-xs" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBaTgh2puDA5sZqm8QYRCVnjJ70MH4eZz2sHvVbcsJi-Y7Pz-O5XINjb_EO6CwYd1sqcNUL7tYFbrp02X8mYI88-BsJWekkdpheIA6KxEzVG_4WlQYs7qzJhsRuGdReskHnF75HMNblNwd7SFzq4rAPTL7V92_5fnA1G9YF_hTTUf2M9YjN4rqbxuR2kdihZR1Sj4LmKpu9JyLG-z7iDdF7f6CTnoKAzXXnIuRhPl5Vi5X1NoVU3ZqSHQ"/>
+<span class="font-headline-md text-headline-md text-primary">DAMS</span>
+</div>
+<div class="w-full max-w-md">
+<!-- Header -->
+<div class="text-center md:text-left mb-xl mt-xl md:mt-0">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-xs">Selamat Datang</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Silakan masuk ke akun Anda</p>
+</div>
+<!-- Form -->
+<form action="#" class="space-y-md" method="POST">
+<!-- Email Input -->
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-base" for="email">Alamat Email</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined" data-icon="mail" data-weight="regular">mail</span>
+</div>
+<input class="w-full pl-xl pr-sm py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm" id="email" name="email" placeholder="nama@perusahaan.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div>
+<label class="block font-label-lg text-label-lg text-on-surface mb-base" for="password">Kata Sandi</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-sm flex items-center pointer-events-none text-outline">
+<span class="material-symbols-outlined" data-icon="lock" data-weight="regular">lock</span>
+</div>
+<input class="w-full pl-xl pr-xl py-sm bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all shadow-sm" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-sm flex items-center text-outline hover:text-primary transition-colors focus:outline-none" onclick="togglePasswordVisibility()" type="button">
+<span class="material-symbols-outlined" data-icon="visibility" data-weight="regular" id="togglePasswordIcon">visibility</span>
+</button>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex items-center justify-between">
+<div class="flex items-center">
+<input class="h-4 w-4 rounded border-outline-variant text-primary focus:ring-primary bg-surface-container-lowest" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-2 block font-label-sm text-label-sm text-on-surface-variant" for="remember-me">
+                                Ingat saya
+                            </label>
+</div>
+<a class="font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors" href="#">
+                            Lupa kata sandi?
+                        </a>
+</div>
+<!-- Submit Button -->
+<div>
+<button class="w-full flex justify-center items-center py-sm px-md bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary" type="submit">
+                            Masuk
+                        </button>
+</div>
+</form>
+</div>
+</section>
+</main>
+<script>
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('togglePasswordIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.textContent = 'visibility_off';
+                toggleIcon.setAttribute('data-icon', 'visibility_off');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.textContent = 'visibility';
+                toggleIcon.setAttribute('data-icon', 'visibility');
+            }
+        }
+    </script>
+</body></html>

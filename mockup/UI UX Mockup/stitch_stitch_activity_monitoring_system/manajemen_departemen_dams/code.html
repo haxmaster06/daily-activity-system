@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manajemen Departemen - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container": "#eceef1",
+                        "on-primary-fixed-variant": "#004493",
+                        "inverse-on-surface": "#eff1f4",
+                        "secondary-container": "#68fadd",
+                        "primary-fixed-dim": "#adc7ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f2f4f7",
+                        "secondary-fixed": "#68fadd",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e0e3e6",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface-container-high": "#e6e8eb",
+                        "primary-container": "#1a73e8",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#8e4d00",
+                        "surface-bright": "#f7f9fc",
+                        "tertiary-container": "#b26200",
+                        "primary-fixed": "#d8e2ff",
+                        "surface": "#f7f9fc",
+                        "on-tertiary-container": "#ffffff",
+                        "background": "#F5F7FA", 
+                        "on-error": "#ffffff",
+                        "on-surface-variant": "#414754",
+                        "inverse-primary": "#adc7ff",
+                        "on-tertiary-fixed-variant": "#6d3a00",
+                        "secondary": "#006b5c",
+                        "tertiary-fixed": "#ffdcc2",
+                        "outline-variant": "#c1c6d6",
+                        "on-secondary-fixed": "#00201a",
+                        "on-tertiary-fixed": "#2e1500",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed-dim": "#ffb77a",
+                        "on-surface": "#191c1e",
+                        "on-primary-fixed": "#001a41",
+                        "surface-dim": "#d8dadd",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline": "#727785",
+                        "surface-tint": "#005bc0",
+                        "inverse-surface": "#2d3133",
+                        "on-secondary-fixed-variant": "#005145",
+                        "on-secondary-container": "#007261",
+                        "on-primary-container": "#ffffff",
+                        "secondary-fixed-dim": "#44ddc1",
+                        "primary": "#005bbf",
+                        "on-background": "#191c1e",
+                        
+                        "dept-blue": "#E3F2FD",
+                        "dept-green": "#E8F5E9",
+                        "dept-teal": "#E0F2F1",
+                        "dept-amber": "#FFF8E1",
+                        "dept-purple": "#F3E5F5",
+                        "dept-orange": "#FFF3E0",
+                        "dept-brown": "#EFEBE9",
+                        "dept-cyan": "#E0F7FA",
+                        "dept-red": "#FFEBEE",
+                        "dept-darkblue": "#E8EAF6",
+                        "dept-pink": "#FCE4EC",
+                        "dept-gray": "#F5F5F5",
+                        
+                        "dept-blue-icon": "#1976D2",
+                        "dept-green-icon": "#388E3C",
+                        "dept-teal-icon": "#00796B",
+                        "dept-amber-icon": "#FFA000",
+                        "dept-purple-icon": "#7B1FA2",
+                        "dept-orange-icon": "#F57C00",
+                        "dept-brown-icon": "#5D4037",
+                        "dept-cyan-icon": "#0097A7",
+                        "dept-red-icon": "#D32F2F",
+                        "dept-darkblue-icon": "#303F9F",
+                        "dept-pink-icon": "#C2185B",
+                        "dept-gray-icon": "#616161"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "xl": "48px",
+                        "margin-mobile": "16px",
+                        "base": "4px",
+                        "gutter": "24px",
+                        "md": "24px",
+                        "margin-desktop": "32px",
+                        "lg": "32px",
+                        "xs": "8px",
+                        "sm": "16px",
+                        "container-max": "1280px"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Inter"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "title-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"]
+                    },
+                    fontSize: {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "60px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 8px -2px rgba(0, 91, 191, 0.08), 0 1px 4px -1px rgba(0, 91, 191, 0.04)',
+                        'soft-hover': '0 12px 24px -6px rgba(0, 91, 191, 0.12), 0 4px 12px -4px rgba(0, 91, 191, 0.08)'
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); }
+        .material-symbols-outlined {
+          font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="w-full top-0 sticky z-50 bg-surface-container-lowest dark:bg-inverse-surface shadow-sm">
+<div class="flex justify-between items-center px-margin-desktop py-base max-w-container-max mx-auto h-16">
+<div class="flex items-center gap-gutter">
+<a class="font-display-lg text-[24px] leading-8 font-bold text-primary dark:text-primary-fixed tracking-tight" href="#">DAMS</a>
+<div class="hidden md:flex gap-sm h-full items-center">
+<a class="font-label-lg text-label-lg text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors active:opacity-80 transition-all h-full flex items-center px-2" href="#">Dashboard</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors active:opacity-80 transition-all h-full flex items-center px-2" href="#">Analytics</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors active:opacity-80 transition-all h-full flex items-center px-2" href="#">Inventory</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors active:opacity-80 transition-all h-full flex items-center px-2" href="#">Reports</a>
+<a class="font-label-lg text-label-lg text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed h-full flex items-center px-2 active:opacity-80 transition-all" href="#">Settings</a>
+</div>
+</div>
+<div class="flex items-center gap-sm">
+<button aria-label="notifications" class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button aria-label="settings" class="w-10 h-10 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden ml-2 ring-2 ring-surface-container border border-outline-variant">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate user smiling subtly against a neutral light background, soft studio lighting, professional corporate aesthetic, ensuring trust and competence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkUbaQP87Q6purjnE9q7IZpEZEX_UwyS-vyvHkXBSJOndg6niANOqcZ783kFLzUt4I0czoYiNdB_rzsAtvgnj5C6AIooRZPyR5tOHgmb9qdkQoPbuasN8W2swsJLEu5RKHtJZdVVUOdXYwJXX9jmgoAJv9920F8_vXXcDPYrUCpHXyu5Qy4U-C6omLTdURW2ZQ7hSj2c90sCYQOW0I1ENdMmwzQ2NjktRa-dnj_l4eedUgLhQqtL_XqA"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-margin-desktop py-lg">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 mb-md text-on-surface-variant font-label-lg text-label-lg">
+<a class="hover:text-primary transition-colors" href="#">Pengaturan</a>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="text-on-surface font-semibold">Manajemen Departemen</span>
+</div>
+<!-- Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-lg gap-sm">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface mb-1">Manajemen Departemen</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Kelola struktur departemen dan unit kerja organisasi.</p>
+</div>
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-6 py-2.5 rounded-lg flex items-center gap-2 hover:bg-surface-tint hover:shadow-soft-hover transition-all active:scale-95 whitespace-nowrap">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                Tambah Departemen
+            </button>
+</div>
+<!-- Department Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-blue flex items-center justify-center text-dept-blue-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">factory</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Produksi</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Unit pengolahan produk</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">15 anggota</span>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-green flex items-center justify-center text-dept-green-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">shield</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">QA</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Quality Assurance &amp; compliance</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4 anggota</span>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-teal flex items-center justify-center text-dept-teal-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">biotech</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">QC</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Quality Control produk</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">6 anggota</span>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-amber flex items-center justify-center text-dept-amber-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">bar_chart</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Finance</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Keuangan &amp; accounting</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">5 anggota</span>
+</div>
+</div>
+<!-- Card 5 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-purple flex items-center justify-center text-dept-purple-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">group</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">HRD</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Sumber daya manusia</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3 anggota</span>
+</div>
+</div>
+<!-- Card 6 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-orange flex items-center justify-center text-dept-orange-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">shopping_cart</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Purchasing</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Pengadaan bahan</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3 anggota</span>
+</div>
+</div>
+<!-- Card 7 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-brown flex items-center justify-center text-dept-brown-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">inventory_2</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Warehouse</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Gudang &amp; inventori</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">8 anggota</span>
+</div>
+</div>
+<!-- Card 8 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-cyan flex items-center justify-center text-dept-cyan-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">folder</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Document Control</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Pengelolaan dokumen</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 anggota</span>
+</div>
+</div>
+<!-- Card 9 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-red flex items-center justify-center text-dept-red-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">build</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Maintenance</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Pemeliharaan mesin</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">4 anggota</span>
+</div>
+</div>
+<!-- Card 10 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-darkblue flex items-center justify-center text-dept-darkblue-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">public</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">EX/IM</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Ekspor &amp; impor</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">3 anggota</span>
+</div>
+</div>
+<!-- Card 11 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-pink flex items-center justify-center text-dept-pink-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">storefront</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">Retail MnD</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">Penjualan retail</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 anggota</span>
+</div>
+</div>
+<!-- Card 12 -->
+<div class="bg-surface-container-lowest rounded-2xl p-sm shadow-soft border border-outline-variant/30 hover:shadow-soft-hover hover:-translate-y-1 transition-all duration-300 relative group flex flex-col h-full">
+<div class="absolute top-sm right-sm flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="w-8 h-8 rounded-full hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="w-8 h-8 rounded-full hover:bg-error-container flex items-center justify-center text-on-surface-variant hover:text-error transition-colors">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+<div class="flex items-start gap-4 mb-3">
+<div class="w-12 h-12 rounded-xl bg-dept-gray flex items-center justify-center text-dept-gray-icon shrink-0">
+<span class="material-symbols-outlined text-[28px]" data-weight="fill">gavel</span>
+</div>
+<div class="pt-1 pr-16">
+<h3 class="font-title-lg text-[18px] leading-6 font-semibold text-on-surface mb-1">GA Legal</h3>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-1">General affair &amp; legal</p>
+</div>
+</div>
+<div class="mt-auto pt-4 border-t border-surface-variant/50 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline">group</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">2 anggota</span>
+</div>
+</div>
+</div>
+</main>
+</body></html>

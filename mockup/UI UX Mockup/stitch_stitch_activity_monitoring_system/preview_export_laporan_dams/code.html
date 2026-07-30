@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Preview &amp; Export Laporan - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#eceef1",
+                    "secondary": "#006b5c",
+                    "on-secondary-container": "#007261",
+                    "tertiary-fixed-dim": "#ffb77a",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e0e3e6",
+                    "surface": "#f7f9fc",
+                    "on-secondary-fixed": "#00201a",
+                    "on-primary-fixed": "#001a41",
+                    "on-error": "#ffffff",
+                    "surface-tint": "#005bc0",
+                    "on-secondary-fixed-variant": "#005145",
+                    "tertiary": "#8e4d00",
+                    "inverse-primary": "#adc7ff",
+                    "on-tertiary-fixed-variant": "#6d3a00",
+                    "secondary-container": "#68fadd",
+                    "primary-fixed-dim": "#adc7ff",
+                    "outline": "#727785",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#ffdcc2",
+                    "background": "#f7f9fc",
+                    "tertiary-container": "#b26200",
+                    "surface-variant": "#e0e3e6",
+                    "primary": "#005bbf",
+                    "on-surface": "#191c1e",
+                    "secondary-fixed": "#68fadd",
+                    "on-secondary": "#ffffff",
+                    "on-primary-container": "#ffffff",
+                    "surface-container-low": "#f2f4f7",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed-variant": "#004493",
+                    "surface-bright": "#f7f9fc",
+                    "primary-fixed": "#d8e2ff",
+                    "outline-variant": "#c1c6d6",
+                    "surface-dim": "#d8dadd",
+                    "on-background": "#191c1e",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#2e1500",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-container": "#ffffff",
+                    "inverse-surface": "#2d3133",
+                    "surface-container-high": "#e6e8eb",
+                    "secondary-fixed-dim": "#44ddc1",
+                    "on-surface-variant": "#414754",
+                    "inverse-on-surface": "#eff1f4",
+                    "surface-container-lowest": "#ffffff",
+                    "primary-container": "#1a73e8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "16px",
+                    "container-max": "1280px",
+                    "xl": "48px",
+                    "margin-desktop": "32px",
+                    "base": "4px",
+                    "sm": "16px",
+                    "md": "24px",
+                    "xs": "8px",
+                    "lg": "32px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "display-lg": ["Plus Jakarta Sans"],
+                    "title-lg": ["Plus Jakarta Sans"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "display-lg": ["48px", {"lineHeight": "60px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .paper-shadow {
+            box-shadow: 0px 8px 24px rgba(0, 91, 191, 0.08), 0px 2px 8px rgba(0, 91, 191, 0.04);
+        }
+        .a4-ratio {
+            aspect-ratio: 1 / 1.414;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-lg antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest shadow-sm w-full top-0 sticky z-50">
+<div class="flex justify-between items-center px-margin-desktop py-base max-w-container-max mx-auto h-16">
+<div class="flex items-center gap-md">
+<span class="font-display-lg text-display-lg font-bold text-primary">DAMS</span>
+<nav class="hidden md:flex gap-sm">
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors px-xs py-base" href="#">Dashboard</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors px-xs py-base" href="#">Analytics</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant hover:text-primary transition-colors px-xs py-base" href="#">Inventory</a>
+<a class="font-label-lg text-label-lg text-primary border-b-2 border-primary pb-1 px-xs py-base" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-sm">
+<div class="relative hidden md:block mr-4">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline-variant text-sm">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border border-surface-container-highest rounded-full font-body-md text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all w-64" placeholder="Search..." type="text"/>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-colors active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-colors active:opacity-80 mr-2">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover border border-surface-variant" data-alt="A professional headshot of a diverse tech worker in their 30s, neutral background, bright even lighting, high resolution, modern corporate aesthetic. The subject is wearing a smart casual navy blue shirt, smiling subtly. The image has a clean, light-mode feel matching a professional dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtjAbRi1D_yv1J7zc_qcqUfYR5uKI0FnkDlpsYabpq8HkXBFWSQ2RkRfjo9RYWIExLvHLUhWKiM-eK-mVdyOuqE-bsamjK9a1fEkRJyl73HpUM5Lq25aImbi-szyc_7RrhgrD91juX5leNzzcssjbHjyzWJq1kTLRf79cX_q2RdverpUAQhgfhDqrI94ls6g6aYAcyM_EvkQvH4jQzWjkq5su1imVNvv3aOvzi7gYaxiu4gUqfB9YXBQ"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col md:flex-row w-full max-w-container-max mx-auto h-[calc(100vh-64px-64px)]">
+<!-- Sidebar Filter (Left) -->
+<aside class="w-full md:w-[250px] bg-surface-container-low border-r border-outline-variant flex flex-col p-sm flex-shrink-0">
+<div class="mb-sm">
+<nav aria-label="Breadcrumb" class="flex text-sm text-on-surface-variant font-label-lg">
+<ol class="inline-flex items-center space-x-1 md:space-x-2">
+<li class="inline-flex items-center">
+<a class="hover:text-primary transition-colors" href="#">Dashboard</a>
+</li>
+<li>
+<div class="flex items-center">
+<span class="material-symbols-outlined text-sm mx-1">chevron_right</span>
+<span class="text-on-surface font-medium">Export Laporan</span>
+</div>
+</li>
+</ol>
+</nav>
+</div>
+<h2 class="font-headline-md text-title-lg text-on-surface mb-md">Filter Laporan</h2>
+<div class="flex-1 space-y-md overflow-y-auto pr-xs">
+<!-- Departemen -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-lg text-label-lg text-on-surface-variant">Departemen</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option>Produksi</option>
+<option>Quality Control</option>
+<option>Maintenance</option>
+</select>
+</div>
+<!-- Periode -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-lg text-label-lg text-on-surface-variant">Periode</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option>Harian</option>
+<option>Mingguan</option>
+<option>Bulanan</option>
+</select>
+</div>
+<!-- Date Range -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-lg text-label-lg text-on-surface-variant">Rentang Waktu</label>
+<div class="flex items-center gap-2">
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-2 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all" type="date" value="2026-07-28"/>
+<span class="text-on-surface-variant">—</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-2 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all" type="date" value="2026-07-30"/>
+</div>
+</div>
+<!-- Format -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-lg text-label-lg text-on-surface-variant">Format</label>
+<select class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option>Semua Aktivitas</option>
+<option>Ringkasan</option>
+</select>
+</div>
+</div>
+<div class="pt-sm mt-auto">
+<button class="w-full bg-primary hover:bg-on-primary-fixed-variant text-on-primary font-label-lg text-label-lg py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">visibility</span>
+                    Tampilkan Preview
+                </button>
+</div>
+</aside>
+<!-- Main Preview Area (Right) -->
+<section class="flex-1 bg-surface flex flex-col relative overflow-hidden">
+<!-- Floating Toolbar -->
+<div class="absolute top-md left-1/2 -translate-x-1/2 z-10 flex items-center gap-sm bg-surface-container-lowest rounded-full px-4 py-2 paper-shadow border border-surface-container-highest">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#e6f4ea] text-[#137333] hover:bg-[#ceead6] transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[18px]">table_chart</span>
+                    Export Excel
+                </button>
+<div class="w-px h-4 bg-outline-variant"></div>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#fce8e6] text-[#c5221f] hover:bg-[#fad2cf] transition-colors font-label-sm">
+<span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+                    Export PDF
+                </button>
+<div class="w-px h-4 bg-outline-variant"></div>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-low text-primary hover:bg-primary hover:text-on-primary transition-colors font-label-sm border border-outline-variant hover:border-primary">
+<span class="material-symbols-outlined text-[18px]">print</span>
+                    Cetak
+                </button>
+<div class="w-px h-4 bg-outline-variant ml-2"></div>
+<div class="flex items-center gap-1 text-on-surface-variant">
+<button class="p-1 hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">remove</span>
+</button>
+<span class="font-label-sm w-12 text-center">100%</span>
+<button class="p-1 hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+<!-- Paper Container -->
+<div class="flex-1 overflow-y-auto p-md md:p-xl flex justify-center items-start pt-24 pb-24">
+<!-- The Paper Document -->
+<div class="bg-surface-container-lowest paper-shadow rounded-sm w-full max-w-[800px] min-h-[1131px] p-12 flex flex-col relative text-on-surface">
+<!-- Document Header -->
+<div class="flex items-center justify-between border-b-2 border-outline-variant pb-6 mb-8">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 bg-primary rounded-lg flex items-center justify-center text-on-primary font-display-lg text-title-lg font-bold">
+                                D
+                            </div>
+<div>
+<h1 class="font-headline-lg text-headline-md font-bold text-on-surface">CV Hasil Barokah Mandiri</h1>
+<p class="font-body-lg text-on-surface-variant">Manufacturing &amp; Production Systems</p>
+</div>
+</div>
+<div class="text-right">
+<h2 class="font-headline-md text-title-lg font-semibold text-primary">Laporan Aktivitas Harian</h2>
+<p class="font-label-sm text-outline">DAMS-RPT-2607-001</p>
+</div>
+</div>
+<!-- Info Bar -->
+<div class="bg-surface-container-low rounded-lg p-4 mb-8 flex justify-between items-center border border-surface-container-highest">
+<div class="flex gap-8">
+<div>
+<span class="block font-label-sm text-on-surface-variant mb-1">Departemen</span>
+<span class="font-label-lg font-semibold text-on-surface">Produksi</span>
+</div>
+<div>
+<span class="block font-label-sm text-on-surface-variant mb-1">Periode</span>
+<span class="font-label-lg font-semibold text-on-surface">28 - 30 Juli 2026</span>
+</div>
+</div>
+<div>
+<span class="inline-flex items-center gap-1 bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full font-label-sm">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+                                Validated
+                            </span>
+</div>
+</div>
+<!-- Data Table -->
+<div class="flex-1">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b-2 border-on-surface-variant text-on-surface-variant font-label-sm uppercase tracking-wider">
+<th class="py-3 px-2">Tanggal</th>
+<th class="py-3 px-2 w-12 text-center">No</th>
+<th class="py-3 px-2">Aktivitas</th>
+<th class="py-3 px-2">Keterangan</th>
+<th class="py-3 px-2">Target</th>
+<th class="py-3 px-2 text-right">Status</th>
+</tr>
+</thead>
+<tbody class="font-body-md">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group">
+<td class="py-4 px-2 text-on-surface-variant whitespace-nowrap">28 Jul 2026</td>
+<td class="py-4 px-2 text-center text-on-surface-variant">1</td>
+<td class="py-4 px-2 font-medium">Proses oven LOT 082</td>
+<td class="py-4 px-2 text-on-surface-variant">Target 5000kg</td>
+<td class="py-4 px-2 text-on-surface-variant">30 Jul 2026</td>
+<td class="py-4 px-2 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333]">Selesai</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group bg-surface-container-low/30">
+<td class="py-4 px-2 text-on-surface-variant whitespace-nowrap">29 Jul 2026</td>
+<td class="py-4 px-2 text-center text-on-surface-variant">2</td>
+<td class="py-4 px-2 font-medium">Packing pouch 300gr</td>
+<td class="py-4 px-2 text-on-surface-variant">Output 1200 pouch</td>
+<td class="py-4 px-2 text-on-surface-variant">30 Jul 2026</td>
+<td class="py-4 px-2 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333]">Selesai</span>
+</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors group">
+<td class="py-4 px-2 text-on-surface-variant whitespace-nowrap">30 Jul 2026</td>
+<td class="py-4 px-2 text-center text-on-surface-variant">3</td>
+<td class="py-4 px-2 font-medium">Xray checking</td>
+<td class="py-4 px-2 text-on-surface-variant">Output 1195 pouch</td>
+<td class="py-4 px-2 text-on-surface-variant">31 Jul 2026</td>
+<td class="py-4 px-2 text-right">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e6f4ea] text-[#137333]">Selesai</span>
+</td>
+</tr>
+<!-- Empty rows to simulate full page -->
+<tr class="border-b border-outline-variant opacity-0"><td class="py-8" colspan="6"></td></tr>
+<tr class="border-b border-outline-variant opacity-0"><td class="py-8" colspan="6"></td></tr>
+</tbody>
+</table>
+</div>
+<!-- Document Footer -->
+<div class="mt-auto pt-8 border-t border-outline-variant flex justify-between items-end">
+<div class="font-label-sm text-outline-variant">
+                            Dihasilkan oleh Sistem DAMS
+                        </div>
+<div class="font-label-sm text-on-surface-variant text-right">
+                            Dicetak pada: 30 Jul 2026, 15:00 WIB<br/>
+                            Hal 1 dari 1
+                        </div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest border-t border-outline-variant py-md w-full z-40 relative">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto">
+<div class="font-label-sm text-label-sm font-bold text-on-surface-variant mb-4 md:mb-0">
+                © 2024 DAMS Internal Manufacturing Systems
+            </div>
+<div class="flex gap-md font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Support</a>
+</div>
+</div>
+</footer>
+</body></html>

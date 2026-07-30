@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    /* Tata letak tidak boleh jebol oleh kode, email, atau URL panjang (standar §23.1) */
+    overflow-wrap: break-word;
+  }
+
+  body {
+    @apply bg-background text-body text-ink antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+
+  a {
+    text-decoration: none;
+  }
+
+  /* Fokus selalu terlihat (standar §20.2). Dilarang `outline: none` tanpa pengganti. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-1 ring-offset-surface;
+  }
+
+  /* Spinner input angka dimatikan — mengganggu entri data numerik yang padat */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Input: latar putih, border tipis, fokus biru (standar §5.2). Bukan abu-abu generik. */
+  .field {
+    @apply h-input w-full rounded-input border border-line bg-surface px-2.5 text-body-lg text-ink
+           transition-colors duration-fast placeholder:text-ink-soft
+           focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25
+           disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-soft;
+  }
+
+  .field-sm {
+    @apply h-input-sm text-body;
+  }
+
+  .field-label {
+    @apply mb-1 block text-label text-ink-muted;
+  }
+
+  .field-error {
+    @apply mt-1 block text-caption text-danger-text;
+  }
+
+  .btn {
+    @apply inline-flex h-input items-center justify-center gap-1.5 rounded-control px-3
+           text-body-lg font-medium transition-colors duration-fast
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-hover;
+  }
+
+  .btn-secondary {
+    @apply btn bg-primary-subtle text-primary-text hover:bg-primary-subtle/70;
+  }
+
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink-muted hover:bg-surface-muted;
+  }
+
+  .btn-sm {
+    @apply h-input-sm px-2.5 text-body;
+  }
+
+  .card {
+    @apply rounded-card border border-line bg-surface shadow-card;
+  }
+}

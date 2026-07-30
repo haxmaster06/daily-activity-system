@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manajemen Pengguna - DAMS</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-tertiary-container": "#ffffff",
+                    "surface-dim": "#d8dadd",
+                    "on-primary-fixed": "#001a41",
+                    "on-error": "#ffffff",
+                    "inverse-on-surface": "#eff1f4",
+                    "on-primary-fixed-variant": "#004493",
+                    "on-tertiary-fixed-variant": "#6d3a00",
+                    "on-primary": "#ffffff",
+                    "surface-variant": "#e0e3e6",
+                    "surface-bright": "#f7f9fc",
+                    "surface-tint": "#005bc0",
+                    "surface-container-low": "#f2f4f7",
+                    "background": "#f7f9fc",
+                    "inverse-surface": "#2d3133",
+                    "tertiary": "#8e4d00",
+                    "primary-fixed": "#d8e2ff",
+                    "secondary": "#006b5c",
+                    "primary-fixed-dim": "#adc7ff",
+                    "secondary-fixed-dim": "#44ddc1",
+                    "on-error-container": "#93000a",
+                    "on-background": "#191c1e",
+                    "secondary-fixed": "#68fadd",
+                    "tertiary-fixed-dim": "#ffb77a",
+                    "tertiary-fixed": "#ffdcc2",
+                    "outline": "#727785",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#b26200",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#eceef1",
+                    "primary-container": "#1a73e8",
+                    "secondary-container": "#68fadd",
+                    "on-surface": "#191c1e",
+                    "on-secondary-container": "#007261",
+                    "inverse-primary": "#adc7ff",
+                    "surface-container-high": "#e6e8eb",
+                    "on-secondary-fixed": "#00201a",
+                    "on-secondary-fixed-variant": "#005145",
+                    "on-primary-container": "#ffffff",
+                    "surface-container-highest": "#e0e3e6",
+                    "on-tertiary-fixed": "#2e1500",
+                    "surface": "#f7f9fc",
+                    "outline-variant": "#c1c6d6",
+                    "on-surface-variant": "#414754",
+                    "primary": "#005bbf",
+                    "on-tertiary": "#ffffff",
+                    "surface-container-lowest": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "16px",
+                    "container-max": "1280px",
+                    "xl": "48px",
+                    "gutter": "24px",
+                    "xs": "8px",
+                    "md": "24px",
+                    "margin-mobile": "16px",
+                    "base": "4px",
+                    "lg": "32px",
+                    "margin-desktop": "32px"
+            },
+            "fontFamily": {
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "label-lg": [
+                            "Inter"
+                    ],
+                    "display-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-lg-mobile": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "title-lg": [
+                            "Plus Jakarta Sans"
+                    ]
+            },
+            "fontSize": {
+                    "body-lg": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "label-lg": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "60px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "28px",
+                            {
+                                    "lineHeight": "36px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "title-lg": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-body-lg min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col gap-sm p-sm bg-surface-container-low h-screen w-64 border-r border-outline-variant flex-shrink-0 sticky top-0">
+<div class="px-sm py-md">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">DAMS</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Internal Ops</p>
+</div>
+<button class="flex items-center justify-center gap-2 bg-primary text-on-primary py-2 px-4 rounded-lg font-label-lg text-label-lg hover:opacity-90 transition-opacity mb-md mx-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+            New Report
+        </button>
+<div class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Home
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">factory</span>
+                Production
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">verified</span>
+                Quality Control
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">build</span>
+                Maintenance
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">history</span>
+                Logs
+            </a>
+</div>
+<div class="mt-auto flex flex-col gap-1 border-t border-outline-variant pt-sm">
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">help</span>
+                Help
+            </a>
+<a class="flex items-center gap-3 px-sm py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-lg font-label-lg text-label-lg" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Sign Out
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0">
+<!-- TopNavBar -->
+<header class="w-full top-0 sticky bg-surface-container-lowest shadow-sm z-10 flex justify-between items-center px-margin-desktop py-base max-w-container-max mx-auto h-[64px]">
+<div class="flex items-center gap-4">
+<!-- Mobile menu button -->
+<button class="md:hidden text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="hidden md:flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="hover:text-primary cursor-pointer transition-colors">Pengaturan</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+<span class="font-medium text-on-surface">Manajemen Pengguna</span>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<nav class="hidden md:flex gap-md font-label-lg text-label-lg">
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Analytics</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Inventory</a>
+<a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Reports</a>
+</nav>
+<div class="flex items-center gap-4 border-l border-outline-variant pl-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-primary border-b-2 border-primary pb-1 active:opacity-80 transition-all">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="User profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant cursor-pointer" data-alt="A small, circular avatar image of a professional system operator in a modern corporate setting. The lighting is soft and neutral, conveying a sense of reliability and competence. High quality, clear focus, suitable for a dashboard UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyFxAg-kPnycl4ZEf-EJodSxTs5_anSgy6K6ok1QK9NPTuuz3NxzudDWEsPv4y-GWJ0NQ7JUqTOpq2ZfFF6C7tjpUc0nIs8XZAngjGW2s79IdRtM3sdVqKTzddfxrmXesauSS33ZYzpBTiSIbXvYwWjATGbGvgwZJfZEJJmJRQDCHwCCFkh0ONexHWnEXYtVz2H9JpFIc4xkwBIF2i3jN4jbik2USf9B7lzN9SeO61pYNkYrLBSkzryQ"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Header Section -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-md">
+<h2 class="font-headline-lg text-headline-lg font-bold text-on-surface">Manajemen Pengguna</h2>
+<button class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg text-label-lg hover:opacity-90 transition-opacity whitespace-nowrap shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">add</span>
+                    Tambah Pengguna
+                </button>
+</div>
+<!-- Management Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_2px_8px_rgba(0,91,191,0.1)] border border-outline-variant/30 overflow-hidden flex flex-col">
+<!-- Filter Bar -->
+<div class="p-sm md:p-md border-b border-outline-variant/50 bg-surface-bright flex flex-col lg:flex-row gap-4 items-center">
+<div class="relative w-full lg:w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Cari nama atau email..." type="text"/>
+</div>
+<div class="flex flex-wrap sm:flex-nowrap gap-3 w-full lg:w-auto">
+<select class="flex-1 sm:w-auto bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option value="">Departemen: Semua</option>
+<option value="produksi">Produksi</option>
+<option value="qa">QA</option>
+<option value="finance">Finance</option>
+<option value="warehouse">Warehouse</option>
+</select>
+<select class="flex-1 sm:w-auto bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option value="">Role: Semua</option>
+<option value="admin">Administrator</option>
+<option value="manager">Manager</option>
+<option value="supervisor">Supervisor</option>
+<option value="staff">Staff</option>
+</select>
+<select class="flex-1 sm:w-auto bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all cursor-pointer">
+<option value="">Status: Semua</option>
+<option value="aktif">Aktif</option>
+<option value="nonaktif">Nonaktif</option>
+</select>
+</div>
+</div>
+<!-- Data Table -->
+<div class="overflow-x-auto w-full">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Nama</th>
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Email</th>
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Departemen</th>
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Role</th>
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-md py-3 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Aksi</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md divide-y divide-outline-variant/30">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-md py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">AU</div>
+<span class="font-medium text-on-surface">Admin Utama</span>
+</div>
+</td>
+<td class="px-md py-4 text-on-surface-variant">admin@hbm.co.id</td>
+<td class="px-md py-4 text-on-surface-variant">-</td>
+<td class="px-md py-4 text-on-surface-variant">Administrator</td>
+<td class="px-md py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-secondary/15 text-secondary font-label-sm text-label-sm">Aktif</span>
+</td>
+<td class="px-md py-4 text-right">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-md py-4">
+<div class="flex items-center gap-3">
+<img alt="Nova Vaelasiva" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular profile picture of a female professional named Nova. Soft, natural lighting, wearing business casual attire. High quality, clear focus, modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCN6cjDzJnDKEgy1lcGC4yEhli-v0Bkdzcu9vwDns96pFthVfS06OaNLKHateLsh7NTmxwdzzNQVlO7wTAbSm3XavpWHMh03Z6YifOSIky9-b1gXL0dQ1LegOn9WXOxH_t_fSpn17vB-rmEG_h0Zg8M9AmJmRkE6x05K_WAZdDzDM-rR5Ci_WfzUCNCX-85TCov0vrQlDn5PF7vS7sZthUqHTY-jPv0oLwPmX9du4NBO2g7JylB_zIrTg"/>
+<span class="font-medium text-on-surface">Nova Vaelasiva</span>
+</div>
+</td>
+<td class="px-md py-4 text-on-surface-variant">nova@hbm.co.id</td>
+<td class="px-md py-4 text-on-surface-variant">Finance</td>
+<td class="px-md py-4 text-on-surface-variant">Supervisor</td>
+<td class="px-md py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-secondary/15 text-secondary font-label-sm text-label-sm">Aktif</span>
+</td>
+<td class="px-md py-4 text-right flex justify-end gap-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1" title="Nonaktifkan">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-md py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-tertiary font-bold text-sm flex items-center justify-center">AF</div>
+<span class="font-medium text-on-surface">Ahmad Fauzi</span>
+</div>
+</td>
+<td class="px-md py-4 text-on-surface-variant">ahmad@hbm.co.id</td>
+<td class="px-md py-4 text-on-surface-variant">Produksi</td>
+<td class="px-md py-4 text-on-surface-variant">Staff</td>
+<td class="px-md py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-secondary/15 text-secondary font-label-sm text-label-sm">Aktif</span>
+</td>
+<td class="px-md py-4 text-right flex justify-end gap-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1" title="Nonaktifkan">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-bright transition-colors group">
+<td class="px-md py-4">
+<div class="flex items-center gap-3">
+<img alt="Siti Aisyah" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular profile picture of a female professional named Siti. Modern office background, soft lighting, professional demeanor. High quality, clear focus, suitable for a user management dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDnnhCVqDCceYf-r_ENVP_vd27W6WgZdexC4oRUgxFX84lu2Cw8maDh0QxyP0mOHzQ3I1FOhx-jV64ZJfHG716kt-14tuGnj1yahYOaefJ4xKz5FeT2nZRbKB2wHrq3uug6gM17QjXBXlQBr8LVEMqOcZcU3tw6JsX2uFqnFrUOo9kbRujmtYSUgz3_2jCt0RzBEzT3gEA2PnSnyULaL3k8JG4J9-k4mnwA9JCfN9u-ozNMX0tZ0MD1cA"/>
+<span class="font-medium text-on-surface">Siti Aisyah</span>
+</div>
+</td>
+<td class="px-md py-4 text-on-surface-variant">siti@hbm.co.id</td>
+<td class="px-md py-4 text-on-surface-variant">QA</td>
+<td class="px-md py-4 text-on-surface-variant">Staff</td>
+<td class="px-md py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-secondary/15 text-secondary font-label-sm text-label-sm">Aktif</span>
+</td>
+<td class="px-md py-4 text-right flex justify-end gap-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1" title="Nonaktifkan">
+<span class="material-symbols-outlined text-[20px]">block</span>
+</button>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-bright transition-colors group opacity-75">
+<td class="px-md py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-on-surface-variant font-bold text-sm flex items-center justify-center">BL</div>
+<span class="font-medium text-on-surface">Budi Lama</span>
+</div>
+</td>
+<td class="px-md py-4 text-on-surface-variant">budi@hbm.co.id</td>
+<td class="px-md py-4 text-on-surface-variant">Warehouse</td>
+<td class="px-md py-4 text-on-surface-variant">Staff</td>
+<td class="px-md py-4">
+<span class="inline-flex items-center px-2 py-1 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">Nonaktif</span>
+</td>
+<td class="px-md py-4 text-right flex justify-end gap-2">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-secondary transition-colors p-1" title="Aktifkan">
+<span class="material-symbols-outlined text-[20px]">power_settings_new</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="p-md border-t border-outline-variant/30 flex flex-col sm:flex-row justify-between items-center gap-4 bg-surface-bright">
+<span class="font-body-md text-body-md text-on-surface-variant">Menampilkan 1-5 dari 42 pengguna</span>
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[18px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded bg-primary text-on-primary font-label-sm text-label-sm">1</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-sm text-label-sm">2</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-sm text-label-sm">3</button>
+<span class="px-2 text-on-surface-variant">...</span>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-sm text-label-sm">9</button>
+<button class="w-8 h-8 flex items-center justify-center rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
