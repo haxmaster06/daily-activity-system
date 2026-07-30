@@ -45,7 +45,16 @@ export function Lanyard({ nama, keterangan, fotoUrl, className }: LanyardProps) 
   const keteranganTampil = keterangan ?? 'Sistem Monitoring Aktivitas Harian';
 
   return (
-    <div className={cn('h-96 w-64 select-none', className)}>
+    /*
+     * Kanvas sengaja menjulur ke atas melewati kartu halaman, sehingga
+     * talinya terlihat menggantung dari luar layar — lebih menyerupai tali
+     * yang sebenarnya daripada tali yang terpotong di tepi kartu.
+     *
+     * `z-0` menaruhnya di lapisan bawah: bilah navigasi ber-`z-30`, jadi
+     * tali lewat di belakangnya dan klik pada navigasi tetap mengenai
+     * navigasi, bukan kanvas.
+     */
+    <div className={cn('relative z-0 -mt-32 h-[32rem] w-72 select-none', className)}>
       {kurangiGerak ? (
         <KartuDiam nama={namaTampil} keterangan={keteranganTampil} />
       ) : (
@@ -69,9 +78,10 @@ function KartuDiam({
   keterangan?: string;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-start pt-2">
-      <span aria-hidden="true" className="h-1.5 w-8 rounded-full bg-line-strong" />
-      <span aria-hidden="true" className="h-12 w-2 bg-primary-text/85" />
+    <div className="flex h-full flex-col items-center justify-start">
+      {/* Tali versi diam ikut menjulur ke atas layar. */}
+      <span aria-hidden="true" className="h-28 w-2 bg-primary-text/85" />
+      <span aria-hidden="true" className="h-2.5 w-6 rounded-sm border border-line-strong bg-surface-sunken" />
 
       <div className="w-40 overflow-hidden rounded-card border border-line bg-surface shadow-paper">
         <p className="bg-primary-text py-1.5 text-center font-heading text-body-lg font-bold text-white">

@@ -29,12 +29,19 @@ export default async function ProfilPage() {
 
   return (
     <>
-      <Breadcrumb jejak={[{ label: 'Profil Saya' }]} />
-      <PageHeader judul="Profil Saya" />
+      {/*
+        Kanvas kartu identitas menjulur ke atas melewati bagian ini, dan
+        karena letaknya lebih belakang di DOM ia akan menimpanya. Lapisannya
+        dinaikkan supaya breadcrumb tetap dapat diklik.
+      */}
+      <div className="relative z-10">
+        <Breadcrumb jejak={[{ label: 'Profil Saya' }]} />
+        <PageHeader judul="Profil Saya" />
+      </div>
 
       <div className="space-y-3">
         <section className="card p-4">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-8">
             {/*
               Kartu identitas menggantung. Belum ada unggah foto pengguna,
               sehingga kartunya memakai tanda DAMS sebagai tampilan bawaan.
@@ -45,11 +52,18 @@ export default async function ProfilPage() {
               className="shrink-0"
             />
 
-            <dl className="grid w-full gap-x-6 gap-y-2 sm:mt-6 sm:grid-cols-2">
+            {/*
+              Satu kolom saja. Dua kolom membuat pasangan label dan nilainya
+              berjauhan sampai sulit dipasangkan dengan mata.
+            */}
+            <dl className="w-full max-w-md divide-y divide-line sm:mt-4">
               {informasi.map((item) => (
-                <div key={item.label} className="flex items-baseline justify-between gap-3">
-                  <dt className="text-caption text-ink-soft">{item.label}</dt>
-                  <dd className="text-body-lg text-ink">{item.nilai}</dd>
+                <div
+                  key={item.label}
+                  className="flex items-baseline justify-between gap-4 py-1.5"
+                >
+                  <dt className="shrink-0 text-caption text-ink-soft">{item.label}</dt>
+                  <dd className="text-right text-body-lg text-ink">{item.nilai}</dd>
                 </div>
               ))}
             </dl>
