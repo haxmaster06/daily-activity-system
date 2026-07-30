@@ -83,6 +83,19 @@ Otorisasi memakai prinsip **deny by default**. Scope data laporan dipusatkan di 
 
 ## Perintah
 
+Menyalakan seluruh server pengembangan sekaligus (Windows, native, tanpa Docker):
+
+```
+JALANKAN_DAMS.bat
+```
+
+Membuka empat tab: API, queue worker, scheduler, dan frontend. Skrip memeriksa
+dependency, `APP_KEY`, dan MySQL Laragon sebelum menyalakan apa pun, serta
+membebaskan port 13001/13002. Port 3306 tidak pernah disentuh karena dipakai
+bersama project lain.
+
+Menjalankan per bagian:
+
 ```bash
 # Backend
 cd backend
