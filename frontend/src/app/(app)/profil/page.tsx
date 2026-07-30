@@ -1,7 +1,7 @@
-import { UserRound } from 'lucide-react';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
+import { Lanyard } from '@/components/ui/lanyard';
 import { panggilApi } from '@/lib/api';
 import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import type { Pengguna } from '@/lib/master-data';
@@ -34,26 +34,26 @@ export default async function ProfilPage() {
 
       <div className="space-y-3">
         <section className="card p-4">
-          <div className="flex items-center gap-3">
-            <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text">
-              <UserRound aria-hidden="true" className="size-6" />
-            </span>
-            <div className="min-w-0">
-              <p className="font-heading text-section-title text-ink">{pengguna.nama}</p>
-              <p className="text-body text-ink-muted">
-                {pengguna.role.nama} — {pengguna.departemen.nama ?? '—'}
-              </p>
-            </div>
-          </div>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6">
+            {/*
+              Kartu identitas menggantung. Belum ada unggah foto pengguna,
+              sehingga kartunya memakai tanda DAMS sebagai tampilan bawaan.
+            */}
+            <Lanyard
+              nama={pengguna.nama}
+              keterangan={`${pengguna.role.nama} · ${pengguna.departemen.nama ?? '—'}`}
+              className="shrink-0"
+            />
 
-          <dl className="mt-4 grid gap-x-6 gap-y-2 border-t border-line pt-3 sm:grid-cols-2">
-            {informasi.map((item) => (
-              <div key={item.label} className="flex items-baseline justify-between gap-3">
-                <dt className="text-caption text-ink-soft">{item.label}</dt>
-                <dd className="text-body-lg text-ink">{item.nilai}</dd>
-              </div>
-            ))}
-          </dl>
+            <dl className="grid w-full gap-x-6 gap-y-2 sm:mt-6 sm:grid-cols-2">
+              {informasi.map((item) => (
+                <div key={item.label} className="flex items-baseline justify-between gap-3">
+                  <dt className="text-caption text-ink-soft">{item.label}</dt>
+                  <dd className="text-body-lg text-ink">{item.nilai}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
 
           <p className="mt-3 text-caption text-ink-soft">
             Departemen dan role hanya dapat diubah administrator.
