@@ -3,7 +3,6 @@
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Support\ApiResponse;
 use App\Support\ErrorReference;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -15,8 +14,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -70,26 +67,36 @@ return Application::configure(basePath: dirname(__DIR__))
                 return ApiResponse::error('Sesi Anda telah berakhir. Silakan masuk kembali.', 401);
             }
 
-            if ($e instanceof AuthorizationException) {
-                return ApiResponse::error('Anda tidak memiliki akses ke data ini.', 403);
-            }
-
-            if ($e instanceof ModelNotFoundException || $e instanceof NotFoundHttpException) {
+            if ($e instanceof ModelNotFoundException) {
                 return ApiResponse::error('Data yang Anda cari tidak ditemukan.', 404);
             }
 
-            if ($e instanceof TooManyRequestsHttpException) {
-                return ApiResponse::error(
-                    'Terlalu banyak percobaan. Coba lagi beberapa saat lagi.',
-                    429,
-                );
-            }
-
+            /*
+             * Pesan diturunkan dari kode status, bukan dari pesan exception.
+             *
+             * Laravel mengubah AuthorizationException menjadi
+             * AccessDeniedHttpException sebelum callback ini berjalan, dan
+             * pesan bawaannya berbahasa Inggris ("This action is
+             * unauthorized."). Meneruskan pesan exception apa adanya membuat
+             * teks framework bocor ke antarmuka — dilarang standar §25.
+             *
+             * Pesan galat milik aplikasi sendiri tidak melewati jalur ini;
+             * semuanya dikirim lewat ApiResponse::error().
+             */
             if ($e instanceof HttpExceptionInterface && $e->getStatusCode() < 500) {
-                return ApiResponse::error(
-                    $e->getMessage() !== '' ? $e->getMessage() : 'Permintaan tidak dapat diproses.',
-                    $e->getStatusCode(),
-                );
+                $status = $e->getStatusCode();
+
+                return ApiResponse::error(match ($status) {
+                    401 => 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+                    403 => 'Anda tidak memiliki akses ke data ini.',
+                    404 => 'Data yang Anda cari tidak ditemukan.',
+                    405 => 'Permintaan tidak dapat diproses.',
+                    409 => 'Data sedang berubah. Muat ulang halaman lalu coba lagi.',
+                    413 => 'Berkas yang dikirim terlalu besar.',
+                    419 => 'Sesi Anda telah berakhir. Silakan masuk kembali.',
+                    429 => 'Terlalu banyak percobaan. Coba lagi beberapa saat lagi.',
+                    default => 'Permintaan tidak dapat diproses.',
+                }, $status);
             }
 
             $reference = ErrorReference::generate();

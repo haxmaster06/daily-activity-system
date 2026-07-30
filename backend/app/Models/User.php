@@ -19,6 +19,18 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * Role selalu ikut dimuat.
+     *
+     * Hampir setiap pemeriksaan izin membaca role pengguna, termasuk Policy
+     * yang berjalan sebelum controller sempat melakukan eager loading.
+     * Tanpa ini, `preventLazyLoading` akan menggagalkan permintaan. Tabel
+     * roles hanya berisi empat baris sehingga biayanya dapat diabaikan.
+     *
+     * @var list<string>
+     */
+    protected $with = ['role'];
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

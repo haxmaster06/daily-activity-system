@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,5 +28,28 @@ Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function ():
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
 
-    // Endpoint master data dan laporan ditambahkan pada M2 dan M3.
+    // Profil sendiri — tidak memerlukan role khusus.
+    Route::get('/profil', [ProfileController::class, 'show'])->name('profil.show');
+    Route::put('/profil', [ProfileController::class, 'update'])->name('profil.update');
+    Route::put('/profil/kata-sandi', [ProfileController::class, 'ubahKataSandi'])
+        ->name('profil.kata-sandi');
+
+    // Master data. Pembatasan sebenarnya ditegakkan Policy pada tiap aksi.
+    Route::get('/departemen', [DepartmentController::class, 'index'])->name('departemen.index');
+    Route::post('/departemen', [DepartmentController::class, 'store'])->name('departemen.store');
+    Route::put('/departemen/{department}', [DepartmentController::class, 'update'])
+        ->name('departemen.update');
+    Route::delete('/departemen/{department}', [DepartmentController::class, 'destroy'])
+        ->name('departemen.destroy');
+
+    Route::get('/role', [UserController::class, 'roles'])->name('role.index');
+    Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna.index');
+    Route::post('/pengguna', [UserController::class, 'store'])->name('pengguna.store');
+    Route::put('/pengguna/{user}', [UserController::class, 'update'])->name('pengguna.update');
+    Route::put('/pengguna/{user}/status', [UserController::class, 'ubahStatus'])
+        ->name('pengguna.status');
+    Route::put('/pengguna/{user}/kata-sandi', [UserController::class, 'aturUlangKataSandi'])
+        ->name('pengguna.kata-sandi');
+
+    // Endpoint laporan ditambahkan pada M3.
 });

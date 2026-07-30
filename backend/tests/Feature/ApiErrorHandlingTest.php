@@ -1,7 +1,9 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Laravel\Sanctum\Sanctum;
 
 // Galat teknis tidak boleh sampai ke antarmuka (non-fungsional §27).
 
@@ -58,4 +60,37 @@ it('mengembalikan galat validasi dengan pesan Bahasa Indonesia', function (): vo
         ->assertJsonStructure(['errors' => ['nama']]);
 
     expect($response->json('errors.nama.0'))->toContain('wajib diisi');
+});
+
+it('tidak pernah membocorkan pesan galat berbahasa Inggris dari framework', function (): void {
+    // Laravel mengubah AuthorizationException menjadi AccessDeniedHttpException
+    // yang pesan bawaannya "This action is unauthorized."
+    Route::middleware('auth:sanctum')->get('/api/uji-izin', function (): void {
+        abort(403);
+    });
+
+    Sanctum::actingAs(User::factory()->create());
+
+    $response = $this->getJson('/api/uji-izin');
+
+    $response->assertForbidden()
+        ->assertJsonPath('message', 'Anda tidak memiliki akses ke data ini.');
+
+    expect($response->getContent())->not->toContain('This action is unauthorized');
+});
+
+it('menerjemahkan galat Policy menjadi pesan Bahasa Indonesia', function (): void {
+    Sanctum::actingAs(User::factory()->staff()->create());
+
+    $this->getJson('/api/pengguna')
+        ->assertForbidden()
+        ->assertJsonPath('message', 'Anda tidak memiliki akses ke data ini.');
+});
+
+it('menerjemahkan galat metode HTTP yang salah', function (): void {
+    $response = $this->postJson('/api/health');
+
+    expect($response->status())->toBe(405);
+    expect($response->json('message'))->toBe('Permintaan tidak dapat diproses.');
+    expect($response->getContent())->not->toContain('method is not supported');
 });
