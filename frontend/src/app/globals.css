@@ -43,6 +43,62 @@
   }
 
   /*
+   * Batang gulir menyembunyikan diri (docs/standar-ui-ux.md §6.1).
+   *
+   * Wadah yang dapat digulir tidak menampilkan batangnya saat diam; batangnya
+   * muncul ketika kursor berada di atas wadah, saat wadahnya menerima fokus,
+   * dan saat sedang digulir.
+   *
+   * Ruangnya tetap dipesan (`scrollbar-gutter: stable`) supaya isi tidak
+   * bergeser ketika batangnya muncul — pergeseran satu baris saat kursor lewat
+   * jauh lebih mengganggu daripada batang gulir itu sendiri.
+   */
+  * {
+    /* Firefox: 'thin' adalah pilihan paling ramping yang tersedia. */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    /* Ruang batang tetap dipesan supaya isi tidak bergeser saat muncul. */
+    scrollbar-gutter: stable;
+  }
+
+  *:hover,
+  *:focus-within {
+    scrollbar-color: theme('colors.line.DEFAULT') transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    /* Tepi transparan menyisakan batang setebal 3px — cukup untuk ditarik,
+       tetapi tidak menarik perhatian dari isinya. */
+    border: 1.5px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  *:hover::-webkit-scrollbar-thumb,
+  *:focus-within::-webkit-scrollbar-thumb {
+    background-color: theme('colors.line.strong');
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: theme('colors.ink.soft');
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /*
    * Menghormati prefers-reduced-motion (standar interaksi §4.3).
    * Syarat aksesibilitas, bukan pilihan: seluruh gerakan disederhanakan
    * menjadi perpindahan seketika.

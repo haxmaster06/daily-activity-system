@@ -11,10 +11,9 @@ import type { OpsiPenyusunKolom, Template } from '@/lib/template';
  * di `template.ts` agar tetap dapat dipakai komponen client.
  */
 
-export async function ambilTemplate(denganKolom = false): Promise<Template[]> {
-  const { data } = await panggilApi<Template[]>(
-    denganKolom ? '/template?dengan_kolom=1' : '/template',
-  );
+export async function ambilTemplate(query?: URLSearchParams): Promise<Template[]> {
+  const teks = query?.toString();
+  const { data } = await panggilApi<Template[]>(teks ? `/template?${teks}` : '/template');
 
   return data;
 }

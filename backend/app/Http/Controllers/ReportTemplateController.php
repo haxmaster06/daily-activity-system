@@ -18,14 +18,29 @@ class ReportTemplateController extends Controller
     /**
      * Daftar template.
      *
-     * Tanpa pagination — master data ini hanya puluhan baris dan halaman
-     * pengelolanya menampilkan semuanya dalam tab per departemen.
+     * Pencarian dan penyaringan dikerjakan server. Jumlah template tumbuh
+     * mengikuti jumlah departemen, sehingga daftarnya tidak boleh bergantung
+     * pada penyaringan di sisi klien.
      */
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', ReportTemplate::class);
 
         $template = ReportTemplate::query()
+            ->when($request->filled('cari'), function ($query) use ($request) {
+                $kata = '%'.$request->string('cari')->trim().'%';
+                $query->where(fn ($sub) => $sub
+                    ->where('name', 'like', $kata)
+                    ->orWhere('code', 'like', $kata));
+            })
+            ->when(
+                $request->filled('status'),
+                fn ($query) => $query->where('is_active', $request->string('status')->value() === 'aktif'),
+            )
+            ->when(
+                $request->boolean('berlaku_umum'),
+                fn ($query) => $query->whereNull('department_id'),
+            )
             ->with('department')
             ->withCount('fields')
             /*

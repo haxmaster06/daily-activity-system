@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ProfileController;
@@ -63,5 +64,18 @@ Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function ():
     Route::delete('/template/{template}', [ReportTemplateController::class, 'destroy'])
         ->name('template.destroy');
 
-    // Endpoint laporan ditambahkan pada M3.
+    /*
+     * Laporan harian. Jangkauan data ditentukan DailyReport::scopeVisibleTo();
+     * tiap aksi tetap melewati DailyReportPolicy.
+     */
+    Route::get('/laporan', [DailyReportController::class, 'index'])->name('laporan.index');
+    Route::post('/laporan', [DailyReportController::class, 'store'])->name('laporan.store');
+    Route::get('/laporan/{laporan}', [DailyReportController::class, 'show'])->name('laporan.show');
+    Route::put('/laporan/{laporan}', [DailyReportController::class, 'update'])->name('laporan.update');
+    Route::delete('/laporan/{laporan}', [DailyReportController::class, 'destroy'])
+        ->name('laporan.destroy');
+    Route::post('/laporan/{laporan}/kirim', [DailyReportController::class, 'kirim'])
+        ->name('laporan.kirim');
+    Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
+        ->name('laporan.tinjau');
 });

@@ -102,8 +102,17 @@ Dipakai ketika:
 * Satu departemen punya beberapa template — satu tab per departemen
 * Halaman pengaturan memuat beberapa modul terpisah
 
-**Tidak** dipakai ketika isi tab saling bergantung dan harus dibaca berurutan —
-itu wizard.
+**Tidak** dipakai ketika:
+
+* Isi tab saling bergantung dan harus dibaca berurutan — itu wizard
+* **Jumlah tabnya tumbuh mengikuti data.** Tab horizontal berhenti terbaca di
+  atas ±7 item: sisanya tergulir keluar layar dan harus dicari satu per satu.
+  Kelompok yang jumlahnya bertambah — per departemen, per pengguna, per
+  supplier — memakai **bar filter + tabel** dengan penyaringan server, seperti
+  halaman Manajemen Pengguna dan Template Laporan
+
+Patokannya: tab dipakai bila daftar kelompoknya **tetap dan sudah diketahui
+sejak awal**.
 
 Ketentuan:
 
@@ -234,7 +243,30 @@ sendiri. Deny by default.
 
 ---
 
-# BAGIAN 6 — TABEL
+# BAGIAN 6 — TABEL & GULIR
+
+## 6.1 Batang gulir menyembunyikan diri
+
+Batang gulir tidak terlihat saat wadahnya diam. Batangnya muncul ketika kursor
+berada di atas wadah, saat wadahnya menerima fokus, dan saat sedang digulir.
+Lebarnya 8px, ujungnya membulat.
+
+Ruang batangnya tetap dipesan agar isi tidak bergeser saat batangnya muncul —
+pergeseran satu baris ketika kursor lewat jauh lebih mengganggu daripada
+batang gulir itu sendiri.
+
+Konsekuensi yang harus ditangani: batang yang tersembunyi menghilangkan
+petunjuk bahwa isi masih dapat digulir. Karena itu wadah gulir wajib punya
+petunjuk lain:
+
+* Daftar pilihan memakai tombol gulir atas dan bawah
+* Tabel dibatasi tepi kartu yang jelas, dengan bar pagination di bawahnya
+* Baris terakhir yang terpotong sebagian sudah menjadi petunjuk tersendiri —
+  jangan menyetel tinggi wadah tepat pada kelipatan tinggi baris
+
+Diterapkan global di `globals.css`, bukan per komponen.
+
+## 6.2 Tabel
 
 * Header sticky, latar solid
 * Tinggi dibatasi ~11 baris; **hanya badan yang menggulir**, bukan halaman
