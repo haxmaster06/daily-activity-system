@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppHeader } from '@/components/layout/app-header';
+import { PageTransition } from '@/components/ui/page-transition';
 import { penggunaSaatIni } from '@/lib/session';
 
 /**
@@ -33,7 +34,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           departemen: pengguna.departemen,
         }}
       />
-      <main className="mx-auto max-w-container px-4 py-4 lg:px-8">{children}</main>
+      {/* pb-20 di layar sempit memberi ruang untuk Dock yang menempel di bawah. */}
+      <main className="mx-auto max-w-container px-4 pb-20 pt-4 md:pb-4 lg:px-8">
+        <PageTransition>{children}</PageTransition>
+      </main>
     </div>
   );
 }

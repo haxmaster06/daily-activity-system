@@ -11,8 +11,13 @@ interface ModalProps {
   /** Hanya bila tanpa penjelasan ini maksud modal tidak jelas (standar §8). */
   keterangan?: string;
   children: ReactNode;
-  /** Tombol aksi di kanan bawah: Batal lalu aksi utama (standar §22.1). */
-  aksi: ReactNode;
+  /**
+   * Tombol aksi di kanan bawah: Batal lalu aksi utama (standar §22.1).
+   *
+   * Boleh dikosongkan bila isi modal sudah punya tombolnya sendiri — mis.
+   * wizard, yang tombol Lanjut dan Kembali-nya menyatu dengan langkahnya.
+   */
+  aksi?: ReactNode;
   lebar?: 'sedang' | 'lebar';
 }
 
@@ -34,9 +39,9 @@ export function Modal({
   return (
     <Dialog.Root open={terbuka} onOpenChange={(nilai) => !nilai && onTutup()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/25" />
+        <Dialog.Overlay className="anim-latar fixed inset-0 z-40 bg-ink/25" />
         <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-modal bg-surface shadow-modal ${
+          className={`anim-modal fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-modal bg-surface shadow-modal ${
             lebar === 'lebar' ? 'sm:max-w-2xl' : 'sm:max-w-md'
           }`}
         >
@@ -63,9 +68,11 @@ export function Modal({
 
           <div className="px-4 py-4">{children}</div>
 
-          <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
-            {aksi}
-          </div>
+          {aksi && (
+            <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+              {aksi}
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

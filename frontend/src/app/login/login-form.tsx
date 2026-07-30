@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
+import { SpectacularButton } from '@/components/ui/spectacular-button';
+
 export function LoginForm({ lanjut }: { lanjut: string }) {
   const router = useRouter();
 
@@ -122,9 +124,10 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
         Ingat saya
       </label>
 
-      <button type="submit" disabled={memproses} className="btn-primary w-full">
-        {memproses ? 'Memproses...' : 'Masuk'}
-      </button>
+      {/* Aksi utama halaman — satu-satunya Spectacular Button di sini. */}
+      <SpectacularButton type="submit" memproses={memproses} penuh>
+        Masuk
+      </SpectacularButton>
     </form>
   );
 }

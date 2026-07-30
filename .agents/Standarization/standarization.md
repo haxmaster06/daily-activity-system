@@ -507,37 +507,48 @@ Jangan menggunakan icon hanya karena:
 
 # 12. Animation Standard
 
-Animation harus memiliki tujuan.
+> **Direvisi atas keputusan pemilik project.** Versi sebelumnya membatasi
+> animasi seminimal mungkin. Arahan yang berlaku sekarang: seluruh pergerakan
+> di DAMS harus **smooth dan dramatis**. Aturan rinci ada di
+> `docs/standar-interaksi.md`.
 
-## Allowed
+Animation tetap harus memiliki tujuan — yang berubah adalah kualitas dan
+keberaniannya, bukan izin untuk menaruh gerakan di mana-mana.
+
+## Wajib beranimasi
 
 * Page transition
-* Modal opening
-* Dropdown
-* Loading
-* Feedback
-* Hover interaction
+* Modal dan drawer
+* Perpindahan tab
+* Langkah wizard
+* Dropdown dan popover
+* Loading dan skeleton
+* Umpan balik tindakan (berhasil, gagal)
+* Hover dan press pada elemen interaktif
+* Baris tabel yang masuk, berubah, atau hilang
 
-## Avoid
+## Tetap dihindari
 
-* Excessive bouncing
-* Continuous animation
-* Decorative floating elements
-* Slow transition
-* Animation yang menghalangi pekerjaan user
+* Animasi yang menghalangi pekerjaan user
+* Gerakan tanpa henti pada elemen yang tidak sedang berinteraksi
+* Elemen dekoratif melayang yang tidak punya makna
+* Menahan input selama animasi berjalan
 
-Recommended:
+Durasi:
 
 ```text
 Fast Interaction:
-100ms - 150ms
+120ms - 180ms
 
 Standard Transition:
-150ms - 250ms
+220ms - 320ms
 
-Complex Transition:
-250ms - 400ms
+Complex Transition (wizard, page, modal):
+320ms - 480ms
 ```
+
+Gerakan memakai easing bertenaga (spring atau cubic-bezier keluar-cepat),
+bukan `linear`. Rincian nilai ada di `docs/standar-interaksi.md`.
 
 ---
 

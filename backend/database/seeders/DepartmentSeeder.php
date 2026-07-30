@@ -34,6 +34,9 @@ class DepartmentSeeder extends Seeder
             ['code' => 'ICS', 'name' => 'ICS / Organic', 'description' => 'Inspeksi petani dan pengendalian internal sertifikasi organik'],
             ['code' => 'RETAIL_MND', 'name' => 'Retail MND', 'description' => 'Pengiriman produk retail ke customer'],
             ['code' => 'GA_LEGAL', 'name' => 'GA Legal', 'description' => 'General affair dan legal'],
+            ['code' => 'IT', 'name' => 'IT', 'description' => 'Pengembangan sistem dan dukungan teknis'],
+            ['code' => 'MARKETING', 'name' => 'Marketing', 'description' => 'Pemasaran dan hubungan pelanggan'],
+            ['code' => 'MEDSOS', 'name' => 'Media Sosial', 'description' => 'Pengelolaan konten media sosial'],
         ];
 
         foreach ($departments as $department) {

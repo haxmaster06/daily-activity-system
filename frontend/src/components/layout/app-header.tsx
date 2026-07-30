@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { motion } from 'motion/react';
 import { Bell, ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 
+import { Dock } from '@/components/layout/dock';
+import { StaggeredMenu } from '@/components/layout/staggered-menu';
 import { cn } from '@/lib/cn';
+import { PEGAS } from '@/lib/gerak';
 import { menuAktif, menuUntukRole, type Role } from '@/lib/nav';
 
 export interface PenggunaHeader {
@@ -48,6 +52,13 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
         </Link>
 
         <div className="flex min-w-0 items-center gap-1">
+          <StaggeredMenu
+            menu={menu}
+            nama={pengguna.nama}
+            keteranganPengguna={`${pengguna.namaRole} · ${pengguna.departemen}`}
+            onKeluar={() => void keluar()}
+          />
+
           <button
             type="button"
             aria-label="Notifikasi"
@@ -68,7 +79,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
 
           <DropdownMenu.Root>
             <DropdownMenu.Trigger
-              className="ml-1 flex min-w-0 items-center gap-2 rounded-control py-1 pl-1 pr-1.5 transition-colors duration-fast hover:bg-surface-muted"
+              className="ml-1 hidden min-w-0 items-center gap-2 rounded-control py-1 pl-1 pr-1.5 transition-colors duration-fast hover:bg-surface-muted md:flex"
               aria-label="Menu akun"
             >
               <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text">
@@ -91,7 +102,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
               <DropdownMenu.Content
                 align="end"
                 sideOffset={6}
-                className="z-40 min-w-48 rounded-card border border-line bg-surface p-1 shadow-modal"
+                className="z-40 min-w-48 animate-masuk-halus rounded-card border border-line bg-surface p-1 shadow-modal"
               >
                 <DropdownMenu.Item asChild>
                   <Link
@@ -122,29 +133,43 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
         </div>
       </div>
 
-      <nav aria-label="Menu utama" className="border-t border-line bg-surface">
+      {/*
+        Baris menu hanya di layar lebar. Di layar sempit navigasinya diambil
+        alih Dock di bawah dan StaggeredMenu di kanan atas.
+      */}
+      <nav aria-label="Menu utama" className="hidden border-t border-line bg-surface md:block">
         <ul className="mx-auto flex h-subnav max-w-container items-stretch gap-1 overflow-x-auto px-4 lg:px-8">
           {menu.map((item) => {
             const aktif = menuAktif(item.href, pathname);
             return (
-              <li key={item.href} className="shrink-0">
+              <li key={item.href} className="relative shrink-0">
                 <Link
                   href={item.href}
                   aria-current={aktif ? 'page' : undefined}
                   className={cn(
-                    'flex h-full items-center border-b-2 px-3 text-body-lg transition-colors duration-fast',
-                    aktif
-                      ? 'border-primary font-semibold text-primary-text'
-                      : 'border-transparent text-ink-muted hover:text-ink',
+                    'flex h-full items-center px-3 text-body-lg transition-colors duration-fast',
+                    aktif ? 'font-semibold text-primary-text' : 'text-ink-muted hover:text-ink',
                   )}
                 >
                   {item.label}
                 </Link>
+
+                {/* Penanda meluncur antar menu, bukan muncul-hilang. */}
+                {aktif && (
+                  <motion.span
+                    layoutId="penanda-menu-utama"
+                    transition={PEGAS}
+                    aria-hidden="true"
+                    className="absolute inset-x-0 bottom-0 h-0.5 bg-primary"
+                  />
+                )}
               </li>
             );
           })}
         </ul>
       </nav>
+
+      <Dock menu={menu} />
     </header>
   );
 }

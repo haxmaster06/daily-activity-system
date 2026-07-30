@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,17 @@ Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function ():
         ->name('pengguna.status');
     Route::put('/pengguna/{user}/kata-sandi', [UserController::class, 'aturUlangKataSandi'])
         ->name('pengguna.kata-sandi');
+
+    Route::get('/template/opsi-kolom', [ReportTemplateController::class, 'opsiKolom'])
+        ->name('template.opsi-kolom');
+    Route::get('/template', [ReportTemplateController::class, 'index'])->name('template.index');
+    Route::post('/template', [ReportTemplateController::class, 'store'])->name('template.store');
+    Route::get('/template/{template}', [ReportTemplateController::class, 'show'])
+        ->name('template.show');
+    Route::put('/template/{template}', [ReportTemplateController::class, 'update'])
+        ->name('template.update');
+    Route::delete('/template/{template}', [ReportTemplateController::class, 'destroy'])
+        ->name('template.destroy');
 
     // Endpoint laporan ditambahkan pada M3.
 });

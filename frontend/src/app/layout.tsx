@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
 import { QueryProvider } from '@/providers/query-provider';
+import { UiProvider } from '@/providers/ui-provider';
 import './globals.css';
 
 // Font di-host sendiri saat build — tanpa permintaan ke server luar saat runtime.
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     // Light mode saja — tidak ada dark mode (standar §3.1).
     <html lang="id" className={`${jakarta.variable} ${inter.variable}`}>
       <body>
-        <QueryProvider>{children}</QueryProvider>
+        <UiProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </UiProvider>
       </body>
     </html>
   );

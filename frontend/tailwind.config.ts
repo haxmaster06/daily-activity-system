@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 /**
  * Token visual DAMS.
@@ -85,16 +86,40 @@ const config: Config = {
         modal: '0 8px 24px rgba(25, 28, 30, 0.12)',
         paper: '0 2px 12px rgba(25, 28, 30, 0.10)',
       },
+      /*
+       * Nilai gerak (docs/standar-interaksi.md §4.1). Dipakai bersama
+       * `src/lib/gerak.ts` agar animasi CSS dan animasi motion memakai angka
+       * yang sama. Intensitasnya secukupnya — halus, tanpa bounce.
+       */
       transitionDuration: {
-        fast: '120ms',
-        DEFAULT: '180ms',
+        fast: '140ms',
+        DEFAULT: '220ms',
+        standar: '260ms',
+        kompleks: '380ms',
+      },
+      transitionTimingFunction: {
+        keluar: 'cubic-bezier(0.16, 1, 0.3, 1)',
+      },
+      keyframes: {
+        'masuk-halus': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'memudar-masuk': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
+        },
+      },
+      animation: {
+        'masuk-halus': 'masuk-halus 260ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        'memudar-masuk': 'memudar-masuk 220ms cubic-bezier(0.16, 1, 0.3, 1) both',
       },
       maxWidth: {
         container: '1280px',
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

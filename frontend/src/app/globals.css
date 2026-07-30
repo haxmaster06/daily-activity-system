@@ -41,6 +41,72 @@
   input[type='number'] {
     -moz-appearance: textfield;
   }
+
+  /*
+   * Menghormati prefers-reduced-motion (standar interaksi §4.3).
+   * Syarat aksesibilitas, bukan pilihan: seluruh gerakan disederhanakan
+   * menjadi perpindahan seketika.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Gerakan modal — dipicu atribut data-state milik Radix Dialog. */
+  @keyframes dams-latar-masuk {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes dams-modal-masuk {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 10px)) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes dams-modal-keluar {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.98);
+    }
+  }
+
+  .anim-latar[data-state='open'] {
+    animation: dams-latar-masuk 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .anim-latar[data-state='closed'] {
+    animation: dams-latar-masuk 140ms cubic-bezier(0.16, 1, 0.3, 1) reverse;
+  }
+
+  .anim-modal[data-state='open'] {
+    animation: dams-modal-masuk 380ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .anim-modal[data-state='closed'] {
+    animation: dams-modal-keluar 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 @layer components {
