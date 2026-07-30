@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import * as RadixHoverCard from '@radix-ui/react-hover-card';
 
+import { useWadahOverlay } from '@/components/ui/wadah-overlay';
+
 import { cn } from '@/lib/cn';
 
 /**
@@ -28,11 +30,14 @@ export function HoverCard({
   lebar?: 'sedang' | 'lebar';
   sisi?: 'top' | 'right' | 'bottom' | 'left';
 }) {
+  const wadahOverlay = useWadahOverlay();
+
   return (
     <RadixHoverCard.Root openDelay={220} closeDelay={120}>
       <RadixHoverCard.Trigger asChild>{pemicu}</RadixHoverCard.Trigger>
 
-      <RadixHoverCard.Portal>
+      {/* Portal diarahkan ke dalam modal bila berada di dalamnya. */}
+      <RadixHoverCard.Portal container={wadahOverlay}>
         <RadixHoverCard.Content
           side={sisi}
           sideOffset={6}

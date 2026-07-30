@@ -24,14 +24,13 @@ class ReportTemplateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $template = $this->route('template');
-        $id = $template instanceof ReportTemplate ? $template->id : null;
-
+        /*
+         * `code` sengaja tidak divalidasi dan tidak diterima dari klien.
+         * Kode dibuat otomatis dari nama oleh controller
+         * (docs/standar-ui-ux.md §1.5), dan tidak pernah berubah setelah
+         * templatenya ada.
+         */
         return [
-            'code' => [
-                'required', 'string', 'max:48', 'regex:/^[A-Z0-9_]+$/',
-                Rule::unique('report_templates', 'code')->ignore($id),
-            ],
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
             // Kosong berarti template berlaku lintas departemen.
@@ -170,7 +169,6 @@ class ReportTemplateRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'code' => 'kode template',
             'name' => 'nama template',
             'description' => 'keterangan',
             'department_id' => 'departemen',
@@ -184,7 +182,6 @@ class ReportTemplateRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.regex' => 'Kode hanya boleh berisi huruf kapital, angka, dan garis bawah.',
             'fields.required' => 'Template harus punya minimal satu kolom.',
             'fields.min' => 'Template harus punya minimal satu kolom.',
             'fields.*.key.regex' => 'Kunci kolom diawali huruf kecil, hanya huruf kecil, angka, dan garis bawah.',

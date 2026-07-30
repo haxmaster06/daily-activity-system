@@ -25,13 +25,13 @@ class DepartmentRequest extends FormRequest
         $departemen = $this->route('department');
         $id = $departemen instanceof Department ? $departemen->id : null;
 
+        /*
+         * `code` sengaja tidak divalidasi dan tidak diterima dari klien.
+         * Kode dibuat otomatis dari nama oleh controller
+         * (docs/standar-ui-ux.md §1.5), dan tidak pernah berubah setelah
+         * departemennya ada.
+         */
         return [
-            'code' => [
-                'required', 'string', 'max:32',
-                // Kode dipakai sebagai penanda tetap di seeder dan template.
-                'regex:/^[A-Z0-9_]+$/',
-                Rule::unique('departments', 'code')->ignore($id),
-            ],
             'name' => [
                 'required', 'string', 'max:100',
                 Rule::unique('departments', 'name')->ignore($id),
@@ -47,20 +47,9 @@ class DepartmentRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'code' => 'kode',
             'name' => 'nama departemen',
             'description' => 'keterangan',
             'is_active' => 'status',
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function messages(): array
-    {
-        return [
-            'code.regex' => 'Kode hanya boleh berisi huruf kapital, angka, dan garis bawah.',
         ];
     }
 }

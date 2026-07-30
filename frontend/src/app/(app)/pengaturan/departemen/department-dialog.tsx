@@ -9,13 +9,12 @@ import type { Departemen } from '@/lib/master-data';
 import { buatDepartemen, perbaruiDepartemen } from './actions';
 
 interface IsiForm {
-  code: string;
   name: string;
   description: string;
   is_active: boolean;
 }
 
-const KOSONG: IsiForm = { code: '', name: '', description: '', is_active: true };
+const KOSONG: IsiForm = { name: '', description: '', is_active: true };
 
 /** Form departemen berisi 4 kolom, sehingga memakai modal (standar §22.1). */
 export function DepartmentDialog({
@@ -43,7 +42,6 @@ export function DepartmentDialog({
     setIsi(
       departemen
         ? {
-            code: departemen.kode,
             name: departemen.nama,
             description: departemen.keterangan ?? '',
             is_active: departemen.aktif,
@@ -58,7 +56,6 @@ export function DepartmentDialog({
     setGalatKolom({});
 
     const muatan = {
-      code: isi.code.trim().toUpperCase(),
       name: isi.name.trim(),
       description: isi.description.trim() || null,
       is_active: isi.is_active,
@@ -127,24 +124,19 @@ export function DepartmentDialog({
           {galatKolom.name && <span className="field-error">{galatKolom.name[0]}</span>}
         </div>
 
-        <div>
-          <label htmlFor="kode-departemen" className="field-label">
-            Kode
-          </label>
-          <input
-            id="kode-departemen"
-            value={isi.code}
-            onChange={(e) => setIsi({ ...isi, code: e.target.value.toUpperCase() })}
-            aria-invalid={Boolean(galatKolom.code)}
-            aria-describedby="bantuan-kode"
-            className="field font-mono"
-            required
-          />
-          <span id="bantuan-kode" className="mt-1 block text-caption text-ink-soft">
-            Huruf kapital, angka, dan garis bawah. Dipakai sebagai penanda tetap.
-          </span>
-          {galatKolom.code && <span className="field-error">{galatKolom.code[0]}</span>}
-        </div>
+        {/*
+          Kode dibuat otomatis dari nama dan tidak pernah berubah
+          (docs/standar-ui-ux.md §1.5). Ditampilkan hanya sebagai keterangan
+          saat mengubah departemen yang sudah ada.
+        */}
+        {sedangUbah && (
+          <div className="rounded-input border border-line bg-surface-muted px-2.5 py-2">
+            <span className="block text-caption text-ink-soft">Kode</span>
+            <span className="block font-mono text-body-lg text-ink-muted">
+              {departemen.kode}
+            </span>
+          </div>
+        )}
 
         <div>
           <label htmlFor="keterangan-departemen" className="field-label">

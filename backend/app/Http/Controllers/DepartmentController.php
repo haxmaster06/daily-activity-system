@@ -7,6 +7,7 @@ use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
 use App\Support\ApiResponse;
 use App\Support\Audit;
+use App\Support\KodeOtomatis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,14 +45,20 @@ class DepartmentController extends Controller
 
     public function store(DepartmentRequest $request): JsonResponse
     {
-        $departemen = Department::create($request->validated());
+        $data = $request->validated();
+
+        // Kode diturunkan dari nama, tidak pernah diketik pengguna
+        // (docs/standar-ui-ux.md §1.5).
+        $data['code'] = KodeOtomatis::dariNama($data['name'], Department::query());
+
+        $departemen = Department::create($data);
 
         Audit::catat(
             Audit::AKSI_DIBUAT,
             Audit::MODUL_DEPARTEMEN,
             "Membuat departemen {$departemen->name}",
             $departemen,
-            $request->validated(),
+            $data,
         );
 
         return ApiResponse::created(
@@ -62,8 +69,12 @@ class DepartmentController extends Controller
 
     public function update(DepartmentRequest $request, Department $department): JsonResponse
     {
-        $sebelum = $department->only(['code', 'name', 'description', 'is_active']);
+        $sebelum = $department->only(['name', 'description', 'is_active']);
 
+        /*
+         * Kode tidak ikut diperbarui. Nama boleh diperbaiki kapan saja, tetapi
+         * kodenya sudah menjadi rujukan seeder, template, dan data lama.
+         */
         $department->update($request->validated());
 
         $perubahan = Audit::selisih($sebelum, $department->only(array_keys($sebelum)));

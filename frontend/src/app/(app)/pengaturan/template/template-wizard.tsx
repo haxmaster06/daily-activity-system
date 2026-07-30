@@ -23,7 +23,6 @@ interface TemplateWizardProps {
 }
 
 interface Identitas {
-  code: string;
   name: string;
   description: string;
   department_id: string;
@@ -34,7 +33,6 @@ interface Identitas {
 const SEMUA_DEPARTEMEN = '__semua__';
 
 const IDENTITAS_KOSONG: Identitas = {
-  code: '',
   name: '',
   description: '',
   department_id: '',
@@ -71,7 +69,6 @@ export function TemplateWizard({
 
     if (template) {
       setIdentitas({
-        code: template.kode,
         name: template.nama,
         description: template.keterangan ?? '',
         department_id: String(template.departemen?.id ?? ''),
@@ -102,11 +99,6 @@ export function TemplateWizard({
       setGalat('Nama template belum diisi.');
       return false;
     }
-    if (!/^[A-Z0-9_]+$/.test(identitas.code.trim())) {
-      setGalat('Kode template hanya boleh huruf kapital, angka, dan garis bawah.');
-      return false;
-    }
-
     setGalat(null);
     return true;
   }
@@ -161,7 +153,6 @@ export function TemplateWizard({
     setGalatKolom({});
 
     const muatan = {
-      code: identitas.code.trim().toUpperCase(),
       name: identitas.name.trim(),
       description: identitas.description.trim() || null,
       department_id: identitas.department_id ? Number(identitas.department_id) : null,
@@ -214,42 +205,24 @@ export function TemplateWizard({
                   <input
                     id="nama-template"
                     value={identitas.name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const kodeOtomatis =
-                        identitas.code === '' ||
-                        identitas.code === kunciDariLabel(identitas.name).toUpperCase();
-
-                      setIdentitas({
-                        ...identitas,
-                        name,
-                        ...(kodeOtomatis
-                          ? { code: kunciDariLabel(name).toUpperCase() }
-                          : {}),
-                      });
-                    }}
+                    onChange={(e) => setIdentitas({ ...identitas, name: e.target.value })}
                     className="field"
                     required
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="kode-template" className="field-label">
-                    Kode
-                  </label>
-                  <input
-                    id="kode-template"
-                    value={identitas.code}
-                    onChange={(e) =>
-                      setIdentitas({ ...identitas, code: e.target.value.toUpperCase() })
-                    }
-                    className="field font-mono"
-                    required
-                  />
-                  <span className="mt-1 block text-caption text-ink-soft">
-                    Terisi otomatis dari nama.
-                  </span>
-                </div>
+                {/*
+                  Kode dibuat otomatis dari nama dan tidak pernah berubah
+                  (docs/standar-ui-ux.md §1.5).
+                */}
+                {sedangUbah && (
+                  <div className="rounded-input border border-line bg-surface-muted px-2.5 py-2">
+                    <span className="block text-caption text-ink-soft">Kode</span>
+                    <span className="block font-mono text-body-lg text-ink-muted">
+                      {template.kode}
+                    </span>
+                  </div>
+                )}
 
                 <Select
                   id="departemen-template"
@@ -318,10 +291,12 @@ export function TemplateWizard({
                     <dt className="text-caption text-ink-soft">Nama</dt>
                     <dd className="text-body-lg text-ink">{identitas.name}</dd>
                   </div>
-                  <div className="flex justify-between gap-3">
-                    <dt className="text-caption text-ink-soft">Kode</dt>
-                    <dd className="font-mono text-body-lg text-ink">{identitas.code}</dd>
-                  </div>
+                  {sedangUbah && (
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-caption text-ink-soft">Kode</dt>
+                      <dd className="font-mono text-body-lg text-ink">{template.kode}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between gap-3">
                     <dt className="text-caption text-ink-soft">Departemen</dt>
                     <dd className="text-body-lg text-ink">{namaDepartemen}</dd>

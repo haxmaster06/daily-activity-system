@@ -103,15 +103,20 @@ export function Combobox({
 
       <Popover
         className={cn(
-          'w-[--trigger-width] overflow-auto rounded-card border border-line bg-surface p-1 shadow-modal',
-          'max-h-64 data-[entering]:animate-popover-masuk',
+          'w-[--trigger-width] overflow-hidden rounded-card border border-line bg-surface shadow-modal',
+          'data-[entering]:animate-popover-masuk',
         )}
       >
+        {/*
+          Yang menggulir adalah ListBox, bukan Popover. React Aria menggulirkan
+          item yang sedang disorot ke dalam pandangan lewat elemen ini — bila
+          gulirnya dipasang di Popover, navigasi papan ketik tidak mengikuti.
+        */}
         <ListBox
           renderEmptyState={() => (
             <p className="px-2 py-3 text-center text-body text-ink-soft">Tidak ada yang cocok</p>
           )}
-          className="outline-none"
+          className="max-h-64 overflow-y-auto overscroll-contain p-1 outline-none"
         >
           {(item: OpsiCombobox) => (
             <ListBoxItem

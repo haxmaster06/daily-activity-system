@@ -1,8 +1,9 @@
 'use client';
 
 import * as RadixSelect from '@radix-ui/react-select';
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
+import { useWadahOverlay } from '@/components/ui/wadah-overlay';
 import { cn } from '@/lib/cn';
 
 export interface OpsiSelect {
@@ -47,6 +48,7 @@ export function Select({
   ukuran = 'md',
   className,
 }: SelectProps) {
+  const wadahOverlay = useWadahOverlay();
   const idBantuan = bantuan && !galat ? `${id}-bantuan` : undefined;
   const idGalat = galat ? `${id}-galat` : undefined;
 
@@ -85,17 +87,50 @@ export function Select({
           </RadixSelect.Icon>
         </RadixSelect.Trigger>
 
-        <RadixSelect.Portal>
+        {/*
+          Portal diarahkan ke dalam modal bila Select berada di dalamnya.
+          Tanpa ini, klik pada daftar pilihan terbaca sebagai klik di luar
+          modal dan modalnya ikut tertutup — lihat `wadah-overlay.tsx`.
+        */}
+        <RadixSelect.Portal container={wadahOverlay}>
           <RadixSelect.Content
             position="popper"
             sideOffset={4}
+            /*
+             * Escape menutup daftar pilihan saja, bukan modal di belakangnya.
+             *
+             * Isi Select berada di dalam DOM modal (lihat `wadah-overlay.tsx`),
+             * sehingga keydown-nya merambat naik sampai ke modal React Aria
+             * yang juga menutup diri pada Escape. Tanpa penghentian ini, satu
+             * tekan Escape menutup keduanya sekaligus.
+             */
+            onEscapeKeyDown={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') event.stopPropagation();
+            }}
+            /*
+             * Klik untuk membubarkan daftar tidak boleh diteruskan. React Aria
+             * membaca pointerdown yang sama sebagai interaksi terhadap modal.
+             */
+            onPointerDownOutside={(event) => event.stopPropagation()}
             className={cn(
-              'z-50 max-h-64 min-w-[--radix-select-trigger-width] overflow-hidden',
-              'rounded-card border border-line bg-surface p-1 shadow-modal',
+              /*
+               * Content hanya memotong tepinya. Yang menggulir adalah
+               * Viewport — memberi `overflow-hidden` di sini tanpa membuat
+               * Viewport dapat digulir membuat pilihan di bawah terpotong dan
+               * tidak dapat dijangkau.
+               */
+              'z-50 flex min-w-[--radix-select-trigger-width] flex-col overflow-hidden',
+              'max-h-[--radix-select-content-available-height]',
+              'rounded-card border border-line bg-surface shadow-modal',
               'data-[state=open]:animate-popover-masuk',
             )}
           >
-            <RadixSelect.Viewport>
+            <RadixSelect.ScrollUpButton className="flex h-6 shrink-0 items-center justify-center bg-surface text-ink-soft">
+              <ChevronUp aria-hidden="true" className="size-3.5" />
+            </RadixSelect.ScrollUpButton>
+
+            <RadixSelect.Viewport className="max-h-64 overflow-y-auto overscroll-contain p-1">
               {opsi.map((item) => (
                 <RadixSelect.Item
                   key={item.nilai}
@@ -113,6 +148,10 @@ export function Select({
                 </RadixSelect.Item>
               ))}
             </RadixSelect.Viewport>
+
+            <RadixSelect.ScrollDownButton className="flex h-6 shrink-0 items-center justify-center bg-surface text-ink-soft">
+              <ChevronDown aria-hidden="true" className="size-3.5" />
+            </RadixSelect.ScrollDownButton>
           </RadixSelect.Content>
         </RadixSelect.Portal>
       </RadixSelect.Root>

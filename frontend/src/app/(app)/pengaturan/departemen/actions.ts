@@ -8,7 +8,6 @@ import { hasilBerhasil, hasilGalat, type HasilAksi } from '@/lib/aksi';
 const HALAMAN = '/pengaturan/departemen';
 
 export interface DataDepartemen {
-  code: string;
   name: string;
   description: string | null;
   is_active: boolean;

@@ -22,7 +22,6 @@ export interface KiriKolom {
 }
 
 export interface KiriTemplate {
-  code: string;
   name: string;
   description: string | null;
   department_id: number | null;

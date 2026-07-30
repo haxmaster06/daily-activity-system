@@ -8,6 +8,7 @@ use App\Models\ReportTemplate;
 use App\Models\TemplateField;
 use App\Support\ApiResponse;
 use App\Support\Audit;
+use App\Support\KodeOtomatis;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -79,6 +80,14 @@ class ReportTemplateController extends Controller
     {
         $data = $request->validated();
 
+        // Kode diturunkan dari nama, tidak pernah diketik pengguna
+        // (docs/standar-ui-ux.md §1.5).
+        $data['code'] = KodeOtomatis::dariNama(
+            $data['name'],
+            ReportTemplate::query(),
+            panjangMaksimal: 48,
+        );
+
         $template = DB::transaction(function () use ($data) {
             $template = ReportTemplate::create(collect($data)->except('fields')->all());
             $this->simpanKolom($template, $data['fields']);
@@ -110,7 +119,8 @@ class ReportTemplateController extends Controller
     public function update(ReportTemplateRequest $request, ReportTemplate $template): JsonResponse
     {
         $data = $request->validated();
-        $sebelum = $template->only(['code', 'name', 'description', 'department_id', 'is_active']);
+        // Kode tidak ikut diperbarui — sudah jadi rujukan laporan yang ada.
+        $sebelum = $template->only(['name', 'description', 'department_id', 'is_active']);
 
         DB::transaction(function () use ($template, $data) {
             $template->update(collect($data)->except('fields')->all());

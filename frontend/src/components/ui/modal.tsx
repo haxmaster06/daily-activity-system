@@ -1,9 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Dialog, Heading, Modal as AriaModal, ModalOverlay } from 'react-aria-components';
 import { X } from 'lucide-react';
 
+import { WadahOverlayProvider } from '@/components/ui/wadah-overlay';
 import { cn } from '@/lib/cn';
 
 interface ModalProps {
@@ -45,11 +46,34 @@ export function Modal({
   aksi,
   lebar = 'sedang',
 }: ModalProps) {
+  /*
+   * Simpul modal dipakai sebagai wadah portal bagi komponen popup Radix di
+   * dalamnya — lihat `wadah-overlay.tsx`. Memakai state, bukan ref, agar
+   * komponen anak ikut dirender ulang begitu simpulnya tersedia.
+   */
+  const [simpulModal, setSimpulModal] = useState<HTMLElement | null>(null);
+
   return (
     <ModalOverlay
       isOpen={terbuka}
       onOpenChange={(nilai) => !nilai && onTutup()}
-      isDismissable
+      /*
+       * `isDismissable` sengaja tidak dipakai.
+       *
+       * Deteksi "klik di luar" milik React Aria memakai pendengar di tingkat
+       * dokumen. Ketika komponen popup Radix — Select, DropdownMenu — sedang
+       * terbuka, Radix memasang `pointer-events: none` pada elemen di
+       * sekitarnya, sehingga sasaran klik meleset ke elemen di luar modal.
+       * React Aria lalu membacanya sebagai klik di luar dan ikut menutup
+       * modal, padahal pengguna hanya membubarkan daftar pilihan.
+       *
+       * Penutupan lewat latar ditangani sendiri di bawah: hanya bila yang
+       * ditekan benar-benar elemen latar, bukan keturunannya. Deterministik,
+       * dan kebal terhadap portal maupun pengaturan pointer-events.
+       */
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) onTutup();
+      }}
       className={cn(
         'fixed inset-0 z-40 flex items-center justify-center bg-ink/25 p-4',
         'data-[entering]:animate-memudar-masuk',
@@ -57,6 +81,7 @@ export function Modal({
       )}
     >
       <AriaModal
+        ref={setSimpulModal}
         className={cn(
           'max-h-[85vh] w-full overflow-y-auto rounded-modal bg-surface shadow-modal',
           'data-[entering]:animate-modal-masuk',
@@ -66,7 +91,7 @@ export function Modal({
       >
         <Dialog className="outline-none">
           {({ close }) => (
-            <>
+            <WadahOverlayProvider wadah={simpulModal}>
               <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
                 <div className="min-w-0">
                   <Heading slot="title" className="font-heading text-section-title text-ink">
@@ -94,7 +119,7 @@ export function Modal({
                   {aksi}
                 </div>
               )}
-            </>
+            </WadahOverlayProvider>
           )}
         </Dialog>
       </AriaModal>

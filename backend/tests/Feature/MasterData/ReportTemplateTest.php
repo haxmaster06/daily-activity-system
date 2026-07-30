@@ -15,7 +15,6 @@ use Laravel\Sanctum\Sanctum;
 function muatanTemplate(array $kolomTambahan = [], array $ganti = []): array
 {
     return array_merge([
-        'code' => 'UJI_TEMPLATE',
         'name' => 'Template Uji',
         'department_id' => null,
         'fields' => array_merge([
@@ -33,7 +32,7 @@ it('menolak selain Administrator membuat template', function (): void {
         lupakanAutentikasi();
     }
 
-    expect(ReportTemplate::where('code', 'UJI_TEMPLATE')->exists())->toBeFalse();
+    expect(ReportTemplate::where('code', 'TEMPLATE_UJI')->exists())->toBeFalse();
 });
 
 it('mengizinkan semua pengguna membaca template', function (): void {
@@ -59,10 +58,10 @@ it('membuat template beserta kolomnya', function (): void {
     ]))
         ->assertCreated()
         ->assertJsonPath('message', 'Template berhasil dibuat.')
-        ->assertJsonPath('data.kode', 'UJI_TEMPLATE')
+        ->assertJsonPath('data.kode', 'TEMPLATE_UJI')
         ->assertJsonCount(3, 'data.kolom');
 
-    $template = ReportTemplate::where('code', 'UJI_TEMPLATE')->firstOrFail();
+    $template = ReportTemplate::where('code', 'TEMPLATE_UJI')->firstOrFail();
 
     // Urutan diambil dari posisi pada kiriman, bukan nilai dari klien.
     expect($template->fields()->pluck('sort_order')->all())->toBe([0, 1, 2]);
@@ -196,7 +195,7 @@ it('menulis ulang kolom saat template diperbarui', function (): void {
         ['key' => 'lama', 'label' => 'Kolom Lama', 'type' => 'text'],
     ]))->assertCreated();
 
-    $template = ReportTemplate::where('code', 'UJI_TEMPLATE')->firstOrFail();
+    $template = ReportTemplate::where('code', 'TEMPLATE_UJI')->firstOrFail();
 
     $this->putJson("/api/template/{$template->id}", muatanTemplate([
         ['key' => 'baru', 'label' => 'Kolom Baru', 'type' => 'text'],
@@ -213,7 +212,7 @@ it('menghapus kolom saat templatenya dihapus', function (): void {
         ['key' => 'qty', 'label' => 'QTY', 'type' => 'decimal'],
     ]))->assertCreated();
 
-    $template = ReportTemplate::where('code', 'UJI_TEMPLATE')->firstOrFail();
+    $template = ReportTemplate::where('code', 'TEMPLATE_UJI')->firstOrFail();
 
     $this->deleteJson("/api/template/{$template->id}")->assertOk();
 
@@ -264,12 +263,26 @@ it('tidak menggandakan template saat seeder dijalankan berulang', function (): v
     expect(TemplateField::count())->toBe($jumlahKolom);
 });
 
-it('menolak kode template yang sudah dipakai', function (): void {
+it('membuat kode unik saat dua template bernama sama', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $this->postJson('/api/template', muatanTemplate())
+        ->assertCreated()
+        ->assertJsonPath('data.kode', 'TEMPLATE_UJI');
+
+    $this->postJson('/api/template', muatanTemplate())
+        ->assertCreated()
+        ->assertJsonPath('data.kode', 'TEMPLATE_UJI_2');
+});
+
+it('tidak mengubah kode template saat namanya diperbarui', function (): void {
     Sanctum::actingAs(User::factory()->administrator()->create());
 
     $this->postJson('/api/template', muatanTemplate())->assertCreated();
+    $template = ReportTemplate::where('code', 'TEMPLATE_UJI')->firstOrFail();
 
-    $this->postJson('/api/template', muatanTemplate([], ['name' => 'Template Lain']))
-        ->assertStatus(422)
-        ->assertJsonStructure(['errors' => ['code']]);
+    $this->putJson("/api/template/{$template->id}", muatanTemplate([], ['name' => 'Nama Baru']))
+        ->assertOk()
+        ->assertJsonPath('data.nama', 'Nama Baru')
+        ->assertJsonPath('data.kode', 'TEMPLATE_UJI');
 });

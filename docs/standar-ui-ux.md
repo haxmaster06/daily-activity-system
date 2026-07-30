@@ -53,13 +53,32 @@ Yang berlaku di DAMS:
 Kolom hasil hitungan ditandai jelas dan terkunci — user tahu itu bukan isian
 yang perlu diisi. Rumusnya disimpan pada `template_fields.computed_from`.
 
-## 1.3 Kunci teknis tidak pernah tampil
+## 1.3 Kode dibuat otomatis
+
+**Kode penanda tidak pernah diketik pengguna.** Kode diturunkan dari nama oleh
+server: huruf kapital, angka, dan garis bawah.
+
+* "Research & Development" → `RESEARCH_DEVELOPMENT`
+* Kode kembar diberi akhiran urut: `PRODUKSI`, `PRODUKSI_2`, `PRODUKSI_3`
+* Kode yang dikirim klien diabaikan — penanda sistem bukan urusan antarmuka
+
+**Kode tidak pernah berubah setelah dibuat.** Nama boleh diperbaiki kapan saja;
+kodenya sudah menjadi rujukan seeder, template, dan data lama. Pada form ubah,
+kode ditampilkan sebagai keterangan baca-saja, bukan isian.
+
+Berlaku untuk `departments.code` dan `report_templates.code`. Kode
+dibangkitkan `App\Support\KodeOtomatis`.
+
+Hal yang sama berlaku pada **kunci kolom template**: terisi otomatis dari
+label kolom, dan diberi keterangan bahwa itu penanda sistem.
+
+## 1.4 Kunci teknis tidak pernah tampil
 
 Nama kolom database tidak boleh bocor jadi label layar. `progress_status`
 ditampilkan sebagai "Status". Pada penyusun template, kunci kolom terisi
 otomatis dari label dan diberi keterangan bahwa itu penanda sistem.
 
-## 1.4 Checklist
+## 1.5 Checklist
 
 * [ ] Tidak ada input teks bebas untuk data yang punya master
 * [ ] Daftar panjang memakai Combobox, bukan Select
@@ -67,6 +86,7 @@ otomatis dari label dan diberi keterangan bahwa itu penanda sistem.
 * [ ] Isian turunan terisi otomatis
 * [ ] Kolom hitungan ditandai dan terkunci
 * [ ] Tidak ada nama kolom database yang tampil ke layar
+* [ ] Kode penanda dibuat server, bukan diketik pengguna
 
 ---
 
@@ -268,6 +288,7 @@ sendiri. Deny by default.
 * Halaman menggulir mendatar
 * Badge status yang hanya membedakan lewat warna — wajib disertai ikon atau
   teks
+* Isian Kode yang dapat diketik pengguna — kode selalu dibuat otomatis (§1.3)
 * Export langsung unduh — wajib **preview-first**
 * Angka tanpa konteks pada kartu statistik
 * Komponen UI dari library di luar Radix / React Aria tanpa alasan tertulis

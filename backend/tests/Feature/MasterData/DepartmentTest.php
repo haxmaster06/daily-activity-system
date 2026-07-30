@@ -8,7 +8,7 @@ use Laravel\Sanctum\Sanctum;
 it('menolak Staff menambah departemen', function (): void {
     Sanctum::actingAs(User::factory()->staff()->create());
 
-    $this->postJson('/api/departemen', ['code' => 'BARU', 'name' => 'Baru'])
+    $this->postJson('/api/departemen', ['name' => 'Baru'])
         ->assertForbidden();
 
     expect(Department::where('code', 'BARU')->exists())->toBeFalse();
@@ -18,7 +18,7 @@ it('menolak Supervisor dan Manager menambah departemen', function (): void {
     foreach (['supervisor', 'manager'] as $peran) {
         Sanctum::actingAs(User::factory()->{$peran}()->create());
 
-        $this->postJson('/api/departemen', ['code' => 'BARU', 'name' => 'Baru'])
+        $this->postJson('/api/departemen', ['name' => 'Baru'])
             ->assertForbidden();
 
         lupakanAutentikasi();
@@ -29,20 +29,20 @@ it('mengizinkan Administrator menambah departemen', function (): void {
     Sanctum::actingAs(User::factory()->administrator()->create());
 
     $this->postJson('/api/departemen', [
-        'code' => 'RND',
         'name' => 'Research & Development',
         'description' => 'Pengembangan produk',
     ])
         ->assertCreated()
         ->assertJsonPath('message', 'Departemen berhasil ditambahkan.')
-        ->assertJsonPath('data.kode', 'RND');
+        // Kode diturunkan dari nama, tidak diketik pengguna.
+        ->assertJsonPath('data.kode', 'RESEARCH_DEVELOPMENT');
 });
 
 it('mencatat penambahan departemen ke jejak audit', function (): void {
     $admin = User::factory()->administrator()->create(['name' => 'Admin Utama']);
     Sanctum::actingAs($admin);
 
-    $this->postJson('/api/departemen', ['code' => 'RND', 'name' => 'R&D'])->assertCreated();
+    $this->postJson('/api/departemen', ['name' => 'R&D'])->assertCreated();
 
     $jejak = AuditLog::latest('id')->first();
 
@@ -53,22 +53,35 @@ it('mencatat penambahan departemen ke jejak audit', function (): void {
         ->and($jejak->description)->toContain('R&D');
 });
 
-it('menolak kode departemen yang sudah dipakai', function (): void {
-    Department::factory()->create(['code' => 'PRODUKSI']);
+it('membuat kode unik saat namanya menghasilkan kode yang sudah dipakai', function (): void {
+    Department::factory()->create(['code' => 'PRODUKSI', 'name' => 'Produksi Lama']);
     Sanctum::actingAs(User::factory()->administrator()->create());
 
-    $this->postJson('/api/departemen', ['code' => 'PRODUKSI', 'name' => 'Produksi Baru'])
-        ->assertStatus(422)
-        ->assertJsonStructure(['errors' => ['code']]);
+    $this->postJson('/api/departemen', ['name' => 'Produksi'])
+        ->assertCreated()
+        ->assertJsonPath('data.kode', 'PRODUKSI_2');
 });
 
-it('menolak kode berhuruf kecil atau berspasi', function (): void {
+it('mengabaikan kode yang dikirim klien', function (): void {
     Sanctum::actingAs(User::factory()->administrator()->create());
 
-    foreach (['produksi', 'DOC CONTROL', 'QA-1'] as $kode) {
-        $this->postJson('/api/departemen', ['code' => $kode, 'name' => 'Uji '.$kode])
-            ->assertStatus(422);
-    }
+    // Kode adalah penanda sistem; klien tidak boleh menentukannya.
+    $this->postJson('/api/departemen', ['name' => 'Gudang Bahan', 'code' => 'DIPAKSA'])
+        ->assertCreated()
+        ->assertJsonPath('data.kode', 'GUDANG_BAHAN');
+
+    expect(Department::where('code', 'DIPAKSA')->exists())->toBeFalse();
+});
+
+it('tidak mengubah kode saat nama departemen diperbarui', function (): void {
+    $departemen = Department::factory()->create(['code' => 'GUDANG', 'name' => 'Gudang']);
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $this->putJson("/api/departemen/{$departemen->id}", ['name' => 'Gudang Bahan Baku'])
+        ->assertOk()
+        ->assertJsonPath('data.nama', 'Gudang Bahan Baku')
+        // Kode sudah menjadi rujukan seeder, template, dan data lama.
+        ->assertJsonPath('data.kode', 'GUDANG');
 });
 
 it('menolak menghapus departemen yang masih punya anggota', function (): void {
