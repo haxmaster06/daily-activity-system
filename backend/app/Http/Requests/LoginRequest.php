@@ -35,11 +35,16 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /** Masa berlaku token: lebih panjang bila pengguna memilih "Ingat saya". */
+    /**
+     * Lama diam yang ditoleransi sebelum sesi berakhir.
+     *
+     * Bukan umur token sejak dibuat: selama aplikasi dipakai, masa berlakunya
+     * digeser terus oleh middleware `PerpanjangSesi`.
+     */
     public function masaBerlakuMenit(): int
     {
         return $this->boolean('ingat')
-            ? (int) config('sanctum.expiration_remembered', 10080)
-            : (int) config('sanctum.expiration', 480);
+            ? (int) config('dams.sesi.menit_diingat', 10080)
+            : (int) config('dams.sesi.menit', 720);
     }
 }

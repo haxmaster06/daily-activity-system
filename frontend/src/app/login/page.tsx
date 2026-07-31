@@ -43,13 +43,13 @@ export default async function LoginPage({
 
           {/*
             Penyebabnya disebutkan supaya pengguna tidak menduga aplikasinya
-            rusak. Sesi berakhir bila akun dipakai masuk di tempat lain, atau
-            sudah lewat batas waktunya sejak masuk.
+            rusak. Sesi berakhir bila aplikasi lama tidak dipakai, atau akun
+            dipakai di lebih banyak perangkat daripada yang diizinkan.
           */}
           {sesi === 'berakhir' && (
             <Alert
               jenis="galat"
-              pesan="Sesi Anda sudah berakhir. Ini terjadi bila akun Anda dipakai masuk di perangkat lain, atau sudah lebih dari 8 jam sejak Anda masuk. Silakan masuk kembali."
+              pesan="Sesi Anda sudah berakhir. Ini terjadi bila aplikasi tidak dipakai lebih dari 12 jam, atau akun Anda dipakai masuk di terlalu banyak perangkat. Silakan masuk kembali."
               className="mb-4"
             />
           )}

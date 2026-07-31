@@ -55,16 +55,19 @@ class AuthController extends Controller
             );
         }
 
-        // Token lama dicabut agar satu akun tidak meninggalkan token menganggur
-        // yang masih berlaku di perangkat lain.
-        $user->tokens()->delete();
+        $this->rapikanToken($user);
 
-        $masaBerlaku = now()->addMinutes($request->masaBerlakuMenit());
+        $menit = $request->masaBerlakuMenit();
+        $masaBerlaku = now()->addMinutes($menit);
 
         $token = $user->createToken(
             name: 'dams-web',
             expiresAt: $masaBerlaku,
         );
+
+        // Panjang jendela disimpan sekali; `PerpanjangSesi` memakainya sebagai
+        // patokan tetap saat menggeser masa berlaku.
+        $token->accessToken->forceFill(['sesi_menit' => $menit])->save();
 
         $user->forceFill(['last_login_at' => now()])->save();
 
@@ -76,6 +79,18 @@ class AuthController extends Controller
         return ApiResponse::ok([
             'token' => $token->plainTextToken,
             'kedaluwarsa_pada' => $masaBerlaku->toIso8601String(),
+            /*
+             * Batas umur cookie pembawa token, bukan batas sesi.
+             *
+             * Sesi bergeser selama dipakai, sehingga cookie yang hanya
+             * berumur sepanjang jendela awal akan mati lebih dulu daripada
+             * tokennya dan mengeluarkan pengguna yang justru sedang aktif.
+             * Yang menentukan sesi berakhir tetap `expires_at` di server;
+             * cookie hanya wadahnya.
+             */
+            'cookie_berlaku_sampai' => now()
+                ->addMinutes((int) config('dams.sesi.menit_diingat', 10080))
+                ->toIso8601String(),
             'pengguna' => new UserResource($user),
         ], 'Berhasil masuk.');
     }
@@ -102,5 +117,29 @@ class AuthController extends Controller
         $user = $request->user()->loadMissing(['role', 'department']);
 
         return ApiResponse::ok(new UserResource($user));
+    }
+
+    /**
+     * Membereskan token sebelum yang baru dibuat.
+     *
+     * Satu akun boleh dipakai di beberapa perangkat — komputer di ruang kerja
+     * dan ponsel di lapangan adalah pemakaian yang wajar, dan mencabut token
+     * lama setiap kali masuk membuat pengguna terlempar keluar tanpa sebab
+     * yang ia pahami.
+     *
+     * Yang dibuang: token yang sudah lewat masa berlakunya, lalu yang tertua
+     * bila jumlahnya melebihi batas perangkat. Yang tertua, bukan yang
+     * terbaru, supaya masuk dari perangkat baru tidak pernah ditolak.
+     */
+    private function rapikanToken(User $user): void
+    {
+        $user->tokens()->whereNotNull('expires_at')->where('expires_at', '<=', now())->delete();
+
+        $batas = max(1, (int) config('dams.sesi.maksimal_perangkat', 5));
+
+        // Disisakan satu tempat untuk token yang sedang dibuat.
+        $dipertahankan = $user->tokens()->latest('id')->limit($batas - 1)->pluck('id');
+
+        $user->tokens()->whereNotIn('id', $dipertahankan)->delete();
     }
 }

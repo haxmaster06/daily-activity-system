@@ -31,7 +31,7 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login');
 
-Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function (): void {
+Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
 

@@ -179,27 +179,124 @@ it('mencatat waktu masuk terakhir', function (): void {
     expect($user->fresh()->last_login_at)->not->toBeNull();
 });
 
-it('mencabut token lama saat masuk kembali', function (): void {
+/** Masuk lalu mengembalikan tokennya. */
+function masukSebagai(string $email, string $kataSandi = 'rahasia'): string
+{
+    return test()->postJson('/api/login', ['email' => $email, 'password' => $kataSandi])
+        ->assertOk()
+        ->json('data.token');
+}
+
+it('membiarkan satu akun dipakai di beberapa perangkat', function (): void {
     $user = User::factory()->create([
         'email' => 'ahmad@hbmcorp.co.id',
         'password' => 'rahasia',
     ]);
 
-    $tokenLama = $this->postJson('/api/login', [
-        'email' => 'ahmad@hbmcorp.co.id',
-        'password' => 'rahasia',
-    ])->json('data.token');
-
-    $this->postJson('/api/login', [
-        'email' => 'ahmad@hbmcorp.co.id',
-        'password' => 'rahasia',
-    ])->assertOk();
+    $tokenPertama = masukSebagai('ahmad@hbmcorp.co.id');
+    masukSebagai('ahmad@hbmcorp.co.id');
 
     lupakanAutentikasi();
 
-    $this->withHeader('Authorization', "Bearer {$tokenLama}")
+    // Komputer di ruang kerja dan ponsel di lapangan adalah pemakaian wajar;
+    // masuk di satu perangkat tidak boleh mengeluarkan yang lain.
+    $this->withHeader('Authorization', "Bearer {$tokenPertama}")
+        ->getJson('/api/me')
+        ->assertOk();
+
+    expect($user->tokens()->count())->toBe(2);
+});
+
+it('membuang token tertua setelah melewati batas perangkat', function (): void {
+    config(['dams.sesi.maksimal_perangkat' => 3]);
+
+    $user = User::factory()->create([
+        'email' => 'ahmad@hbmcorp.co.id',
+        'password' => 'rahasia',
+    ]);
+
+    $tokenTertua = masukSebagai('ahmad@hbmcorp.co.id');
+    masukSebagai('ahmad@hbmcorp.co.id');
+    masukSebagai('ahmad@hbmcorp.co.id');
+
+    expect($user->tokens()->count())->toBe(3);
+
+    // Perangkat keempat: yang tertua dibuang, bukan yang baru ditolak.
+    masukSebagai('ahmad@hbmcorp.co.id');
+
+    lupakanAutentikasi();
+
+    expect($user->tokens()->count())->toBe(3);
+
+    $this->withHeader('Authorization', "Bearer {$tokenTertua}")
         ->getJson('/api/me')
         ->assertUnauthorized();
+});
+
+it('membuang token yang sudah lewat masa berlakunya saat masuk', function (): void {
+    $user = User::factory()->create([
+        'email' => 'ahmad@hbmcorp.co.id',
+        'password' => 'rahasia',
+    ]);
+
+    $user->createToken('lama', expiresAt: now()->subMinute());
 
     expect($user->tokens()->count())->toBe(1);
+
+    masukSebagai('ahmad@hbmcorp.co.id');
+
+    // Token mati tidak boleh ikut memakan jatah perangkat.
+    expect($user->tokens()->count())->toBe(1);
+});
+
+it('menolak token yang sudah lewat masa berlakunya', function (): void {
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $token = masukSebagai('ahmad@hbmcorp.co.id');
+
+    $user->tokens()->update(['expires_at' => now()->subMinute()]);
+
+    lupakanAutentikasi();
+
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson('/api/me')
+        ->assertUnauthorized();
+});
+
+it('memperpanjang masa berlaku sesi selama aplikasi dipakai', function (): void {
+    config(['dams.sesi.menit' => 720, 'dams.sesi.ambang_perpanjangan' => 0.5]);
+
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $token = masukSebagai('ahmad@hbmcorp.co.id');
+
+    // Sisa umur ditipiskan sampai di bawah ambang.
+    $user->tokens()->update(['expires_at' => now()->addMinutes(60)]);
+    $sebelum = $user->tokens()->first()->expires_at;
+
+    lupakanAutentikasi();
+
+    $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/me')->assertOk();
+
+    $sesudah = $user->tokens()->first()->expires_at;
+
+    // Pengguna yang sedang bekerja tidak boleh terputus di tengah jalan.
+    expect($sesudah->gt($sebelum))->toBeTrue()
+        ->and(now()->diffInMinutes($sesudah))->toBeGreaterThan(700);
+});
+
+it('tidak menulis ulang masa berlaku pada tiap permintaan', function (): void {
+    config(['dams.sesi.ambang_perpanjangan' => 0.5]);
+
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $token = masukSebagai('ahmad@hbmcorp.co.id');
+    $sebelum = $user->tokens()->first()->expires_at;
+
+    lupakanAutentikasi();
+
+    $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/me')->assertOk();
+
+    // Sisa umurnya masih penuh; menggesernya hanya membuang tulisan ke basis data.
+    expect($user->tokens()->first()->expires_at->equalTo($sebelum))->toBeTrue();
 });

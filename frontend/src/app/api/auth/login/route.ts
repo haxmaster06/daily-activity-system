@@ -7,6 +7,8 @@ import { NAMA_COOKIE_TOKEN, opsiCookieToken } from '@/lib/auth-cookie';
 interface HasilLogin {
   token: string;
   kedaluwarsa_pada: string;
+  /** Batas umur cookie, bukan batas sesi — lihat catatan di backend. */
+  cookie_berlaku_sampai?: string;
 }
 
 /**
@@ -33,10 +35,16 @@ export async function POST(request: Request) {
       autentikasi: false,
     });
 
+    /*
+     * Umur cookie mengikuti batas cookie, bukan batas sesi. Sesi diperpanjang
+     * server selama aplikasi dipakai; cookie yang hanya berumur sepanjang
+     * jendela awal akan mati lebih dulu dan mengeluarkan pengguna yang sedang
+     * aktif. Yang menentukan sesi berakhir tetap server.
+     */
     (await cookies()).set(
       NAMA_COOKIE_TOKEN,
       data.token,
-      opsiCookieToken(data.kedaluwarsa_pada),
+      opsiCookieToken(data.cookie_berlaku_sampai ?? data.kedaluwarsa_pada),
     );
 
     return NextResponse.json({ success: true, message: 'Berhasil masuk.' });

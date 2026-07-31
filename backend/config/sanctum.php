@@ -50,13 +50,21 @@ return [
     |
     */
 
-    // Sesi berakhir otomatis (non-fungsional §2.2). Dalam menit.
-    'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION', 480),
-
-    // Dipakai saat pengguna mencentang "Ingat saya" pada halaman masuk.
-    // Sengaja dibatasi seminggu: perangkat di area produksi sering dipakai
-    // bergantian, sehingga sesi tidak boleh berlaku tanpa batas.
-    'expiration_remembered' => (int) env('SANCTUM_TOKEN_EXPIRATION_REMEMBERED', 10080),
+    /*
+     * Sengaja null.
+     *
+     * Nilai ini adalah batas mutlak sejak token dibuat, dan menurut komentar
+     * di atas ia menimpa `expires_at` milik token. Batas semacam itu memutus
+     * pengguna yang sedang bekerja tepat sekian jam setelah masuk — untuk
+     * aplikasi yang dipakai sepanjang jam kerja, itu selalu jatuh pada waktu
+     * yang paling merepotkan.
+     *
+     * Masa berlaku DAMS dihitung dari aktivitas terakhir lewat `expires_at`
+     * per token, diatur di `config/dams.php` dan diperpanjang oleh middleware
+     * `PerpanjangSesi`. Sesi tetap berakhir otomatis (non-fungsional §2.2),
+     * hanya patokannya yang berbeda.
+     */
+    'expiration' => null,
 
     /*
     |--------------------------------------------------------------------------

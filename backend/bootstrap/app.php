@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\PerpanjangSesi;
 use App\Support\ApiResponse;
 use App\Support\ErrorReference;
 use Illuminate\Auth\AuthenticationException;
@@ -29,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'aktif' => EnsureUserIsActive::class,
+            'perpanjang-sesi' => PerpanjangSesi::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
