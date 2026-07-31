@@ -56,7 +56,14 @@ export async function panggilApi<T>(
   const headerPermintaan = new Headers(headers);
   headerPermintaan.set('Accept', 'application/json');
 
-  if (body !== undefined) {
+  /*
+   * FormData tidak boleh disentuh: Content-Type-nya memuat batas pemisah yang
+   * dibangkitkan fetch sendiri, dan menuliskannya sendiri membuat badan
+   * permintaan tidak dapat diurai server.
+   */
+  const berupaFormulir = body instanceof FormData;
+
+  if (body !== undefined && !berupaFormulir) {
     headerPermintaan.set('Content-Type', 'application/json');
   }
 
@@ -73,7 +80,7 @@ export async function panggilApi<T>(
     response = await fetch(`${BASE_URL_BACKEND}/api${path}`, {
       ...init,
       headers: headerPermintaan,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : berupaFormulir ? (body as FormData) : JSON.stringify(body),
       cache: 'no-store',
     });
   } catch {

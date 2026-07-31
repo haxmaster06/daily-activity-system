@@ -33,6 +33,16 @@ export interface BagianLaporan {
   baris: BarisLaporan[];
 }
 
+export interface Lampiran {
+  id: number;
+  nama: string;
+  tipe: string;
+  /** Bita. Diformat lewat `lib/format`. */
+  ukuran: number;
+  diunggah_pada: string | null;
+  pengunggah?: string;
+}
+
 export interface Laporan {
   id: number;
   /** ISO `YYYY-MM-DD`. Pemformatan Bahasa Indonesia dikerjakan `lib/format`. */
@@ -48,6 +58,7 @@ export interface Laporan {
   peninjau?: { id: number; nama: string } | null;
   jumlah_bagian?: number;
   bagian?: BagianLaporan[];
+  lampiran?: Lampiran[];
 }
 
 /** Warna badge status laporan, sama di seluruh aplikasi (standarisasi §16). */

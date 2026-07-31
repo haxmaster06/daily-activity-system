@@ -9,6 +9,7 @@ import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import { ambilLaporan } from '@/lib/laporan-server';
 import { RAGAM_STATUS } from '@/lib/laporan';
 import { penggunaSaatIni } from '@/lib/session';
+import { PanelLampiran } from './panel-lampiran';
 import { TindakanLaporan } from './tindakan-laporan';
 
 export const metadata = { title: 'Detail Laporan — DAMS' };
@@ -107,6 +108,17 @@ export default async function DetailLaporanPage({
           </p>
         )}
       </section>
+
+      <PanelLampiran
+        laporanId={laporan.id}
+        lampiran={laporan.lampiran ?? []}
+        /* Pemiliknya boleh menambah, termasuk setelah laporan dikirim: bukti
+           fisik kerap baru tersedia belakangan. */
+        bolehUnggah={laporan.penyusun?.id === pengguna.id}
+        /* Menghapus hanya selagi draf — laporan yang sudah dikirim adalah
+           catatan, dan buktinya tidak boleh hilang. */
+        bolehHapus={laporan.penyusun?.id === pengguna.id && laporan.dapat_disunting}
+      />
 
       {bagian.length === 0 ? (
         <p className="card p-8 text-center text-body-lg text-ink-soft">
