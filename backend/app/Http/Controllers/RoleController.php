@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\MatriksIzinRequest;
 use App\Http\Requests\RoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Models\Permission;
@@ -62,6 +63,53 @@ class RoleController extends Controller
         ])->values();
 
         return ApiResponse::ok($grup);
+    }
+
+    /**
+     * Menyimpan perubahan hak akses beberapa peran sekaligus.
+     *
+     * Layar pengelolaan berbentuk matriks: baris hak akses, kolom peran. Satu
+     * kali simpan dapat menyentuh beberapa peran, dan semuanya harus berhasil
+     * bersama. Menyimpan per peran membuat sebagian perubahan tersimpan lalu
+     * sisanya ditolak penjaga akses — keadaan yang tidak diminta siapa pun dan
+     * sulit dipulihkan dari layar.
+     */
+    public function simpanMatriks(MatriksIzinRequest $request): JsonResponse
+    {
+        $perubahan = $request->validated('perubahan');
+
+        PenjagaAkses::jalankan(function () use ($perubahan): void {
+            foreach ($perubahan as $satu) {
+                $peran = Role::findOrFail($satu['role_id']);
+                $sebelum = $peran->permissions->pluck('key')->sort()->values()->all();
+
+                $peran->permissions()->sync($this->idIzin($satu['izin'] ?? []));
+                $peran->load('permissions');
+
+                $sesudah = $peran->permissions->pluck('key')->sort()->values()->all();
+
+                if ($sebelum === $sesudah) {
+                    continue;
+                }
+
+                Audit::catat(
+                    Audit::AKSI_DIPERBARUI,
+                    Audit::MODUL_PENGGUNA,
+                    "Mengubah hak akses peran {$peran->name}",
+                    $peran,
+                    ['izin' => ['sebelum' => $sebelum, 'sesudah' => $sesudah]],
+                );
+            }
+        });
+
+        $peran = Role::query()
+            ->with('permissions')
+            ->withCount('users')
+            ->orderByDesc('is_system')
+            ->orderBy('name')
+            ->get();
+
+        return ApiResponse::ok(RoleResource::collection($peran), 'Hak akses berhasil disimpan.');
     }
 
     public function store(RoleRequest $request): JsonResponse

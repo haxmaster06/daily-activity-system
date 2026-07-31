@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
-import { PillNav } from '@/components/ui/pill-nav';
 import { Select } from '@/components/ui/select';
 import {
   JANGKAUAN_DEPARTEMEN,
@@ -13,7 +12,6 @@ import {
   JANGKAUAN_PRIBADI,
 } from '@/lib/izin';
 import type { RingkasanRole } from '@/lib/master-data';
-import type { GrupIzin } from '@/lib/peran-server';
 import { buatPeran, perbaruiPeran } from './actions';
 
 interface RoleDialogProps {
@@ -21,8 +19,12 @@ interface RoleDialogProps {
   onTutup: () => void;
   /** Kosong berarti menambah peran baru. */
   peran: RingkasanRole | null;
-  katalog: GrupIzin[];
+  /** Dipakai untuk menyalin hak akses dari peran yang sudah ada. */
+  daftarPeran: RingkasanRole[];
 }
+
+/** Radix Select tidak menerima string kosong sebagai nilai item. */
+const TANPA_SALINAN = '__kosong__';
 
 const OPSI_JANGKAUAN = [
   { nilai: String(JANGKAUAN_PRIBADI), label: 'Pribadi — hanya datanya sendiri' },
@@ -31,21 +33,21 @@ const OPSI_JANGKAUAN = [
 ];
 
 /**
- * Penyunting peran: identitas singkat plus matriks hak akses.
+ * Keterangan peran. Hak aksesnya sendiri diatur di matriks, bukan di sini.
  *
- * Hak akses dikelompokkan dengan tab karena kelompoknya tetap dan sudah
- * diketahui sejak awal (docs/standar-ui-ux.md §2). Tab-nya dikendalikan state,
- * bukan URL — mengubah URL di dalam modal akan menutup modalnya.
+ * Saat membuat peran baru, hak akses dapat disalin dari peran yang sudah ada —
+ * peran baru hampir selalu variasi dari yang sudah berjalan ("seperti
+ * Supervisor, tanpa pengingat"), dan menyusunnya dari nol berarti mencentang
+ * belasan kali untuk sampai ke titik awal yang sama.
  */
-export function RoleDialog({ terbuka, onTutup, peran, katalog }: RoleDialogProps) {
+export function RoleDialog({ terbuka, onTutup, peran, daftarPeran }: RoleDialogProps) {
   const router = useRouter();
   const sedangUbah = peran !== null;
 
   const [nama, setNama] = useState('');
   const [keterangan, setKeterangan] = useState('');
   const [jangkauan, setJangkauan] = useState(String(JANGKAUAN_PRIBADI));
-  const [izin, setIzin] = useState<string[]>([]);
-  const [tab, setTab] = useState(katalog[0]?.kunci ?? '');
+  const [salinDari, setSalinDari] = useState(TANPA_SALINAN);
   const [galat, setGalat] = useState<string | null>(null);
   const [galatKolom, setGalatKolom] = useState<Record<string, string[]>>({});
   const [memproses, setMemproses] = useState(false);
@@ -55,31 +57,29 @@ export function RoleDialog({ terbuka, onTutup, peran, katalog }: RoleDialogProps
 
     setGalat(null);
     setGalatKolom({});
-    setTab(katalog[0]?.kunci ?? '');
+    setSalinDari(TANPA_SALINAN);
     setNama(peran?.nama ?? '');
     setKeterangan(peran?.keterangan ?? '');
     setJangkauan(String(peran?.jangkauan_bawaan ?? JANGKAUAN_PRIBADI));
-    setIzin(peran?.izin ?? []);
-  }, [terbuka, peran, katalog]);
-
-  function alihkan(kunci: string) {
-    setIzin((sebelumnya) =>
-      sebelumnya.includes(kunci)
-        ? sebelumnya.filter((satu) => satu !== kunci)
-        : [...sebelumnya, kunci],
-    );
-  }
+  }, [terbuka, peran]);
 
   async function simpan() {
     setMemproses(true);
     setGalat(null);
     setGalatKolom({});
 
+    const sumber = daftarPeran.find((satu) => String(satu.id) === salinDari);
+
     const muatan = {
       name: nama,
       description: keterangan.trim() === '' ? null : keterangan,
       scope_level_default: Number(jangkauan),
-      izin,
+      /*
+       * Saat menyunting, hak akses yang sudah ada dikirim ulang apa adanya —
+       * layar ini tidak mengubahnya, dan mengirim daftar kosong akan
+       * mencabutnya diam-diam.
+       */
+      izin: sedangUbah ? (peran.izin ?? []) : (sumber?.izin ?? []),
     };
 
     const hasil = sedangUbah
@@ -103,8 +103,12 @@ export function RoleDialog({ terbuka, onTutup, peran, katalog }: RoleDialogProps
     <Modal
       terbuka={terbuka}
       onTutup={onTutup}
-      judul={sedangUbah ? 'Ubah Peran' : 'Tambah Peran'}
-      lebar="lebar"
+      judul={sedangUbah ? 'Ubah Keterangan Peran' : 'Tambah Peran'}
+      keterangan={
+        sedangUbah
+          ? 'Hak aksesnya diatur pada matriks di halaman ini.'
+          : 'Hak akses dapat disesuaikan pada matriks setelah peran dibuat.'
+      }
       aksi={
         <>
           <button type="button" onClick={onTutup} className="btn-ghost btn-sm">
@@ -132,37 +136,26 @@ export function RoleDialog({ terbuka, onTutup, peran, katalog }: RoleDialogProps
       >
         {galat && <Alert jenis="galat" pesan={galat} />}
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label htmlFor="nama-peran" className="field-label">
-              Nama Peran
-            </label>
-            <input
-              id="nama-peran"
-              value={nama}
-              onChange={(e) => setNama(e.target.value)}
-              aria-invalid={Boolean(galatKolom.name?.[0])}
-              className="field"
-              required
-            />
-            {galatKolom.name?.[0] && <span className="field-error">{galatKolom.name[0]}</span>}
-
-            {sedangUbah && peran.sistem && (
-              <span className="mt-1 block text-caption text-ink-soft">
-                Peran bawaan sistem. Namanya boleh diperbaiki, tetapi peran ini tidak
-                dapat dihapus.
-              </span>
-            )}
-          </div>
-
-          <Select
-            id="jangkauan-bawaan"
-            label="Jangkauan Data Bawaan"
-            nilai={jangkauan}
-            opsi={OPSI_JANGKAUAN}
-            onUbah={setJangkauan}
-            bantuan="Mengisi pilihan saat peran ini diberikan; masih bisa diubah per orang."
+        <div>
+          <label htmlFor="nama-peran" className="field-label">
+            Nama Peran
+          </label>
+          <input
+            id="nama-peran"
+            value={nama}
+            onChange={(e) => setNama(e.target.value)}
+            aria-invalid={Boolean(galatKolom.name?.[0])}
+            className="field"
+            required
           />
+          {galatKolom.name?.[0] && <span className="field-error">{galatKolom.name[0]}</span>}
+
+          {sedangUbah && peran.sistem && (
+            <span className="mt-1 block text-caption text-ink-soft">
+              Peran bawaan sistem. Namanya boleh diperbaiki, tetapi peran ini tidak dapat
+              dihapus.
+            </span>
+          )}
         </div>
 
         <div>
@@ -177,44 +170,31 @@ export function RoleDialog({ terbuka, onTutup, peran, katalog }: RoleDialogProps
           />
         </div>
 
-        <div>
-          <p className="field-label">Hak Akses</p>
+        <Select
+          id="jangkauan-bawaan"
+          label="Jangkauan Data Bawaan"
+          nilai={jangkauan}
+          opsi={OPSI_JANGKAUAN}
+          onUbah={setJangkauan}
+          bantuan="Mengisi pilihan saat peran ini diberikan; masih bisa diubah per orang."
+        />
 
-          <PillNav
-            nilai={tab}
-            onUbah={setTab}
-            item={katalog.map((grup) => ({
-              nilai: grup.kunci,
-              label: grup.nama,
-              jumlah: grup.izin.filter((satu) => izin.includes(satu.kunci)).length,
-              isi: (
-                <ul className="space-y-1.5 pt-1">
-                  {grup.izin.map((satu) => (
-                    <li key={satu.kunci}>
-                      <label className="flex cursor-pointer items-start gap-2 rounded-input px-2 py-1.5 hover:bg-surface-muted">
-                        <input
-                          type="checkbox"
-                          checked={izin.includes(satu.kunci)}
-                          onChange={() => alihkan(satu.kunci)}
-                          className="mt-0.5 size-4 shrink-0 rounded border-line text-primary focus:ring-primary"
-                        />
-                        <span className="min-w-0">
-                          {/* Yang tampil namanya, bukan kunci teknisnya. */}
-                          <span className="block text-body-lg text-ink">{satu.nama}</span>
-                          {satu.keterangan && (
-                            <span className="block text-body text-ink-muted">
-                              {satu.keterangan}
-                            </span>
-                          )}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              ),
-            }))}
+        {!sedangUbah && (
+          <Select
+            id="salin-dari"
+            label="Salin Hak Akses Dari"
+            nilai={salinDari}
+            opsi={[
+              { nilai: TANPA_SALINAN, label: 'Mulai tanpa hak akses' },
+              ...daftarPeran.map((satu) => ({
+                nilai: String(satu.id),
+                label: `${satu.nama} (${satu.izin?.length ?? 0} hak akses)`,
+              })),
+            ]}
+            onUbah={setSalinDari}
+            bantuan="Hasil salinan masih dapat disesuaikan di matriks."
           />
-        </div>
+        )}
       </form>
     </Modal>
   );

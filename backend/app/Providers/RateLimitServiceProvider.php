@@ -45,6 +45,20 @@ class RateLimitServiceProvider extends ServiceProvider
                 ));
         });
 
+        /*
+         * Unggahan lampiran. Tiap permintaan menulis berkas ke disk, sehingga
+         * penyalahgunaannya menghabiskan ruang penyimpanan, bukan sekadar
+         * waktu CPU.
+         */
+        RateLimiter::for('unggah', function (Request $request) {
+            return Limit::perMinute(20)
+                ->by($request->user()?->getAuthIdentifier() ?? $request->ip())
+                ->response(fn () => ApiResponse::error(
+                    'Terlalu banyak unggahan. Coba lagi dalam satu menit.',
+                    429,
+                ));
+        });
+
         // Batas umum untuk seluruh endpoint terautentikasi.
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(120)->by(

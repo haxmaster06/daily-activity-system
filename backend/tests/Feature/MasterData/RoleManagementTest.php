@@ -129,3 +129,63 @@ it('menghapus peran yang tidak dipakai siapa pun', function (): void {
 
     expect(Role::whereKey($peran->id)->exists())->toBeFalse();
 });
+
+it('menyimpan perubahan hak akses beberapa peran sekaligus', function (): void {
+    sebagaiPengelolaPeran();
+
+    $staff = RoleFactory::slug(Role::STAFF);
+    $supervisor = RoleFactory::slug(Role::SUPERVISOR);
+
+    $this->putJson('/api/role/matriks', [
+        'perubahan' => [
+            ['role_id' => $staff->id, 'izin' => [KatalogIzin::LAPORAN_LIHAT]],
+            ['role_id' => $supervisor->id, 'izin' => [KatalogIzin::LAPORAN_LIHAT, KatalogIzin::LAPORAN_TINJAU]],
+        ],
+    ])->assertOk();
+
+    expect($staff->fresh()->permissions->pluck('key')->all())->toBe([KatalogIzin::LAPORAN_LIHAT])
+        ->and($supervisor->fresh()->permissions->pluck('key')->sort()->values()->all())
+        ->toBe([KatalogIzin::LAPORAN_LIHAT, KatalogIzin::LAPORAN_TINJAU]);
+});
+
+it('membatalkan seluruh matriks bila salah satunya menghabiskan pengelola', function (): void {
+    $admin = sebagaiPengelolaPeran();
+
+    $staff = RoleFactory::slug(Role::STAFF);
+    $administrator = Role::where('slug', Role::ADMINISTRATOR)->firstOrFail();
+
+    $this->putJson('/api/role/matriks', [
+        'perubahan' => [
+            ['role_id' => $staff->id, 'izin' => [KatalogIzin::LAPORAN_LIHAT]],
+            // Melepas izin pengelolaan dari satu-satunya peran yang memilikinya.
+            ['role_id' => $administrator->id, 'izin' => [KatalogIzin::LAPORAN_LIHAT]],
+        ],
+    ])->assertStatus(422);
+
+    // Perubahan pada peran lain ikut dibatalkan — bukan sebagian tersimpan.
+    expect($staff->fresh()->permissions->pluck('key')->all())
+        ->toBe(KatalogIzin::bawaanPeran()[Role::STAFF])
+        ->and($admin->fresh()->boleh(KatalogIzin::PENGGUNA_KELOLA))->toBeTrue();
+});
+
+it('mengosongkan hak akses sebuah peran lewat matriks', function (): void {
+    sebagaiPengelolaPeran();
+
+    $staff = RoleFactory::slug(Role::STAFF);
+
+    $this->putJson('/api/role/matriks', [
+        'perubahan' => [['role_id' => $staff->id, 'izin' => []]],
+    ])->assertOk();
+
+    expect($staff->fresh()->permissions)->toHaveCount(0);
+});
+
+it('menolak menyimpan matriks tanpa izin mengelola peran', function (): void {
+    Sanctum::actingAs(User::factory()->supervisor()->create([
+        'department_id' => Department::factory(),
+    ]));
+
+    $this->putJson('/api/role/matriks', [
+        'perubahan' => [['role_id' => RoleFactory::slug(Role::STAFF)->id, 'izin' => []]],
+    ])->assertStatus(403);
+});

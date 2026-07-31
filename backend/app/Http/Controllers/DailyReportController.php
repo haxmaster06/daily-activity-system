@@ -316,7 +316,7 @@ class DailyReportController extends Controller
             'peninjau',
             'sections.template.fields',
             'sections.items',
-            'attachments',
+            'attachments.pengunggah',
         ]);
     }
 }

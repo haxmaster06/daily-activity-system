@@ -41,6 +41,8 @@ class DailyReportResource extends JsonResource
                 'nama' => $this->peninjau->name,
             ]),
 
+            'lampiran' => AttachmentResource::collection($this->whenLoaded('attachments')),
+
             'jumlah_bagian' => $this->whenCounted('sections'),
             'bagian' => DailyReportSectionResource::collection($this->whenLoaded('sections')),
         ];

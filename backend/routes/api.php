@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\LampiranController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PengingatController;
@@ -85,6 +86,11 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::get('/role', [RoleController::class, 'index'])->name('role.index');
     Route::get('/izin', [RoleController::class, 'katalogIzin'])->name('izin.index');
     Route::post('/role', [RoleController::class, 'store'])->name('role.store');
+
+    // Harus mendahului `/role/{role}`, kalau tidak "matriks" ditangkap sebagai
+    // id peran dan permintaannya berakhir 404.
+    Route::put('/role/matriks', [RoleController::class, 'simpanMatriks'])
+        ->name('role.matriks');
     Route::put('/role/{role}', [RoleController::class, 'update'])->name('role.update');
     Route::delete('/role/{role}', [RoleController::class, 'destroy'])->name('role.destroy');
     Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna.index');
@@ -122,6 +128,20 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
         ->name('laporan.tinjau');
+
+    /*
+     * Lampiran. Izinnya mengikuti laporannya lewat AttachmentPolicy.
+     *
+     * Unduhan selalu melewati controller — tautan penyimpanan yang terbuka
+     * membuat siapa pun yang menebak nama berkas dapat membacanya.
+     */
+    Route::post('/laporan/{laporan}/lampiran', [LampiranController::class, 'store'])
+        ->middleware('throttle:unggah')
+        ->name('lampiran.store');
+    Route::get('/lampiran/{lampiran}', [LampiranController::class, 'show'])
+        ->name('lampiran.show');
+    Route::delete('/lampiran/{lampiran}', [LampiranController::class, 'destroy'])
+        ->name('lampiran.destroy');
 
     /*
      * Export preview-first (standarisasi §27): tidak ada unduhan langsung.

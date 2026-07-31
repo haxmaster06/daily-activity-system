@@ -50,3 +50,31 @@ export async function hapusPeran(id: number): Promise<HasilAksi> {
     return hasilGalat(galat);
   }
 }
+
+export interface PerubahanIzin {
+  role_id: number;
+  izin: string[];
+}
+
+/**
+ * Menyimpan perubahan hak akses beberapa peran sekaligus.
+ *
+ * Satu permintaan, satu transaksi: penjaga akses menilai keadaan akhir, bukan
+ * tiap peran satu per satu.
+ */
+export async function simpanMatriksIzin(perubahan: PerubahanIzin[]): Promise<HasilAksi> {
+  try {
+    const { message } = await panggilApi('/role/matriks', {
+      method: 'PUT',
+      body: { perubahan },
+    });
+    revalidatePath(HALAMAN);
+
+    // Hak akses berubah berarti menu dan tombol pengguna lain ikut berubah.
+    revalidatePath('/', 'layout');
+
+    return hasilBerhasil(message || 'Hak akses berhasil disimpan.');
+  } catch (galat) {
+    return hasilGalat(galat);
+  }
+}
