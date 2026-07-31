@@ -41,10 +41,15 @@ export default async function LoginPage({
           <h1 className="text-page-title text-ink">Selamat Datang</h1>
           <p className="mb-5 mt-0.5 text-body-lg text-ink-muted">Silakan masuk ke akun Anda.</p>
 
+          {/*
+            Penyebabnya disebutkan supaya pengguna tidak menduga aplikasinya
+            rusak. Sesi berakhir bila akun dipakai masuk di tempat lain, atau
+            sudah lewat batas waktunya sejak masuk.
+          */}
           {sesi === 'berakhir' && (
             <Alert
               jenis="galat"
-              pesan="Sesi Anda telah berakhir. Silakan masuk kembali."
+              pesan="Sesi Anda sudah berakhir. Ini terjadi bila akun Anda dipakai masuk di perangkat lain, atau sudah lebih dari 8 jam sejak Anda masuk. Silakan masuk kembali."
               className="mb-4"
             />
           )}

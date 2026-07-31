@@ -328,7 +328,53 @@ Diterapkan global di `globals.css`, bukan per komponen.
 
 ---
 
-# BAGIAN 10 — CHECKLIST HALAMAN BARU
+# BAGIAN 10 — PENANGANAN GALAT
+
+Pengguna tidak pernah melihat pesan teknis. Yang ditampilkan selalu: apa yang
+terjadi menurut sudut pandangnya, apa yang bisa ia lakukan, dan kode rujukan
+bila perlu dilaporkan. Detail teknis hanya masuk log server dan konsol
+pengembang.
+
+## 10.1 Tingkatan penanganan
+
+Galat ditangani sedekat mungkin dengan tempat kejadiannya. Halaman galat penuh
+adalah jaring pengaman terakhir, bukan jawaban pertama.
+
+| Keadaan | Perlakuan |
+|---|---|
+| Validasi kolom | Pesan di bawah kolomnya, form tetap terisi |
+| Tindakan gagal (simpan, kirim, hapus) | `Alert` di dekat tombolnya, halaman tetap |
+| Penyaringan ditolak server | `denganPenyaringanAman` — nilai bawaan dipakai, alasannya ditampilkan di tempat, penyaring tetap dapat dipakai |
+| Data tidak ada atau bukan haknya | `notFound()` — `(app)/not-found.tsx`, navigasi tetap terpasang |
+| Sesi berakhir | Diantar ke `/api/auth/sesi-berakhir`, cookie dibersihkan, penyebabnya dijelaskan di halaman masuk |
+| Kegagalan tak terduga | Batas galat `error.tsx`, dengan tombol Coba Lagi |
+| Layout utama pun gagal | `global-error.tsx` |
+
+## 10.2 Aturan
+
+* Galat 403 dan 404 diperlakukan sama — keberadaan sebuah data bukan informasi
+  yang boleh dibocorkan.
+* Pesan validasi per kolom lebih diutamakan daripada pesan umum. "Tanggal akhir
+  harus setelah tanggal mulai" mengalahkan "Periksa kembali isian Anda".
+* Sesi yang berakhir tidak cukup ditampilkan sebagai pesan — pengguna harus
+  diantar keluar, karena tindakan apa pun setelahnya akan gagal dengan cara yang
+  sama.
+* Tiap halaman galat menyediakan jalan keluar: Coba Lagi, atau tautan ke
+  halaman yang pasti bisa dibuka.
+* Kode rujukan ditampilkan apa adanya (`ERR-YYYYMMDD-NNN` dari backend, atau
+  `digest` dari Next.js). Tanpa penjelasan teknis di sekitarnya.
+
+## 10.3 Dilarang
+
+* Menampilkan `error.message` mentah, stack trace, nama kelas exception, atau
+  kode status HTTP telanjang
+* Halaman galat bawaan Next.js yang berbahasa Inggris
+* Galat yang membuat pengguna terdampar tanpa tombol atau tautan
+* `console.log` galat sebagai satu-satunya penanganan
+
+---
+
+# BAGIAN 11 — CHECKLIST HALAMAN BARU
 
 * [ ] Navigasi memakai Top Nav (lebar) dan Dock + Staggered Menu (sempit)
 * [ ] Breadcrumb dapat diklik
@@ -337,7 +383,7 @@ Diterapkan global di `globals.css`, bukan per komponen.
 * [ ] Isi setara yang banyak dikelompokkan dengan Tab
 * [ ] Isian berantai memakai Wizard
 * [ ] Tabel: header sticky, badan menggulir, filter dan pagination server-side
-* [ ] Keadaan kosong, memuat, dan galat semuanya ditangani
+* [ ] Keadaan kosong, memuat, dan galat semuanya ditangani (§10)
 * [ ] Seluruh teks Bahasa Indonesia, tanpa nama kolom database
 * [ ] Animasi memakai nilai dari `lib/gerak.ts`
 * [ ] Library komponen sesuai `docs/standar-library-ui.md` §2

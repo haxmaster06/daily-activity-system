@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { redirect } from 'next/navigation';
+
 import { GalatApi } from '@/lib/api';
 
 /**
@@ -28,6 +30,16 @@ export function hasilBerhasil(pesan: string): HasilAksi {
  */
 export function hasilGalat(galat: unknown): HasilAksi {
   if (galat instanceof GalatApi) {
+    /*
+     * Sesi yang berakhir di tengah pengisian form tidak cukup ditampilkan
+     * sebagai pesan: apa pun yang ditekan pengguna setelahnya akan gagal
+     * dengan cara yang sama. Cookie basinya dibersihkan lalu pengguna
+     * diantar ke halaman masuk, lengkap dengan penjelasan penyebabnya.
+     */
+    if (galat.status === 401) {
+      redirect('/api/auth/sesi-berakhir');
+    }
+
     return {
       berhasil: false,
       pesan: galat.reference ? `${galat.message} (Kode: ${galat.reference})` : galat.message,

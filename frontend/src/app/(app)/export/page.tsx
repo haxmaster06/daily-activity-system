@@ -4,6 +4,7 @@ import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
 import { ambilPratinjauExport } from '@/lib/export-server';
 import { ambilDepartemen } from '@/lib/master-data';
+import { denganPenyaringanAman } from '@/lib/penyaringan';
 import { penggunaSaatIni } from '@/lib/session';
 import { ambilTemplate } from '@/lib/template-server';
 import { PanelExport } from './panel-export';
@@ -39,7 +40,7 @@ export default async function ExportPage({
   const dapatPilihDepartemen = pengguna.role !== 'staff';
 
   const [pratinjau, departemen, template] = await Promise.all([
-    ambilPratinjauExport(query),
+    denganPenyaringanAman(query, ambilPratinjauExport),
     dapatPilihDepartemen ? ambilDepartemen() : Promise.resolve([]),
     ambilTemplate(new URLSearchParams({ hanya_aktif: '1' })),
   ]);
@@ -52,7 +53,8 @@ export default async function ExportPage({
       </div>
 
       <PanelExport
-        pratinjau={pratinjau}
+        pratinjau={pratinjau.data}
+        peringatan={pratinjau.peringatan}
         departemen={departemen}
         template={template}
         dapatPilihDepartemen={dapatPilihDepartemen}

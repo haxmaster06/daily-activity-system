@@ -17,6 +17,8 @@ interface PanelExportProps {
   departemen: Departemen[];
   template: Template[];
   dapatPilihDepartemen: boolean;
+  /** Terisi bila penyaringan ditolak dan halaman memakai rentang bawaan. */
+  peringatan?: string | null;
 }
 
 /** Radix Select tidak menerima string kosong sebagai nilai item. */
@@ -34,6 +36,7 @@ export function PanelExport({
   departemen,
   template,
   dapatPilihDepartemen,
+  peringatan = null,
 }: PanelExportProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -127,6 +130,14 @@ export function PanelExport({
           )}
         </div>
       </section>
+
+      {peringatan && (
+        <Alert
+          jenis="galat"
+          className="mb-3 print:hidden"
+          pesan={`${peringatan} Ditampilkan memakai rentang bawaan.`}
+        />
+      )}
 
       {pratinjau.terpotong && (
         <Alert

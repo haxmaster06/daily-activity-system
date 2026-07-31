@@ -1,5 +1,6 @@
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { ambilDepartemen } from '@/lib/master-data';
+import { denganPenyaringanAman } from '@/lib/penyaringan';
 import { ambilRingkasanMonitoring } from '@/lib/ringkasan-server';
 import { wajibAkses } from '@/lib/session';
 import { TabelMonitoring } from './tabel-monitoring';
@@ -36,7 +37,7 @@ export default async function MonitoringPage({
     pengguna.role === 'manager' || pengguna.role === 'administrator';
 
   const [ringkasan, departemen] = await Promise.all([
-    ambilRingkasanMonitoring(query),
+    denganPenyaringanAman(query, ambilRingkasanMonitoring),
     dapatPilihDepartemen ? ambilDepartemen() : Promise.resolve([]),
   ]);
 
@@ -44,7 +45,8 @@ export default async function MonitoringPage({
     <>
       <Breadcrumb jejak={[{ label: 'Monitoring' }]} />
       <TabelMonitoring
-        ringkasan={ringkasan}
+        ringkasan={ringkasan.data}
+        peringatan={ringkasan.peringatan}
         departemen={departemen}
         dapatPilihDepartemen={dapatPilihDepartemen}
         penggunaId={pengguna.id}

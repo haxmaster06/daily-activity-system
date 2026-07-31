@@ -80,7 +80,13 @@ export async function wajibAkses(href: string): Promise<PenggunaSesi> {
   const pengguna = await penggunaSaatIni();
 
   if (pengguna === null) {
-    redirect('/login');
+    /*
+     * Lewat Route Handler, bukan langsung ke /login: cookie yang sudah basi
+     * harus dihapus dulu, dan Server Component tidak boleh menghapus cookie.
+     * Tanpa itu middleware melihat cookie, mengizinkan halaman, lalu halaman
+     * mengarahkan ke /login lagi — berputar tanpa henti.
+     */
+    redirect('/api/auth/sesi-berakhir');
   }
 
   if (!bolehAkses(pengguna.role, href)) {

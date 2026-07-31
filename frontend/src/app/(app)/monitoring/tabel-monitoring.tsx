@@ -26,6 +26,8 @@ interface TabelMonitoringProps {
   dapatPilihDepartemen: boolean;
   /** Dipakai untuk tidak menawarkan pengingat kepada diri sendiri. */
   penggunaId: number;
+  /** Terisi bila penyaringan ditolak dan halaman memakai rentang bawaan. */
+  peringatan?: string | null;
 }
 
 /**
@@ -40,6 +42,7 @@ export function TabelMonitoring({
   departemen,
   dapatPilihDepartemen,
   penggunaId,
+  peringatan = null,
 }: TabelMonitoringProps) {
   const router = useRouter();
   const { rentang, anggota } = ringkasan;
@@ -103,6 +106,14 @@ export function TabelMonitoring({
           perhatian={belumSamaSekali > 0}
         />
       </div>
+
+      {peringatan && (
+        <Alert
+          jenis="galat"
+          pesan={`${peringatan} Ditampilkan memakai rentang bawaan.`}
+          className="mb-3"
+        />
+      )}
 
       {hasil && <Alert jenis={hasil.jenis} pesan={hasil.pesan} className="mb-3" />}
 
