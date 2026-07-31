@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DailyReportController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\UserController;
@@ -29,6 +31,14 @@ Route::post('/login', [AuthController::class, 'login'])
 Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
+
+    /*
+     * Ringkasan. Angkanya dibatasi DailyReport::scopeVisibleTo() — pengguna
+     * tidak boleh melihat angka yang mencakup laporan di luar jangkauannya.
+     * Monitoring menolak Staff sejak di controller.
+     */
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/monitoring', MonitoringController::class)->name('monitoring');
 
     // Profil sendiri — tidak memerlukan role khusus.
     Route::get('/profil', [ProfileController::class, 'show'])->name('profil.show');

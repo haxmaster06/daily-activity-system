@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 
 import { SpectacularButton } from '@/components/ui/spectacular-button';
@@ -15,6 +15,18 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
   const [kataSandiTerlihat, setKataSandiTerlihat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [memproses, setMemproses] = useState(false);
+
+  /*
+   * Tombol Masuk baru aktif setelah komponen ini hidup di peramban.
+   *
+   * Sebelum hidrasi selesai, formulir ini masih HTML biasa: menekan tombolnya
+   * memicu pengiriman bawaan peramban, dan karena form tanpa `method` dikirim
+   * sebagai GET, email beserta kata sandinya ikut tertulis di URL — lalu
+   * tersimpan di riwayat peramban dan log server.
+   */
+  const [siap, setSiap] = useState(false);
+
+  useEffect(() => setSiap(true), []);
 
   async function kirim(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,7 +137,7 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
       </label>
 
       {/* Aksi utama halaman — satu-satunya Spectacular Button di sini. */}
-      <SpectacularButton type="submit" memproses={memproses} penuh>
+      <SpectacularButton type="submit" memproses={memproses} disabled={!siap} penuh>
         Masuk
       </SpectacularButton>
     </form>
