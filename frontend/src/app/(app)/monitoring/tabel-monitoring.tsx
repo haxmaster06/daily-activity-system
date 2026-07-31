@@ -1,8 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { CalendarRange } from 'lucide-react';
+import { useState } from 'react';
+import { BellRing, CalendarRange } from 'lucide-react';
 
+import { Alert } from '@/components/ui/alert';
 import {
   DataTable,
   DataTableBody,
@@ -22,6 +24,8 @@ interface TabelMonitoringProps {
   departemen: Departemen[];
   /** Supervisor terkunci pada departemennya; filter departemen tidak berguna. */
   dapatPilihDepartemen: boolean;
+  /** Dipakai untuk tidak menawarkan pengingat kepada diri sendiri. */
+  penggunaId: number;
 }
 
 /**
@@ -35,12 +39,49 @@ export function TabelMonitoring({
   ringkasan,
   departemen,
   dapatPilihDepartemen,
+  penggunaId,
 }: TabelMonitoringProps) {
   const router = useRouter();
   const { rentang, anggota } = ringkasan;
 
+  const [mengirim, setMengirim] = useState<number | null>(null);
+  const [sudahDiingatkan, setSudahDiingatkan] = useState<number[]>([]);
+  const [hasil, setHasil] = useState<{ jenis: 'galat' | 'berhasil'; pesan: string } | null>(
+    null,
+  );
+
   const totalLaporan = anggota.reduce((n, a) => n + a.jumlah_laporan, 0);
   const belumSamaSekali = anggota.filter((a) => a.jumlah_laporan === 0).length;
+
+  async function kirimPengingat(id: number) {
+    setMengirim(id);
+    setHasil(null);
+
+    try {
+      const response = await fetch('/api/monitoring/pengingat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pengguna_id: id }),
+      });
+
+      const isi = (await response.json()) as { success: boolean; message: string };
+
+      setHasil({ jenis: isi.success ? 'berhasil' : 'galat', pesan: isi.message });
+
+      // Ditandai walau gagal karena sudah pernah dikirim hari ini — tombolnya
+      // tidak berguna lagi sampai hari berganti.
+      if (isi.success || response.status === 422) {
+        setSudahDiingatkan((sebelumnya) => [...sebelumnya, id]);
+      }
+    } catch {
+      setHasil({
+        jenis: 'galat',
+        pesan: 'Tidak dapat terhubung ke server. Coba lagi sebentar lagi.',
+      });
+    } finally {
+      setMengirim(null);
+    }
+  }
 
   return (
     <>
@@ -62,6 +103,8 @@ export function TabelMonitoring({
           perhatian={belumSamaSekali > 0}
         />
       </div>
+
+      {hasil && <Alert jenis={hasil.jenis} pesan={hasil.pesan} className="mb-3" />}
 
       <div className="card overflow-hidden">
         <FilterBar
@@ -87,12 +130,13 @@ export function TabelMonitoring({
             <Th align="right">Draf</Th>
             <Th align="right">Ditinjau</Th>
             <Th align="right">Hari Tanpa Laporan</Th>
+            <Th>Tindakan</Th>
           </DataTableHead>
 
           <DataTableBody>
             {anggota.length === 0 ? (
               <DataTableKosong
-                kolom={6}
+                kolom={7}
                 pesan="Tidak ada anggota yang cocok dengan penyaringan ini."
               />
             ) : (
@@ -130,6 +174,35 @@ export function TabelMonitoring({
                     )}
                   >
                     {formatAngka(item.hari_tanpa_laporan)}
+                  </Td>
+
+                  <Td>
+                    {/*
+                      Pengingat hanya berguna bagi yang belum melapor sama
+                      sekali. Menawarkannya pada semua baris membuat kolom ini
+                      penuh tombol yang tidak seharusnya ditekan.
+                    */}
+                    {item.jumlah_laporan === 0 && item.id !== penggunaId ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          // Baris ini dapat diklik untuk membuka laporannya.
+                          event.stopPropagation();
+                          void kirimPengingat(item.id);
+                        }}
+                        disabled={mengirim !== null || sudahDiingatkan.includes(item.id)}
+                        className="btn-ghost btn-sm whitespace-nowrap"
+                      >
+                        <BellRing aria-hidden="true" className="size-3.5" />
+                        {sudahDiingatkan.includes(item.id)
+                          ? 'Sudah diingatkan'
+                          : mengirim === item.id
+                            ? 'Mengirim...'
+                            : 'Kirim Pengingat'}
+                      </button>
+                    ) : (
+                      <span className="text-ink-soft">—</span>
+                    )}
                   </Td>
                 </tr>
               ))

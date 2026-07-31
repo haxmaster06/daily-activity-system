@@ -5,9 +5,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'motion/react';
-import { Bell, ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 
 import { Dock } from '@/components/layout/dock';
+import { LoncengNotifikasi } from '@/components/layout/lonceng-notifikasi';
 import { StaggeredMenu } from '@/components/layout/staggered-menu';
 import { cn } from '@/lib/cn';
 import { PEGAS } from '@/lib/gerak';
@@ -59,13 +60,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
             onKeluar={() => void keluar()}
           />
 
-          <button
-            type="button"
-            aria-label="Notifikasi"
-            className="grid size-8 place-items-center rounded-control text-ink-muted transition-colors duration-fast hover:bg-surface-muted"
-          >
-            <Bell aria-hidden="true" className="size-4" />
-          </button>
+          <LoncengNotifikasi />
 
           {pengguna.role === 'administrator' && (
             <Link

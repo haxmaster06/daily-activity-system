@@ -47,6 +47,7 @@ export default async function MonitoringPage({
         ringkasan={ringkasan}
         departemen={departemen}
         dapatPilihDepartemen={dapatPilihDepartemen}
+        penggunaId={pengguna.id}
       />
     </>
   );

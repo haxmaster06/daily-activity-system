@@ -6,13 +6,17 @@ use App\Http\Requests\DailyReportRequest;
 use App\Http\Resources\DailyReportResource;
 use App\Models\DailyReport;
 use App\Models\ReportTemplate;
+use App\Models\Role;
 use App\Models\User;
+use App\Notifications\LaporanDikirim;
+use App\Notifications\LaporanDitinjau;
 use App\Support\ApiResponse;
 use App\Support\Audit;
 use App\Support\ValidasiIsianTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 class DailyReportController extends Controller
@@ -168,6 +172,8 @@ class DailyReportController extends Controller
             $laporan,
         );
 
+        $this->beriTahuAtasan($laporan);
+
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan)),
             'Laporan berhasil dikirim.',
@@ -201,10 +207,35 @@ class DailyReportController extends Controller
             $laporan,
         );
 
+        // Penyusun perlu tahu laporannya sudah dibaca, terlebih bila ada catatan.
+        $laporan->user?->notify(
+            new LaporanDitinjau($laporan, $request->user(), $data['catatan'] ?? null),
+        );
+
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan)),
             'Laporan ditandai sudah ditinjau.',
         );
+    }
+
+    /**
+     * Memberi tahu atasan di departemen yang sama bahwa ada laporan masuk.
+     *
+     * Yang diberi tahu hanya Supervisor ke atas pada departemen laporan itu.
+     * Manager dan Administrator melihat seluruh departemen; mengirimi mereka
+     * satu notifikasi untuk tiap laporan yang masuk akan membuat loncengnya
+     * tidak terbaca sama sekali.
+     */
+    private function beriTahuAtasan(DailyReport $laporan): void
+    {
+        $atasan = User::query()
+            ->where('is_active', true)
+            ->where('department_id', $laporan->department_id)
+            ->whereKeyNot($laporan->user_id)
+            ->whereHas('role', fn ($query) => $query->where('level', '>=', Role::LEVEL_SUPERVISOR))
+            ->get();
+
+        Notification::send($atasan, new LaporanDikirim($laporan));
     }
 
     public function destroy(DailyReport $laporan): JsonResponse

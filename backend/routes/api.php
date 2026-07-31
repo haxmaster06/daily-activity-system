@@ -7,6 +7,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\MonitoringController;
+use App\Http\Controllers\NotifikasiController;
+use App\Http\Controllers\PengingatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\UserController;
@@ -40,6 +42,22 @@ Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function ():
      */
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/monitoring', MonitoringController::class)->name('monitoring');
+
+    /*
+     * Notifikasi. Relasi `notifications()` sudah terikat pada pemiliknya,
+     * sehingga tidak ada jalan membaca notifikasi pengguna lain.
+     *
+     * Pengingat dibatasi lebih ketat: Supervisor ke atas, dan Supervisor hanya
+     * untuk departemennya sendiri.
+     */
+    Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi.index');
+    Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])
+        ->name('notifikasi.baca-semua');
+    Route::post('/notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'baca'])
+        ->name('notifikasi.baca');
+    Route::post('/monitoring/pengingat', PengingatController::class)
+        ->middleware('throttle:pengingat')
+        ->name('monitoring.pengingat');
 
     // Profil sendiri — tidak memerlukan role khusus.
     Route::get('/profil', [ProfileController::class, 'show'])->name('profil.show');

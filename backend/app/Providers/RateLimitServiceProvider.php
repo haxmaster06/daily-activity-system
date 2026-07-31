@@ -31,6 +31,20 @@ class RateLimitServiceProvider extends ServiceProvider
                 ));
         });
 
+        /*
+         * Pengingat menghasilkan notifikasi ke orang lain. Batas per hari
+         * sudah ditegakkan per penerima di controller; batas ini menahan
+         * pengiriman beruntun ke banyak orang sekaligus.
+         */
+        RateLimiter::for('pengingat', function (Request $request) {
+            return Limit::perMinute(20)
+                ->by($request->user()?->getAuthIdentifier() ?? $request->ip())
+                ->response(fn () => ApiResponse::error(
+                    'Terlalu banyak pengingat dikirim. Coba lagi dalam satu menit.',
+                    429,
+                ));
+        });
+
         // Batas umum untuk seluruh endpoint terautentikasi.
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(120)->by(
