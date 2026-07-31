@@ -312,6 +312,8 @@ memerlukan ini.
 
 # BAGIAN 7 — FORM
 
+## 7.1 Bentuk
+
 * Form **≤ 8 field** memakai modal
 * Form **> 8 field** atau yang punya lampiran memakai halaman tersendiri
 * Isian berantai memakai wizard
@@ -321,6 +323,24 @@ memerlukan ini.
   pembaca layar
 * Galat tampil di bawah isian yang bermasalah, bukan hanya menumpuk di atas
 * Tombol aksi di kanan bawah: **Batal** lalu **aksi utama**
+
+## 7.2 Judul dan tombol modal tetap di tempatnya
+
+**Hanya badan modal yang menggulir.** Judul menempel di atas, baris tombol
+menempel di bawah, dan keduanya tidak pernah ikut bergerak.
+
+Alasannya dua, keduanya terasa justru pada isi yang panjang — saat modal paling
+butuh keduanya:
+
+* Judul yang tergulir keluar membuat pengguna kehilangan konteks di tengah
+  pengisian. "Sedang mengubah apa tadi?"
+* Tombol simpan yang tersembunyi di bawah membuat pengguna mengira modal itu
+  tidak punya tombol, lalu mencari-cari jalan keluar.
+
+Diterapkan di `Modal`: wadahnya kolom flex bertinggi terbatas, judul dan baris
+tombol `shrink-0`, badannya `flex-1 overflow-y-auto`. Komponen apa pun yang
+memakai `Modal` otomatis mengikuti — jangan membuat modal sendiri di luar
+komponen itu.
 
 ---
 
@@ -355,6 +375,7 @@ memerlukan ini.
 * Ikon Ubah di kolom Aksi sementara barisnya juga membuka penyuntingan — satu
   tindakan satu jalan (§6.3)
 * Tindakan merusak yang terpicu klik baris — hapus dan nonaktifkan tetap ikon
+* Modal yang seluruh isinya ikut menggulir, termasuk judul dan tombolnya (§7.2)
 * Komponen UI dari library di luar Radix / React Aria tanpa alasan tertulis
   di `docs/standar-library-ui.md` §9
 
@@ -416,6 +437,7 @@ adalah jaring pengaman terakhir, bukan jawaban pertama.
 * [ ] Isian berantai memakai Wizard
 * [ ] Tabel: header sticky, badan menggulir, filter dan pagination server-side
 * [ ] Tindakan utama baris dijalankan lewat klik baris, bukan ikon (§6.3)
+* [ ] Modal memakai komponen `Modal` — judul dan tombolnya tetap (§7.2)
 * [ ] Keadaan kosong, memuat, dan galat semuanya ditangani (§10)
 * [ ] Seluruh teks Bahasa Indonesia, tanpa nama kolom database
 * [ ] Animasi memakai nilai dari `lib/gerak.ts`

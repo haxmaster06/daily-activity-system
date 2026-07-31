@@ -35,6 +35,11 @@ interface ModalProps {
  * milik React Aria, sehingga animasinya ditangani CSS — komponen tetap
  * menerima input selama animasi berjalan.
  *
+ * Judul dan baris tombol **tetap di tempatnya**; hanya badan modal yang
+ * menggulir (docs/standar-ui-ux.md §7.2). Pada isi yang panjang, judul yang
+ * ikut tergulir membuat pengguna kehilangan konteks, dan tombol simpan yang
+ * tersembunyi di bawah membuatnya mengira modal itu tidak punya tombol.
+ *
  * Form panjang atau yang punya lampiran memakai halaman tersendiri.
  */
 export function Modal({
@@ -83,16 +88,18 @@ export function Modal({
       <AriaModal
         ref={setSimpulModal}
         className={cn(
-          'max-h-[85vh] w-full overflow-y-auto rounded-modal bg-surface shadow-modal',
+          // Tinggi dibatasi, dan yang menggulir hanya badannya — lihat catatan
+          // di atas.
+          'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-modal bg-surface shadow-modal',
           'data-[entering]:animate-modal-masuk',
           'data-[exiting]:animate-modal-keluar',
           lebar === 'lebar' ? 'sm:max-w-2xl' : 'sm:max-w-md',
         )}
       >
-        <Dialog className="outline-none">
+        <Dialog className="flex min-h-0 flex-1 flex-col outline-none">
           {({ close }) => (
             <WadahOverlayProvider wadah={simpulModal}>
-              <div className="flex items-start justify-between gap-4 border-b border-line px-4 py-3">
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-4 py-3">
                 <div className="min-w-0">
                   <Heading slot="title" className="font-heading text-section-title text-ink">
                     {judul}
@@ -112,10 +119,10 @@ export function Modal({
                 </button>
               </div>
 
-              <div className="px-4 py-4">{children}</div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
 
               {aksi && (
-                <div className="flex items-center justify-end gap-2 border-t border-line px-4 py-3">
+                <div className="flex shrink-0 items-center justify-end gap-2 border-t border-line px-4 py-3">
                   {aksi}
                 </div>
               )}
