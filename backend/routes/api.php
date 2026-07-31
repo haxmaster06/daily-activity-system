@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\ProfileController;
@@ -88,4 +89,17 @@ Route::middleware(['auth:sanctum', 'aktif', 'throttle:api'])->group(function ():
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
         ->name('laporan.tinjau');
+
+    /*
+     * Export preview-first (standarisasi §27): tidak ada unduhan langsung.
+     * Pratinjau dan berkas memakai satu sumber data yang sama, sehingga isi
+     * berkas tidak pernah berbeda dari yang sudah dilihat.
+     *
+     * Jangkauannya tetap DailyReport::scopeVisibleTo() — export tidak boleh
+     * menjadi jalan memutar untuk membaca laporan di luar jangkauan.
+     */
+    Route::get('/export/pratinjau', [ExportController::class, 'pratinjau'])
+        ->name('export.pratinjau');
+    Route::get('/export/excel', [ExportController::class, 'excel'])->name('export.excel');
+    Route::get('/export/pdf', [ExportController::class, 'pdf'])->name('export.pdf');
 });

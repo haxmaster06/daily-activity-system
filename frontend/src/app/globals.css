@@ -99,6 +99,54 @@
   }
 
   /*
+   * Aturan cetak.
+   *
+   * Yang tercetak hanya isi halaman: bilah navigasi, dock, dan tombol tidak
+   * ikut. Latar dipaksa putih dan bayangan dihilangkan supaya tidak memboroskan
+   * tinta.
+   *
+   * Elemen yang khusus untuk layar diberi `print:hidden` di tempatnya
+   * masing-masing; di sini hanya kerangka umumnya.
+   */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 12mm;
+    }
+
+    body {
+      background: #ffffff;
+      font-size: 9pt;
+    }
+
+    header,
+    nav,
+    [role='dialog'],
+    .no-print {
+      display: none !important;
+    }
+
+    main {
+      max-width: none !important;
+      padding: 0 !important;
+    }
+
+    /* Tabel boleh terpotong antar halaman, tetapi headernya diulang. */
+    thead {
+      display: table-header-group;
+    }
+
+    tr,
+    img {
+      break-inside: avoid;
+    }
+
+    * {
+      box-shadow: none !important;
+    }
+  }
+
+  /*
    * Menghormati prefers-reduced-motion (standar interaksi §4.3).
    * Syarat aksesibilitas, bukan pilihan: seluruh gerakan disederhanakan
    * menjadi perpindahan seketika.
