@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
@@ -25,6 +25,18 @@ interface WizardProps {
   onSelesai: () => Promise<void> | void;
   labelSelesai?: string;
   onBatal?: () => void;
+  /**
+   * Melompat ke langkah tertentu dari luar.
+   *
+   * Dipakai saat server menolak isian: galat per kolom biasanya berada di
+   * langkah yang sudah ditinggalkan, dan membiarkan pengguna di langkah
+   * terakhir berarti ia hanya melihat pesan umum tanpa tahu kolom mana yang
+   * bermasalah.
+   *
+   * `nonce` dinaikkan tiap kali lompatan diminta, supaya permintaan kedua ke
+   * langkah yang sama tetap terbaca sebagai permintaan baru.
+   */
+  lompatKe?: { langkah: number; nonce: number };
 }
 
 /**
@@ -34,10 +46,26 @@ interface WizardProps {
  * terkunci sampai langkah sekarang sah. Isian tidak hilang saat mundur karena
  * seluruh langkah tetap ter-mount di memori pemanggil.
  */
-export function Wizard({ langkah, onSelesai, labelSelesai = 'Simpan', onBatal }: WizardProps) {
+export function Wizard({
+  langkah,
+  onSelesai,
+  labelSelesai = 'Simpan',
+  onBatal,
+  lompatKe,
+}: WizardProps) {
   const [aktif, setAktif] = useState(0);
   const [memproses, setMemproses] = useState(false);
   const arah = useRef(1);
+
+  const nonceTerakhir = useRef(lompatKe?.nonce ?? 0);
+
+  useEffect(() => {
+    if (lompatKe === undefined || lompatKe.nonce === nonceTerakhir.current) return;
+
+    nonceTerakhir.current = lompatKe.nonce;
+    arah.current = -1;
+    setAktif(Math.max(0, Math.min(langkah.length - 1, lompatKe.langkah)));
+  }, [lompatKe, langkah.length]);
 
   const langkahTerakhir = aktif === langkah.length - 1;
 
