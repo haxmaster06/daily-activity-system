@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -84,7 +84,33 @@ export function RoleTable({ peran, katalog, bolehKelola }: RoleTableProps) {
               <DataTableKosong kolom={6} pesan="Belum ada peran." />
             ) : (
               peran.map((item) => (
-                <tr key={item.id} className="hover:bg-surface-muted/60">
+                <tr
+                  key={item.id}
+                  /*
+                   * Seluruh baris membuka penyuntingan peran — sasaran klik
+                   * jauh lebih besar daripada ikon 28px (docs/standar-ui-ux.md
+                   * §6.3).
+                   */
+                  role={bolehKelola ? 'button' : undefined}
+                  tabIndex={bolehKelola ? 0 : undefined}
+                  onClick={bolehKelola ? () => buka(item) : undefined}
+                  onKeyDown={
+                    bolehKelola
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            buka(item);
+                          }
+                        }
+                      : undefined
+                  }
+                  aria-label={bolehKelola ? `Ubah peran ${item.nama}` : undefined}
+                  className={
+                    bolehKelola
+                      ? 'cursor-pointer transition-colors duration-fast hover:bg-surface-muted/60 focus-visible:bg-surface-muted focus-visible:outline-none'
+                      : 'hover:bg-surface-muted/60'
+                  }
+                >
                   <Td className="font-medium">
                     {item.nama}
                     {item.sistem && (
@@ -105,24 +131,16 @@ export function RoleTable({ peran, katalog, bolehKelola }: RoleTableProps) {
                   </Td>
                   <Td align="right">
                     <div className="flex items-center justify-end gap-0.5">
-                      {bolehKelola && (
-                        <button
-                          type="button"
-                          onClick={() => buka(item)}
-                          aria-label={`Ubah ${item.nama}`}
-                          title="Ubah"
-                          className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
-                        >
-                          <Pencil aria-hidden="true" className="size-3.5" />
-                        </button>
-                      )}
-
                       {/* Peran bawaan tidak dapat dihapus — slug-nya dipegang
                           seeder dan penjaga akses. */}
                       {bolehKelola && !item.sistem && (
                         <button
                           type="button"
-                          onClick={() => setKonfirmasiHapus(item)}
+                          onClick={(event) => {
+                            // Tanpa ini, klik Hapus ikut memicu klik baris.
+                            event.stopPropagation();
+                            setKonfirmasiHapus(item);
+                          }}
                           aria-label={`Hapus ${item.nama}`}
                           title="Hapus"
                           className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-danger-text"

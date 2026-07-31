@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { KeyRound, Pencil, Plus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import { KeyRound, Plus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -126,7 +126,26 @@ export function UserTable({
                 const diriSendiri = item.id === idPenggunaSaatIni;
 
                 return (
-                  <tr key={item.id} className="hover:bg-surface-muted/60">
+                  <tr
+                    key={item.id}
+                    /*
+                     * Seluruh baris membuka penyuntingan — sasaran klik jauh
+                     * lebih besar daripada ikon 28px (docs/standar-ui-ux.md
+                     * §6.3). Ikon Ubah tersendiri dihapus supaya tidak ada dua
+                     * jalan untuk tindakan yang sama.
+                     */
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => buka(item)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        buka(item);
+                      }
+                    }}
+                    aria-label={`Ubah ${item.nama}`}
+                    className="cursor-pointer transition-colors duration-fast hover:bg-surface-muted/60 focus-visible:bg-surface-muted focus-visible:outline-none"
+                  >
                     <Td className="font-medium">{item.nama}</Td>
                     <Td className="text-ink-muted">{item.email}</Td>
                     <Td className="text-ink-muted">{item.departemen.nama ?? '—'}</Td>
@@ -145,17 +164,11 @@ export function UserTable({
                       <div className="flex items-center justify-end gap-0.5">
                         <button
                           type="button"
-                          onClick={() => buka(item)}
-                          aria-label={`Ubah ${item.nama}`}
-                          title="Ubah"
-                          className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
-                        >
-                          <Pencil aria-hidden="true" className="size-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSedangAturPeran(item)}
+                          onClick={(event) => {
+                            // Tanpa ini, klik ikon ikut memicu klik baris.
+                            event.stopPropagation();
+                            setSedangAturPeran(item);
+                          }}
                           aria-label={`Atur peran ${item.nama}`}
                           title="Atur peran"
                           className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
@@ -165,7 +178,11 @@ export function UserTable({
 
                         <button
                           type="button"
-                          onClick={() => setSedangResetSandi(item)}
+                          onClick={(event) => {
+                            // Tanpa ini, klik ikon ikut memicu klik baris.
+                            event.stopPropagation();
+                            setSedangResetSandi(item);
+                          }}
                           aria-label={`Atur ulang kata sandi ${item.nama}`}
                           title="Atur ulang kata sandi"
                           className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
@@ -176,7 +193,11 @@ export function UserTable({
                         {!diriSendiri && (
                           <button
                             type="button"
-                            onClick={() => setKonfirmasiStatus(item)}
+                            onClick={(event) => {
+                            // Tanpa ini, klik ikon ikut memicu klik baris.
+                            event.stopPropagation();
+                            setKonfirmasiStatus(item);
+                          }}
                             aria-label={`${item.aktif ? 'Nonaktifkan' : 'Aktifkan'} ${item.nama}`}
                             title={item.aktif ? 'Nonaktifkan' : 'Aktifkan'}
                             className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-danger-text"

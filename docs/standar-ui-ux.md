@@ -279,6 +279,35 @@ Diterapkan global di `globals.css`, bukan per komponen.
   dirinya sendiri
 * `truncate` **dilarang** untuk isi bermakna: judul, nama, deskripsi aktivitas
 
+## 6.3 Klik baris, bukan klik ikon
+
+Tindakan utama sebuah baris dijalankan dengan **mengklik barisnya**, bukan
+ikon di kolom Aksi. Barisnya setinggi 40px dan selebar tabel; ikonnya 28px.
+Menuntut pengguna membidik ikon untuk tindakan yang paling sering ia lakukan
+memperlambat pekerjaan tanpa memberi apa pun sebagai gantinya.
+
+Aturannya:
+
+* **Satu** tindakan per baris dipindahkan ke klik baris — yang paling sering
+  dipakai, biasanya "buka" atau "ubah".
+* Ikon untuk tindakan itu **dihapus**. Dua jalan menuju hal yang sama membuat
+  kolom Aksi penuh tanpa alasan, dan membuat pengguna ragu apakah keduanya
+  benar-benar sama.
+* Tindakan lain — hapus, nonaktifkan, atur ulang kata sandi — **tetap** berupa
+  ikon. Tindakan merusak tidak boleh terpicu oleh klik yang tidak disengaja.
+* Tiap ikon yang tersisa wajib memanggil `event.stopPropagation()`. Tanpa itu,
+  menekan Hapus juga membuka penyuntingan.
+* Baris wajib dapat dicapai papan ketik: `role="button"`, `tabIndex={0}`, dan
+  merespons Enter maupun Spasi.
+* Baris wajib punya `aria-label` yang menyebut tindakannya —
+  "Ubah Ahmad Fauzi", bukan sekadar nama barisnya.
+* Baris yang tidak dapat diklik — misalnya karena pengguna tidak berwenang —
+  tidak memakai `cursor-pointer` dan tidak menerima fokus. Penunjuk tangan pada
+  baris yang tidak melakukan apa-apa adalah janji yang tidak ditepati.
+
+Tabel yang seluruhnya hanya bacaan (pratinjau export, misalnya) tidak
+memerlukan ini.
+
 ---
 
 # BAGIAN 7 — FORM
@@ -323,6 +352,9 @@ Diterapkan global di `globals.css`, bukan per komponen.
 * Isian Kode yang dapat diketik pengguna — kode selalu dibuat otomatis (§1.3)
 * Export langsung unduh — wajib **preview-first**
 * Angka tanpa konteks pada kartu statistik
+* Ikon Ubah di kolom Aksi sementara barisnya juga membuka penyuntingan — satu
+  tindakan satu jalan (§6.3)
+* Tindakan merusak yang terpicu klik baris — hapus dan nonaktifkan tetap ikon
 * Komponen UI dari library di luar Radix / React Aria tanpa alasan tertulis
   di `docs/standar-library-ui.md` §9
 
@@ -383,6 +415,7 @@ adalah jaring pengaman terakhir, bukan jawaban pertama.
 * [ ] Isi setara yang banyak dikelompokkan dengan Tab
 * [ ] Isian berantai memakai Wizard
 * [ ] Tabel: header sticky, badan menggulir, filter dan pagination server-side
+* [ ] Tindakan utama baris dijalankan lewat klik baris, bukan ikon (§6.3)
 * [ ] Keadaan kosong, memuat, dan galat semuanya ditangani (§10)
 * [ ] Seluruh teks Bahasa Indonesia, tanpa nama kolom database
 * [ ] Animasi memakai nilai dari `lib/gerak.ts`
