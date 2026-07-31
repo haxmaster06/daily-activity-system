@@ -94,7 +94,10 @@ class UserController extends Controller
          */
         PenjagaAkses::jalankan(function () use ($request, $user): void {
             $user->update($request->atributPengguna());
-            $user->syncRoles($request->penetapan());
+
+            if ($request->menyertakanPenetapan()) {
+                $user->syncRoles($request->penetapan());
+            }
         });
 
         $perubahan = Audit::selisih(
@@ -115,6 +118,36 @@ class UserController extends Controller
         return ApiResponse::ok(
             new UserResource($user->load(['role', 'department'])),
             'Pengguna berhasil diperbarui.',
+        );
+    }
+
+    /**
+     * Mengatur penetapan peran seorang pengguna.
+     *
+     * Terpisah dari penyuntingan identitas karena bentuknya berbeda: kumpulan
+     * baris yang jumlahnya berubah-ubah, bukan sekumpulan kolom tetap.
+     */
+    public function aturPenetapan(PenetapanRoleRequest $request, User $user): JsonResponse
+    {
+        $sebelum = $this->ringkasPenetapan($user);
+
+        PenjagaAkses::jalankan(fn () => $user->syncRoles($request->penetapan()));
+
+        $sesudah = $this->ringkasPenetapan($user);
+
+        if ($sebelum !== $sesudah) {
+            Audit::catat(
+                Audit::AKSI_DIPERBARUI,
+                Audit::MODUL_PENGGUNA,
+                "Mengubah penetapan peran {$user->name}",
+                $user,
+                ['penetapan' => ['sebelum' => $sebelum, 'sesudah' => $sesudah]],
+            );
+        }
+
+        return ApiResponse::ok(
+            new UserResource($user->load(['role', 'department'])),
+            'Penetapan peran berhasil disimpan.',
         );
     }
 

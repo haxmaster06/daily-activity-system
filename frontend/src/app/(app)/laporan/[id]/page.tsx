@@ -42,7 +42,7 @@ export default async function DetailLaporanPage({
   const bolehMeninjau =
     laporan.status === 'dikirim' &&
     laporan.penyusun?.id !== pengguna.id &&
-    pengguna.role !== 'staff';
+    pengguna.izin.includes('laporan.tinjau');
 
   const keterangan = [
     { label: 'Penyusun', nilai: laporan.penyusun?.nama ?? '—' },

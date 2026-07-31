@@ -26,17 +26,34 @@ trait MenerimaPenetapanRole
     /**
      * @return array<string, array<int, mixed>>
      */
-    protected function aturanPenetapan(): array
+    protected function aturanPenetapan(bool $wajib = true): array
     {
         return [
-            'penetapan' => ['required_without:role_id', 'array', 'min:1', 'max:'.self::MAKS_PENETAPAN],
+            'penetapan' => [
+                $wajib ? 'required_without:role_id' : 'sometimes',
+                'array', 'min:1', 'max:'.self::MAKS_PENETAPAN,
+            ],
             'penetapan.*.role_id' => ['required', 'integer', 'exists:roles,id'],
             'penetapan.*.scope_level' => ['required', 'integer', 'in:1,2,3'],
             'penetapan.*.department_id' => ['nullable', 'integer', 'exists:departments,id'],
 
             // Bentuk lama, satu peran saja.
-            'role_id' => ['required_without:penetapan', 'integer', 'exists:roles,id'],
+            'role_id' => [
+                $wajib ? 'required_without:penetapan' : 'sometimes',
+                'integer', 'exists:roles,id',
+            ],
         ];
+    }
+
+    /**
+     * Apakah permintaan ini memang bermaksud mengubah penetapan peran.
+     *
+     * Menyunting identitas pengguna tidak boleh diam-diam menghapus peran
+     * yang tidak disebut — pengelolaannya ada di layar tersendiri.
+     */
+    public function menyertakanPenetapan(): bool
+    {
+        return $this->has('penetapan') || $this->has('role_id');
     }
 
     /**

@@ -29,28 +29,49 @@ export interface ItemTab {
  * Tab aktif disimpan pada URL agar tautannya dapat dibagikan dan tombol
  * kembali peramban bekerja.
  *
+ * Bila `nilai` dan `onUbah` diberikan, komponen beralih ke mode terkendali dan
+ * tidak menyentuh URL sama sekali. Itu diperlukan di dalam modal: mengubah URL
+ * di sana memuat ulang halaman dan menutup modalnya.
+ *
  * Jangan memakai tab untuk isian berurutan yang saling bergantung — itu
  * wizard.
  */
-export function PillNav({ item, kunciUrl = 'tab' }: { item: ItemTab[]; kunciUrl?: string }) {
+export function PillNav({
+  item,
+  kunciUrl = 'tab',
+  nilai,
+  onUbah,
+}: {
+  item: ItemTab[];
+  kunciUrl?: string;
+  nilai?: string;
+  onUbah?: (nilai: string) => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const arah = useRef(1);
   const idPenanda = useId();
 
-  const dariUrl = searchParams.get(kunciUrl);
+  const terkendali = nilai !== undefined && onUbah !== undefined;
+  const dariUrl = terkendali ? nilai : searchParams.get(kunciUrl);
   const aktif = item.some((t) => t.nilai === dariUrl) ? dariUrl! : item[0].nilai;
   const indexAktif = item.findIndex((t) => t.nilai === aktif);
 
-  function pindah(nilai: string) {
-    if (nilai === aktif) return;
+  function pindah(baru: string) {
+    if (baru === aktif) return;
 
-    arah.current = item.findIndex((t) => t.nilai === nilai) > indexAktif ? 1 : -1;
+    arah.current = item.findIndex((t) => t.nilai === baru) > indexAktif ? 1 : -1;
+
+    if (terkendali) {
+      onUbah(baru);
+
+      return;
+    }
 
     const params = new URLSearchParams(searchParams.toString());
-    if (nilai === item[0].nilai) params.delete(kunciUrl);
-    else params.set(kunciUrl, nilai);
+    if (baru === item[0].nilai) params.delete(kunciUrl);
+    else params.set(kunciUrl, baru);
 
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });

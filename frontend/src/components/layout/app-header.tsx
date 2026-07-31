@@ -12,12 +12,15 @@ import { LoncengNotifikasi } from '@/components/layout/lonceng-notifikasi';
 import { StaggeredMenu } from '@/components/layout/staggered-menu';
 import { cn } from '@/lib/cn';
 import { PEGAS } from '@/lib/gerak';
-import { menuAktif, menuUntukRole, type Role } from '@/lib/nav';
+import { bolehBukaPengaturan } from '@/lib/izin';
+import { menuAktif, menuUntukIzin } from '@/lib/nav';
 
 export interface PenggunaHeader {
   nama: string;
-  role: Role;
   namaRole: string;
+  /** Jumlah peran tambahan di luar peran utama. */
+  peranLain: number;
+  izin: string[];
   departemen: string;
 }
 
@@ -32,8 +35,16 @@ export interface PenggunaHeader {
 export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
   const pathname = usePathname();
   const router = useRouter();
-  const menu = menuUntukRole(pengguna.role);
+  const menu = menuUntukIzin(pengguna.izin);
   const [keluarSedangDiproses, setKeluarSedangDiproses] = useState(false);
+
+  /*
+   * Peran majemuk diringkas: "Supervisor +1". Menderetkan semuanya membuat
+   * bilah navigasi melebar tak terkendali, sedangkan menyembunyikan yang lain
+   * membuat pengguna tidak tahu ia memegang peran tambahan.
+   */
+  const labelPeran =
+    pengguna.peranLain > 0 ? `${pengguna.namaRole} +${pengguna.peranLain}` : pengguna.namaRole;
 
   async function keluar() {
     setKeluarSedangDiproses(true);
@@ -56,13 +67,13 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
           <StaggeredMenu
             menu={menu}
             nama={pengguna.nama}
-            keteranganPengguna={`${pengguna.namaRole} · ${pengguna.departemen}`}
+            keteranganPengguna={`${labelPeran} · ${pengguna.departemen}`}
             onKeluar={() => void keluar()}
           />
 
           <LoncengNotifikasi />
 
-          {pengguna.role === 'administrator' && (
+          {bolehBukaPengaturan(pengguna.izin) && (
             <Link
               href="/pengaturan"
               aria-label="Pengaturan"
@@ -87,7 +98,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
                   {pengguna.nama}
                 </span>
                 <span className="block whitespace-nowrap text-meta text-ink-soft">
-                  {pengguna.namaRole} · {pengguna.departemen}
+                  {labelPeran} · {pengguna.departemen}
                 </span>
               </span>
               <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-ink-soft" />

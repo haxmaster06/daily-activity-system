@@ -6,15 +6,28 @@ import { cache } from 'react';
 
 import { GalatApi, panggilApi } from '@/lib/api';
 import { NAMA_COOKIE_TOKEN } from '@/lib/auth-cookie';
-import { bolehAkses, type Role } from '@/lib/nav';
+import { JANGKAUAN_PRIBADI, type Jangkauan } from '@/lib/izin';
+import { bolehAkses } from '@/lib/nav';
+
+export interface PenetapanSesi {
+  slug: string;
+  nama: string;
+  scopeLevel: number;
+  departemenId: number | null;
+}
 
 export interface PenggunaSesi {
   id: number;
   nama: string;
   email: string;
   aktif: boolean;
-  role: Role;
+  /** Slug peran utama. Untuk pelabelan saja — keputusan izin memakai `izin`. */
+  role: string;
   namaRole: string;
+  penetapan: PenetapanSesi[];
+  /** Gabungan izin dari seluruh peran yang dipegang. */
+  izin: string[];
+  jangkauan: Jangkauan;
   departemenId: number | null;
   departemen: string;
 }
@@ -25,13 +38,16 @@ interface PenggunaApi {
   email: string;
   aktif: boolean;
   role: { slug: string | null; nama: string | null };
+  penetapan?: {
+    role_id: number;
+    slug: string;
+    nama: string;
+    scope_level: number;
+    department_id: number | null;
+  }[];
+  izin?: string[];
+  jangkauan?: { level: number; label: string; departemen_id: number[] };
   departemen: { id: number | null; kode: string | null; nama: string | null };
-}
-
-const ROLE_DIKENAL: readonly Role[] = ['staff', 'supervisor', 'manager', 'administrator'];
-
-function keRole(slug: string | null): Role {
-  return ROLE_DIKENAL.includes(slug as Role) ? (slug as Role) : 'staff';
 }
 
 /**
@@ -55,8 +71,24 @@ export const penggunaSaatIni = cache(async (): Promise<PenggunaSesi | null> => {
       nama: data.nama,
       email: data.email,
       aktif: data.aktif,
-      role: keRole(data.role.slug),
-      namaRole: data.role.nama ?? 'Staff',
+      /*
+       * Slug tidak lagi diterjemahkan ke daftar tertutup. Peran dapat dibuat
+       * administrator, sehingga slug yang tidak dikenal itu wajar — dan
+       * menurunkannya menjadi 'staff' akan salah melabeli setiap peran baru.
+       */
+      role: data.role.slug ?? '',
+      namaRole: data.role.nama ?? 'Tanpa peran',
+      penetapan: (data.penetapan ?? []).map((satu) => ({
+        slug: satu.slug,
+        nama: satu.nama,
+        scopeLevel: satu.scope_level,
+        departemenId: satu.department_id,
+      })),
+      izin: data.izin ?? [],
+      jangkauan: {
+        level: (data.jangkauan?.level ?? JANGKAUAN_PRIBADI) as Jangkauan['level'],
+        departemenId: data.jangkauan?.departemen_id ?? [],
+      },
       departemenId: data.departemen.id,
       departemen: data.departemen.nama ?? '—',
     };
@@ -71,7 +103,7 @@ export const penggunaSaatIni = cache(async (): Promise<PenggunaSesi | null> => {
 });
 
 /**
- * Memastikan pengguna sudah masuk dan role-nya boleh membuka halaman tersebut.
+ * Memastikan pengguna sudah masuk dan izinnya cukup untuk halaman tersebut.
  *
  * Dipanggil di halaman terbatas. Menyembunyikan menu tidak menghentikan
  * siapa pun yang mengetik alamatnya langsung.
@@ -89,7 +121,7 @@ export async function wajibAkses(href: string): Promise<PenggunaSesi> {
     redirect('/api/auth/sesi-berakhir');
   }
 
-  if (!bolehAkses(pengguna.role, href)) {
+  if (!bolehAkses(pengguna.izin, href)) {
     redirect('/dashboard');
   }
 

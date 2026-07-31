@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { KeyRound, Pencil, Plus, UserCheck, UserX } from 'lucide-react';
+import { KeyRound, Pencil, Plus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -19,6 +19,7 @@ import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
 import { ubahStatusPengguna } from './actions';
+import { PenetapanRoleDialog } from './penetapan-role-dialog';
 import { ResetPasswordDialog } from './reset-password-dialog';
 import { UserDialog } from './user-dialog';
 
@@ -43,6 +44,7 @@ export function UserTable({
   const [dialogTerbuka, setDialogTerbuka] = useState(false);
   const [sedangDiubah, setSedangDiubah] = useState<Pengguna | null>(null);
   const [sedangResetSandi, setSedangResetSandi] = useState<Pengguna | null>(null);
+  const [sedangAturPeran, setSedangAturPeran] = useState<Pengguna | null>(null);
   const [konfirmasiStatus, setKonfirmasiStatus] = useState<Pengguna | null>(null);
   const [pemberitahuan, setPemberitahuan] = useState<{
     jenis: 'galat' | 'berhasil';
@@ -109,7 +111,7 @@ export function UserTable({
             <Th>Nama</Th>
             <Th>Email</Th>
             <Th>Departemen</Th>
-            <Th>Role</Th>
+            <Th>Peran</Th>
             <Th>Status</Th>
             <Th align="right">Aksi</Th>
           </DataTableHead>
@@ -128,7 +130,14 @@ export function UserTable({
                     <Td className="font-medium">{item.nama}</Td>
                     <Td className="text-ink-muted">{item.email}</Td>
                     <Td className="text-ink-muted">{item.departemen.nama ?? '—'}</Td>
-                    <Td className="text-ink-muted">{item.role.nama ?? '—'}</Td>
+                    <Td className="text-ink-muted">
+                      {item.role.nama ?? '—'}
+                      {item.penetapan.length > 1 && (
+                        <span className="ml-1 text-caption text-ink-soft">
+                          +{item.penetapan.length - 1}
+                        </span>
+                      )}
+                    </Td>
                     <Td>
                       <StatusBadge status={item.aktif ? 'selesai' : 'belum_mulai'} />
                     </Td>
@@ -142,6 +151,16 @@ export function UserTable({
                           className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
                         >
                           <Pencil aria-hidden="true" className="size-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setSedangAturPeran(item)}
+                          aria-label={`Atur peran ${item.nama}`}
+                          title="Atur peran"
+                          className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
+                        >
+                          <ShieldCheck aria-hidden="true" className="size-3.5" />
                         </button>
 
                         <button
@@ -185,6 +204,14 @@ export function UserTable({
         terbuka={dialogTerbuka}
         onTutup={() => setDialogTerbuka(false)}
         pengguna={sedangDiubah}
+        departemen={departemen}
+        role={role}
+      />
+
+      <PenetapanRoleDialog
+        terbuka={sedangAturPeran !== null}
+        onTutup={() => setSedangAturPeran(null)}
+        pengguna={sedangAturPeran}
         departemen={departemen}
         role={role}
       />

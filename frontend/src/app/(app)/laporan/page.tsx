@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
+import { melihatOrangLain } from '@/lib/izin';
 import { ambilDaftarLaporan } from '@/lib/laporan-server';
 import { penggunaSaatIni } from '@/lib/session';
 import { DaftarLaporan } from './daftar-laporan';
@@ -35,7 +36,7 @@ export default async function LaporanPage({
    * Yang ditentukan di sini hanya penyebutan halamannya — Staff melihat
    * laporannya sendiri, atasan melihat laporan orang lain juga.
    */
-  const melihatOrangLain = pengguna.role !== 'staff';
+  const melihatLaporanOrangLain = melihatOrangLain(pengguna.jangkauan);
 
   return (
     <>
@@ -43,8 +44,8 @@ export default async function LaporanPage({
       <DaftarLaporan
         laporan={data}
         meta={meta}
-        tampilkanPenyusun={melihatOrangLain}
-        judul={melihatOrangLain ? 'Laporan' : 'Laporan Saya'}
+        tampilkanPenyusun={melihatLaporanOrangLain}
+        judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Saya'}
       />
     </>
   );

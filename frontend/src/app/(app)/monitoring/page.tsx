@@ -1,5 +1,6 @@
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { ambilDepartemen } from '@/lib/master-data';
+import { bolehMenyaringDepartemen } from '@/lib/izin';
 import { denganPenyaringanAman } from '@/lib/penyaringan';
 import { ambilRingkasanMonitoring } from '@/lib/ringkasan-server';
 import { wajibAkses } from '@/lib/session';
@@ -29,12 +30,11 @@ export default async function MonitoringPage({
   if (filter.sampai) query.set('sampai', filter.sampai);
 
   /*
-   * Supervisor selalu terkunci pada departemennya — backend mengabaikan
-   * `departemen_id` untuknya. Filternya pun tidak ditampilkan supaya tidak
-   * menawarkan pilihan yang tidak berpengaruh.
+   * Pemilih departemen hanya berguna bila ada lebih dari satu untuk dipilih.
+   * Pemantau satu departemen tidak ditawari pilihan yang jawabannya sudah
+   * pasti; backend pun menolak departemen di luar jangkauannya.
    */
-  const dapatPilihDepartemen =
-    pengguna.role === 'manager' || pengguna.role === 'administrator';
+  const dapatPilihDepartemen = bolehMenyaringDepartemen(pengguna.jangkauan);
 
   const [ringkasan, departemen] = await Promise.all([
     denganPenyaringanAman(query, ambilRingkasanMonitoring),

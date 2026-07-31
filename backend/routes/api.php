@@ -90,6 +90,8 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna.index');
     Route::post('/pengguna', [UserController::class, 'store'])->name('pengguna.store');
     Route::put('/pengguna/{user}', [UserController::class, 'update'])->name('pengguna.update');
+    Route::put('/pengguna/{user}/penetapan', [UserController::class, 'aturPenetapan'])
+        ->name('pengguna.penetapan');
     Route::put('/pengguna/{user}/status', [UserController::class, 'ubahStatus'])
         ->name('pengguna.status');
     Route::put('/pengguna/{user}/kata-sandi', [UserController::class, 'aturUlangKataSandi'])

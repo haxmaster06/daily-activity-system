@@ -4,6 +4,7 @@ import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
 import { ambilPratinjauExport } from '@/lib/export-server';
 import { ambilDepartemen } from '@/lib/master-data';
+import { bolehMenyaringDepartemen } from '@/lib/izin';
 import { denganPenyaringanAman } from '@/lib/penyaringan';
 import { penggunaSaatIni } from '@/lib/session';
 import { ambilTemplate } from '@/lib/template-server';
@@ -35,9 +36,8 @@ export default async function ExportPage({
     if (nilai) query.set(kunci, nilai);
   }
 
-  // Staff hanya melihat laporannya sendiri; filter departemen tidak berguna
-  // baginya dan tidak ditampilkan.
-  const dapatPilihDepartemen = pengguna.role !== 'staff';
+  // Hanya berguna bila ada lebih dari satu departemen untuk dipilih.
+  const dapatPilihDepartemen = bolehMenyaringDepartemen(pengguna.jangkauan);
 
   const [pratinjau, departemen, template] = await Promise.all([
     denganPenyaringanAman(query, ambilPratinjauExport),

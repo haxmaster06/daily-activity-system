@@ -36,7 +36,9 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($target->id),
             ],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            ...$this->aturanPenetapan(),
+
+            // Boleh tidak disertakan: penetapan peran punya layarnya sendiri.
+            ...$this->aturanPenetapan(wajib: false),
         ];
     }
 

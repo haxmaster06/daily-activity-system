@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
+import { JANGKAUAN_PRIBADI } from '@/lib/izin';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
 import { buatPengguna, perbaruiPengguna } from './actions';
 
@@ -28,7 +29,14 @@ interface IsiForm {
 
 const KOSONG: IsiForm = { name: '', email: '', department_id: '', role_id: '', password: '' };
 
-/** Form pengguna berisi 5 kolom, sehingga memakai modal (standar §22.1). */
+/**
+ * Identitas pengguna. Enam isian saat membuat, empat saat menyunting —
+ * memakai modal (standar §22.1).
+ *
+ * Peran hanya diminta sekali, saat akun dibuat, supaya pembuatan akun selesai
+ * dalam satu langkah. Pengelolaan peran selanjutnya ada di dialog Penetapan
+ * Peran: jumlahnya berubah-ubah, dan itu bukan bentuk sebuah form.
+ */
 export function UserDialog({
   terbuka,
   onTutup,
@@ -67,12 +75,24 @@ export function UserDialog({
     setGalat(null);
     setGalatKolom({});
 
+    const peranAwal = role.find((item) => String(item.id) === isi.role_id);
+
     const muatan = {
       name: isi.name,
       email: isi.email,
       department_id: Number(isi.department_id),
-      role_id: Number(isi.role_id),
-      ...(sedangUbah ? {} : { password: isi.password }),
+      ...(sedangUbah
+        ? {}
+        : {
+            password: isi.password,
+            penetapan: [
+              {
+                role_id: Number(isi.role_id),
+                scope_level: peranAwal?.jangkauan_bawaan ?? JANGKAUAN_PRIBADI,
+                department_id: null,
+              },
+            ],
+          }),
     };
 
     const hasil = sedangUbah
@@ -181,17 +201,20 @@ export function UserDialog({
             />
           </div>
 
-          <div>
-            <Select
-              id="role"
-              label="Role"
-              placeholder="Pilih role"
-              nilai={isi.role_id}
-              opsi={role.map((item) => ({ nilai: String(item.id), label: item.nama }))}
-              onUbah={(nilai) => setIsi({ ...isi, role_id: nilai })}
-              galat={pesanKolom('role_id')}
-            />
-          </div>
+          {!sedangUbah && (
+            <div>
+              <Select
+                id="role"
+                label="Peran Awal"
+                placeholder="Pilih peran"
+                nilai={isi.role_id}
+                opsi={role.map((item) => ({ nilai: String(item.id), label: item.nama }))}
+                onUbah={(nilai) => setIsi({ ...isi, role_id: nilai })}
+                galat={pesanKolom('penetapan.0.role_id') ?? pesanKolom('penetapan')}
+                bantuan="Peran lain dapat ditambahkan setelah akun dibuat."
+              />
+            </div>
+          )}
         </div>
 
         {!sedangUbah && (

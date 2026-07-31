@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { panggilApi } from '@/lib/api';
-import type { Role } from '@/lib/nav';
 
 /** Bentuk data master yang dipakai lintas halaman pengaturan. */
 
@@ -16,8 +15,26 @@ export interface Departemen {
 
 export interface RingkasanRole {
   id: number;
-  slug: Role;
+  /**
+   * Slug peran. Bertipe string biasa, bukan daftar tertutup: administrator
+   * dapat membuat peran baru dari layar, sehingga slug apa pun mungkin muncul.
+   */
+  slug: string;
   nama: string;
+  keterangan?: string | null;
+  sistem?: boolean;
+  jangkauan_bawaan?: number | null;
+  jumlah_pengguna?: number;
+  izin?: string[];
+}
+
+export interface PenetapanPeran {
+  id: number;
+  role_id: number;
+  slug: string;
+  nama: string;
+  scope_level: number;
+  department_id: number | null;
 }
 
 export interface Pengguna {
@@ -25,7 +42,8 @@ export interface Pengguna {
   nama: string;
   email: string;
   aktif: boolean;
-  role: { slug: Role | null; nama: string | null };
+  role: { slug: string | null; nama: string | null };
+  penetapan: PenetapanPeran[];
   departemen: { id: number | null; kode: string | null; nama: string | null };
 }
 

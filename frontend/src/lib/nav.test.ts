@@ -1,79 +1,106 @@
 import { describe, expect, it } from 'vitest';
 
-import { bolehAkses, menuAktif, menuUntukRole } from './nav';
+import { bolehAkses, menuAktif, menuUntukIzin } from './nav';
+
+/** Susunan izin bawaan tiap peran, disalin dari KatalogIzin di backend. */
+const IZIN_STAFF = [
+  'dashboard.lihat',
+  'laporan.lihat',
+  'laporan.buat',
+  'laporan.ubah-sendiri',
+  'laporan.hapus-sendiri',
+  'laporan.kirim',
+  'export.laporan',
+  'departemen.lihat',
+  'template.lihat',
+];
+
+const IZIN_SUPERVISOR = [
+  ...IZIN_STAFF,
+  'laporan.tinjau',
+  'monitoring.lihat',
+  'monitoring.kirim-pengingat',
+];
+
+const IZIN_ADMIN = [
+  ...IZIN_SUPERVISOR,
+  'departemen.kelola',
+  'template.kelola',
+  'pengguna.lihat',
+  'pengguna.kelola',
+  'pengguna.nonaktifkan',
+  'pengguna.atur-kata-sandi',
+  'role.lihat',
+  'role.kelola',
+];
 
 // Matriks visibilitas menu — standar §2.3
-describe('visibilitas menu per role', () => {
-  it('menyembunyikan Monitoring dan Pengaturan dari Staff', () => {
-    const label = menuUntukRole('staff').map((m) => m.label);
-    expect(label).toEqual(['Dashboard', 'Laporan Saya', 'Export']);
+describe('visibilitas menu per izin', () => {
+  it('menyembunyikan Monitoring dan Pengaturan dari yang tidak berizin', () => {
+    const href = menuUntukIzin(IZIN_STAFF).map((m) => m.href);
+
+    expect(href).toEqual(['/dashboard', '/laporan', '/export']);
   });
 
-  it('memberi Supervisor akses Monitoring tanpa Pengaturan', () => {
-    const label = menuUntukRole('supervisor').map((m) => m.label);
-    expect(label).toContain('Monitoring');
-    expect(label).not.toContain('Pengaturan');
+  it('menampilkan Monitoring bagi pemegang izin monitoring', () => {
+    const href = menuUntukIzin(IZIN_SUPERVISOR).map((m) => m.href);
+
+    expect(href).toContain('/monitoring');
+    expect(href).not.toContain('/pengaturan');
   });
 
-  it('memberi Manager akses Monitoring tanpa Pengaturan', () => {
-    const label = menuUntukRole('manager').map((m) => m.label);
-    expect(label).toContain('Monitoring');
-    expect(label).not.toContain('Pengaturan');
+  it('menampilkan Pengaturan bagi pemegang salah satu izin pengelolaan', () => {
+    expect(menuUntukIzin(IZIN_ADMIN).map((m) => m.href)).toContain('/pengaturan');
+
+    // Satu izin pengelolaan saja sudah cukup untuk masuk halaman induknya.
+    expect(menuUntukIzin(['template.kelola']).map((m) => m.href)).toContain('/pengaturan');
   });
 
-  it('memberi Administrator seluruh menu', () => {
-    const label = menuUntukRole('administrator').map((m) => m.label);
-    expect(label).toEqual([
-      'Dashboard',
-      'Laporan Saya',
-      'Monitoring',
-      'Export',
-      'Pengaturan',
-    ]);
+  it('tidak menampilkan apa pun bagi yang belum punya izin', () => {
+    expect(menuUntukIzin([])).toEqual([]);
   });
 });
 
 describe('penanda menu aktif', () => {
-  it('menandai menu pada path yang sama persis', () => {
+  it('menandai menu yang alamatnya sama persis', () => {
     expect(menuAktif('/laporan', '/laporan')).toBe(true);
   });
 
-  it('menandai menu pada halaman turunan', () => {
-    expect(menuAktif('/laporan', '/laporan/12')).toBe(true);
+  it('menandai menu pada halaman turunannya', () => {
+    expect(menuAktif('/laporan', '/laporan/12/ubah')).toBe(true);
   });
 
-  it('tidak menandai path yang hanya berawalan sama', () => {
-    expect(menuAktif('/laporan', '/laporan-lain')).toBe(false);
+  it('tidak menandai alamat yang hanya berawalan sama', () => {
+    expect(menuAktif('/laporan', '/laporan-lama')).toBe(false);
   });
 });
 
-// Menyembunyikan menu tidak menghentikan pengguna yang mengetik alamat langsung.
 describe('penjagaan akses halaman', () => {
-  it('menolak Staff membuka Monitoring dan Pengaturan', () => {
-    expect(bolehAkses('staff', '/monitoring')).toBe(false);
-    expect(bolehAkses('staff', '/pengaturan')).toBe(false);
+  it('menolak halaman yang izinnya tidak dimiliki', () => {
+    expect(bolehAkses(IZIN_STAFF, '/monitoring')).toBe(false);
+    expect(bolehAkses(IZIN_STAFF, '/pengaturan')).toBe(false);
   });
 
-  it('menolak Staff membuka halaman turunan Monitoring', () => {
-    expect(bolehAkses('staff', '/monitoring/tim/5')).toBe(false);
+  it('mengizinkan halaman yang izinnya dimiliki', () => {
+    expect(bolehAkses(IZIN_SUPERVISOR, '/monitoring')).toBe(true);
+    expect(bolehAkses(IZIN_ADMIN, '/pengaturan/pengguna')).toBe(true);
   });
 
-  it('menolak Supervisor dan Manager membuka Pengaturan', () => {
-    expect(bolehAkses('supervisor', '/pengaturan')).toBe(false);
-    expect(bolehAkses('manager', '/pengaturan')).toBe(false);
+  it('memakai aturan halaman terdalam, bukan induknya', () => {
+    /*
+     * Pemegang izin template boleh masuk /pengaturan — tetapi bukan berarti
+     * boleh masuk manajemen pengguna. Tanpa pencocokan terdalam, semantik
+     * "salah satu izin" pada induknya akan meloloskannya.
+     */
+    const hanyaTemplate = ['template.kelola'];
+
+    expect(bolehAkses(hanyaTemplate, '/pengaturan')).toBe(true);
+    expect(bolehAkses(hanyaTemplate, '/pengaturan/template')).toBe(true);
+    expect(bolehAkses(hanyaTemplate, '/pengaturan/pengguna')).toBe(false);
+    expect(bolehAkses(hanyaTemplate, '/pengaturan/role')).toBe(false);
   });
 
-  it('mengizinkan Supervisor membuka Monitoring', () => {
-    expect(bolehAkses('supervisor', '/monitoring')).toBe(true);
-  });
-
-  it('mengizinkan Administrator membuka seluruh halaman menu', () => {
-    for (const href of ['/dashboard', '/laporan', '/monitoring', '/export', '/pengaturan']) {
-      expect(bolehAkses('administrator', href)).toBe(true);
-    }
-  });
-
-  it('mengizinkan halaman di luar menu utama bagi pengguna yang sudah masuk', () => {
-    expect(bolehAkses('staff', '/profil')).toBe(true);
+  it('membiarkan halaman tak terdaftar terbuka bagi yang sudah masuk', () => {
+    expect(bolehAkses([], '/profil')).toBe(true);
   });
 });

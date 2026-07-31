@@ -29,8 +29,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AppHeader
         pengguna={{
           nama: pengguna.nama,
-          role: pengguna.role,
           namaRole: pengguna.namaRole,
+          peranLain: Math.max(0, pengguna.penetapan.length - 1),
+          // Array, bukan Set — nilainya menyeberang batas Server ke Client.
+          izin: pengguna.izin,
           departemen: pengguna.departemen,
         }}
       />
