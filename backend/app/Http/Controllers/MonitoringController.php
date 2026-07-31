@@ -20,12 +20,9 @@ class MonitoringController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
+        // Izin dijaga middleware `izin:monitoring.lihat` pada rutenya.
         $pengguna = $request->user();
-
-        // Deny by default: hanya Supervisor ke atas.
-        if (! $pengguna->canMonitorTeam()) {
-            return ApiResponse::error('Anda tidak memiliki akses ke data ini.', 403);
-        }
+        $jangkauan = $pengguna->jangkauan();
 
         $data = $request->validate([
             'dari' => ['nullable', 'date'],
@@ -48,17 +45,29 @@ class MonitoringController extends Controller
             return ApiResponse::error('Rentang tanggal paling panjang 92 hari.', 422);
         }
 
+        /*
+         * Departemen di luar jangkauan ditolak, bukan diabaikan diam-diam.
+         * Layarnya kini menampilkan pemilih departemen kepada pengguna yang
+         * memantau lebih dari satu departemen, dan pemilih yang tampil tetapi
+         * tidak berpengaruh lebih membingungkan daripada penolakan.
+         */
+        if (
+            isset($data['departemen_id'])
+            && ! $jangkauan->mencakupDepartemen((int) $data['departemen_id'])
+        ) {
+            return ApiResponse::error('Departemen tersebut di luar jangkauan Anda.', 403);
+        }
+
         $anggota = User::query()
             ->with('department')
             ->where('is_active', true)
             ->when(
-                ! $pengguna->canSeeAllDepartments(),
-                // Supervisor terbatas pada departemennya, apa pun yang diminta.
-                fn ($query) => $query->where('department_id', $pengguna->department_id),
-                fn ($query) => $query->when(
-                    isset($data['departemen_id']),
-                    fn ($sub) => $sub->where('department_id', $data['departemen_id']),
-                ),
+                ! $jangkauan->korporat(),
+                fn ($query) => $query->whereIn('department_id', $jangkauan->departemenId),
+            )
+            ->when(
+                isset($data['departemen_id']),
+                fn ($query) => $query->where('department_id', $data['departemen_id']),
             )
             ->when(
                 isset($data['cari']),

@@ -1,10 +1,22 @@
 <?php
 
+use Database\Seeders\IzinSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-// Feature test menyentuh database; Unit test tidak.
-pest()->extend(TestCase::class)->use(RefreshDatabase::class)->in('Feature');
+/*
+ * Feature test menyentuh database; Unit test tidak.
+ *
+ * Katalog izin diproyeksikan lebih dulu di tiap test. Isinya master data yang
+ * berasal dari kode, bukan data yang dibuat pengguna — tanpa itu setiap
+ * pemeriksaan `boleh()` bernilai false dan hampir seluruh rangkaian test gagal
+ * karena alasan yang tidak ada hubungannya dengan apa yang diujinya.
+ */
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => test()->seed(IzinSeeder::class))
+    ->in('Feature');
+
 pest()->extend(TestCase::class)->in('Unit');
 
 /**

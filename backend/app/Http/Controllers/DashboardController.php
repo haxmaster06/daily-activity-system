@@ -6,6 +6,7 @@ use App\Models\DailyReport;
 use App\Models\DailyReportItem;
 use App\Models\User;
 use App\Support\ApiResponse;
+use App\Support\KatalogIzin;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -131,24 +132,26 @@ class DashboardController extends Controller
     /**
      * Anggota yang belum membuat laporan hari ini.
      *
-     * Hanya untuk Supervisor ke atas — bagi Staff, daftar ini tidak punya
-     * arti dan justru membocorkan siapa saja rekan sedepartemennya yang
+     * Hanya untuk yang boleh memantau tim — bagi yang tidak, daftar ini tidak
+     * punya arti dan justru membocorkan siapa saja rekan sedepartemennya yang
      * terlambat.
      *
      * @return array<int, array{id: int, nama: string, departemen: string}>|null
      */
     private function belumLaporHariIni(User $pengguna, Carbon $hariIni): ?array
     {
-        if (! $pengguna->canMonitorTeam()) {
+        if (! $pengguna->boleh(KatalogIzin::MONITORING_LIHAT)) {
             return null;
         }
+
+        $jangkauan = $pengguna->jangkauan();
 
         return User::query()
             ->with('department')
             ->where('is_active', true)
             ->when(
-                ! $pengguna->canSeeAllDepartments(),
-                fn ($query) => $query->where('department_id', $pengguna->department_id),
+                ! $jangkauan->korporat(),
+                fn ($query) => $query->whereIn('department_id', $jangkauan->departemenId),
             )
             ->whereDoesntHave('laporan', fn ($query) => $query->whereDate('report_date', $hariIni))
             ->orderBy('name')

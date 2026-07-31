@@ -173,7 +173,7 @@ it('menonaktifkan administrator lain selama masih ada administrator aktif', func
     expect($adminLain->fresh()->is_active)->toBeFalse();
 });
 
-it('menolak menurunkan role administrator aktif terakhir', function (): void {
+it('menolak menurunkan peran pengelola aktif terakhir', function (): void {
     $departemen = Department::factory()->create();
     $roleStaff = RoleFactory::slug(Role::STAFF);
     $admin = User::factory()->administrator()->create([
@@ -192,7 +192,9 @@ it('menolak menurunkan role administrator aktif terakhir', function (): void {
     ]);
 
     $response->assertStatus(422);
-    expect($response->json('message'))->toContain('administrator aktif terakhir');
+    expect($response->json('message'))->toContain('mengelola pengguna sekaligus hak akses');
+
+    // Perubahan dibatalkan seluruhnya, bukan sebagian.
     expect($admin->fresh()->isAdministrator())->toBeTrue();
 });
 

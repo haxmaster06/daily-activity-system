@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\MenerimaPenetapanRole;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
 class StoreUserRequest extends FormRequest
 {
+    use MenerimaPenetapanRole;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', User::class);
@@ -23,9 +26,19 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', Password::min(8)],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
             'is_active' => ['sometimes', 'boolean'],
+            ...$this->aturanPenetapan(),
         ];
+    }
+
+    /**
+     * Kolom milik tabel users saja — penetapan peran disimpan terpisah.
+     *
+     * @return array<string, mixed>
+     */
+    public function atributPengguna(): array
+    {
+        return $this->safe()->only(['name', 'email', 'password', 'department_id', 'is_active']);
     }
 
     /**
@@ -38,8 +51,8 @@ class StoreUserRequest extends FormRequest
             'email' => 'email',
             'password' => 'kata sandi',
             'department_id' => 'departemen',
-            'role_id' => 'role',
             'is_active' => 'status',
+            ...$this->labelPenetapan(),
         ];
     }
 }

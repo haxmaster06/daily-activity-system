@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\JangkauanData;
 use Illuminate\Database\Seeder;
 use RuntimeException;
 
@@ -63,6 +64,16 @@ class AdministratorSeeder extends Seeder
         }
 
         $user->save();
+
+        // Penetapan peran, berdampingan dengan `role_id` selama kolom itu
+        // masih menjadi cerminnya. `syncWithoutDetaching` menjaga penetapan
+        // lain yang mungkin sudah diberikan kepada akun ini.
+        $user->roles()->syncWithoutDetaching([
+            $administrator->id => [
+                'scope_level' => JangkauanData::KORPORAT,
+                'department_id' => null,
+            ],
+        ]);
 
         $this->command?->info(
             $sudahAda

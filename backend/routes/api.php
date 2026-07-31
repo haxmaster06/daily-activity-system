@@ -11,6 +11,7 @@ use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PengingatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportTemplateController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,8 +41,12 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
      * tidak boleh melihat angka yang mencakup laporan di luar jangkauannya.
      * Monitoring menolak Staff sejak di controller.
      */
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/monitoring', MonitoringController::class)->name('monitoring');
+    Route::get('/dashboard', DashboardController::class)
+        ->middleware('izin:dashboard.lihat')
+        ->name('dashboard');
+    Route::get('/monitoring', MonitoringController::class)
+        ->middleware('izin:monitoring.lihat')
+        ->name('monitoring');
 
     /*
      * Notifikasi. Relasi `notifications()` sudah terikat pada pemiliknya,
@@ -56,7 +61,7 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::post('/notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'baca'])
         ->name('notifikasi.baca');
     Route::post('/monitoring/pengingat', PengingatController::class)
-        ->middleware('throttle:pengingat')
+        ->middleware(['izin:monitoring.kirim-pengingat', 'throttle:pengingat'])
         ->name('monitoring.pengingat');
 
     // Profil sendiri — tidak memerlukan role khusus.
@@ -73,7 +78,15 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::delete('/departemen/{department}', [DepartmentController::class, 'destroy'])
         ->name('departemen.destroy');
 
-    Route::get('/role', [UserController::class, 'roles'])->name('role.index');
+    /*
+     * Peran dan hak akses. Daftar peran memuat `{id, slug, nama}` seperti
+     * sebelumnya, sehingga pemakai lama tetap terlayani.
+     */
+    Route::get('/role', [RoleController::class, 'index'])->name('role.index');
+    Route::get('/izin', [RoleController::class, 'katalogIzin'])->name('izin.index');
+    Route::post('/role', [RoleController::class, 'store'])->name('role.store');
+    Route::put('/role/{role}', [RoleController::class, 'update'])->name('role.update');
+    Route::delete('/role/{role}', [RoleController::class, 'destroy'])->name('role.destroy');
     Route::get('/pengguna', [UserController::class, 'index'])->name('pengguna.index');
     Route::post('/pengguna', [UserController::class, 'store'])->name('pengguna.store');
     Route::put('/pengguna/{user}', [UserController::class, 'update'])->name('pengguna.update');
@@ -116,8 +129,10 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
      * Jangkauannya tetap DailyReport::scopeVisibleTo() — export tidak boleh
      * menjadi jalan memutar untuk membaca laporan di luar jangkauan.
      */
-    Route::get('/export/pratinjau', [ExportController::class, 'pratinjau'])
-        ->name('export.pratinjau');
-    Route::get('/export/excel', [ExportController::class, 'excel'])->name('export.excel');
-    Route::get('/export/pdf', [ExportController::class, 'pdf'])->name('export.pdf');
+    Route::middleware('izin:export.laporan')->group(function (): void {
+        Route::get('/export/pratinjau', [ExportController::class, 'pratinjau'])
+            ->name('export.pratinjau');
+        Route::get('/export/excel', [ExportController::class, 'excel'])->name('export.excel');
+        Route::get('/export/pdf', [ExportController::class, 'pdf'])->name('export.pdf');
+    });
 });

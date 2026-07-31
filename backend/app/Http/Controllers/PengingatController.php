@@ -22,12 +22,8 @@ class PengingatController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
+        // Izin dijaga middleware `izin:monitoring.kirim-pengingat` pada rutenya.
         $pengirim = $request->user();
-
-        // Deny by default: hanya Supervisor ke atas.
-        if (! $pengirim->canMonitorTeam()) {
-            return ApiResponse::error('Anda tidak memiliki akses ke tindakan ini.', 403);
-        }
 
         $data = $request->validate([
             'pengguna_id' => ['required', 'integer', 'exists:users,id'],
@@ -48,12 +44,9 @@ class PengingatController extends Controller
             return ApiResponse::error('Anggota ini sudah tidak aktif.', 422);
         }
 
-        // Supervisor terbatas pada departemennya sendiri, sama seperti Monitoring.
-        if (
-            ! $pengirim->canSeeAllDepartments()
-            && $penerima->department_id !== $pengirim->department_id
-        ) {
-            return ApiResponse::error('Anggota ini berada di luar departemen Anda.', 403);
+        // Terbatas pada jangkauan datanya, sama seperti Monitoring.
+        if (! $pengirim->jangkauan()->mencakupPengguna($penerima)) {
+            return ApiResponse::error('Anggota ini berada di luar jangkauan Anda.', 403);
         }
 
         $sudahMelapor = DailyReport::query()

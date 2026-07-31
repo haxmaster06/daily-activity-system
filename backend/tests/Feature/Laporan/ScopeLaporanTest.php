@@ -2,7 +2,10 @@
 
 use App\Models\DailyReport;
 use App\Models\Department;
+use App\Models\Role;
 use App\Models\User;
+use App\Support\JangkauanData;
+use Database\Factories\RoleFactory;
 use Laravel\Sanctum\Sanctum;
 
 /**
@@ -157,4 +160,79 @@ it('menolak meninjau laporan yang masih draf', function (): void {
 
     // Draf belum selesai dikerjakan; meninjaunya tidak punya arti.
     $this->postJson("/api/laporan/{$data['laporanRekan']->id}/tinjau")->assertForbidden();
+});
+
+/*
+ * Jangkauan sejak berpindah ke penetapan peran: satu orang dapat memantau
+ * beberapa departemen, dan yang tidak memegang penetapan apa pun tidak
+ * memperoleh apa-apa.
+ */
+
+it('melihat seluruh departemen yang tercakup penetapannya', function (): void {
+    $data = susunLaporanLintasDepartemen();
+
+    $pemantau = User::factory()->supervisor()->create([
+        'department_id' => $data['produksi']->id,
+    ]);
+
+    $supervisor = RoleFactory::slug(Role::SUPERVISOR);
+
+    $pemantau->syncRoles([
+        ['role_id' => $supervisor->id, 'scope_level' => JangkauanData::DEPARTEMEN, 'department_id' => $data['produksi']->id],
+        ['role_id' => $supervisor->id, 'scope_level' => JangkauanData::DEPARTEMEN, 'department_id' => $data['qc']->id],
+    ]);
+
+    Sanctum::actingAs($pemantau->fresh());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    expect($id)->toContain($data['laporanRekan']->id)
+        ->toContain($data['laporanDepartemenLain']->id);
+});
+
+it('memakai jangkauan tertinggi bila penetapannya bercampur', function (): void {
+    $data = susunLaporanLintasDepartemen();
+
+    $pengguna = User::factory()->staff()->create(['department_id' => $data['produksi']->id]);
+
+    $staff = RoleFactory::slug(Role::STAFF);
+    $supervisor = RoleFactory::slug(Role::SUPERVISOR);
+
+    $pengguna->syncRoles([
+        ['role_id' => $staff->id, 'scope_level' => JangkauanData::PERSONAL, 'department_id' => null],
+        ['role_id' => $supervisor->id, 'scope_level' => JangkauanData::DEPARTEMEN, 'department_id' => $data['produksi']->id],
+    ]);
+
+    Sanctum::actingAs($pengguna->fresh());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    // Peran tambahan menambah akses, tidak menguranginya.
+    expect($id)->toContain($data['laporanRekan']->id)
+        ->not->toContain($data['laporanDepartemenLain']->id);
+});
+
+it('tidak memberi akses apa pun kepada pengguna tanpa penetapan peran', function (): void {
+    $data = susunLaporanLintasDepartemen();
+
+    $tanpaPeran = User::factory()->create(['department_id' => $data['produksi']->id]);
+    $tanpaPeran->syncRoles([]);
+
+    Sanctum::actingAs($tanpaPeran->fresh());
+
+    // Deny by default: belum diatur berarti belum boleh apa-apa.
+    $this->getJson('/api/laporan')->assertForbidden();
+});
+
+it('tetap menampilkan laporan sendiri setelah pengguna dipindah departemen', function (): void {
+    $data = susunLaporanLintasDepartemen();
+
+    // Laporan menyimpan departemen saat dibuat dan tidak ikut berpindah.
+    $data['staffProduksi']->forceFill(['department_id' => $data['qc']->id])->save();
+
+    Sanctum::actingAs($data['staffProduksi']->fresh());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    expect($id)->toContain($data['laporanSendiri']->id);
 });

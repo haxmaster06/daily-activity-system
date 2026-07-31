@@ -17,6 +17,9 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             RoleSeeder::class,
+            // Katalog izin lebih dulu, baru pemberiannya ke peran.
+            IzinSeeder::class,
+            IzinRoleSeeder::class,
             DepartmentSeeder::class,
             ReportTemplateSeeder::class,
             AdministratorSeeder::class,

@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\JangkauanData;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -31,6 +32,42 @@ class UserFactory extends Factory
             'role_id' => RoleFactory::slug(Role::STAFF),
             'is_active' => true,
         ];
+    }
+
+    /**
+     * Menetapkan peran ke pivot setelah pengguna dibuat.
+     *
+     * Test yang sudah ada menyetel `role_id` lewat state; penetapan di pivot
+     * dibuat menyusul dengan jangkauan yang meniru tangga level lama, sehingga
+     * 168 test tidak perlu disunting satu per satu.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $pengguna): void {
+            if ($pengguna->role_id === null) {
+                return;
+            }
+
+            // Level dibaca lewat query, bukan relasi: model yang baru dibuat
+            // lolos dari `preventLazyLoading` karena `wasRecentlyCreated`, dan
+            // mengandalkan celah itu menyembunyikan cacat eager loading.
+            $level = (int) Role::whereKey($pengguna->role_id)->value('level');
+
+            $jangkauan = match (true) {
+                $level >= Role::LEVEL_MANAGER => JangkauanData::KORPORAT,
+                $level >= Role::LEVEL_SUPERVISOR => JangkauanData::DEPARTEMEN,
+                default => JangkauanData::PERSONAL,
+            };
+
+            $pengguna->roles()->syncWithoutDetaching([
+                $pengguna->role_id => [
+                    'scope_level' => $jangkauan,
+                    'department_id' => null,
+                ],
+            ]);
+
+            $pengguna->load('roles.permissions');
+        });
     }
 
     public function unverified(): static

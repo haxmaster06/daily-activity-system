@@ -2,12 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\MenerimaPenetapanRole;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
+    use MenerimaPenetapanRole;
+
     public function authorize(): bool
     {
         $target = $this->route('user');
@@ -33,8 +36,18 @@ class UpdateUserRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($target->id),
             ],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'role_id' => ['required', 'integer', 'exists:roles,id'],
+            ...$this->aturanPenetapan(),
         ];
+    }
+
+    /**
+     * Kolom milik tabel users saja — penetapan peran disimpan terpisah.
+     *
+     * @return array<string, mixed>
+     */
+    public function atributPengguna(): array
+    {
+        return $this->safe()->only(['name', 'email', 'department_id']);
     }
 
     /**
@@ -46,7 +59,7 @@ class UpdateUserRequest extends FormRequest
             'name' => 'nama',
             'email' => 'email',
             'department_id' => 'departemen',
-            'role_id' => 'role',
+            ...$this->labelPenetapan(),
         ];
     }
 }

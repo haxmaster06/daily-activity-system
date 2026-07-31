@@ -1,0 +1,164 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Role;
+
+/**
+ * Katalog hak akses DAMS.
+ *
+ * Katalognya kode, bukan data. Tabel `permissions` adalah proyeksi berkas ini
+ * lewat `IzinSeeder`, dan layar pengelolaan peran hanya boleh mencentang —
+ * tidak membuat dan tidak menghapus. Baris izin yang tidak punya pemanggil
+ * `boleh()` di kode adalah kebohongan kepada operator: dicentang, tetapi tidak
+ * berpengaruh pada apa pun.
+ *
+ * Kunci izin adalah pengenal teknis dan tidak boleh muncul sebagai label layar
+ * (CLAUDE.md, Aturan Bahasa). Yang ditampilkan adalah `nama`.
+ */
+final class KatalogIzin
+{
+    public const DASHBOARD_LIHAT = 'dashboard.lihat';
+
+    public const LAPORAN_LIHAT = 'laporan.lihat';
+
+    public const LAPORAN_BUAT = 'laporan.buat';
+
+    public const LAPORAN_UBAH_SENDIRI = 'laporan.ubah-sendiri';
+
+    public const LAPORAN_HAPUS_SENDIRI = 'laporan.hapus-sendiri';
+
+    public const LAPORAN_KIRIM = 'laporan.kirim';
+
+    public const LAPORAN_TINJAU = 'laporan.tinjau';
+
+    public const EXPORT_LAPORAN = 'export.laporan';
+
+    public const MONITORING_LIHAT = 'monitoring.lihat';
+
+    public const MONITORING_KIRIM_PENGINGAT = 'monitoring.kirim-pengingat';
+
+    public const DEPARTEMEN_LIHAT = 'departemen.lihat';
+
+    public const DEPARTEMEN_KELOLA = 'departemen.kelola';
+
+    public const TEMPLATE_LIHAT = 'template.lihat';
+
+    public const TEMPLATE_KELOLA = 'template.kelola';
+
+    public const PENGGUNA_LIHAT = 'pengguna.lihat';
+
+    public const PENGGUNA_KELOLA = 'pengguna.kelola';
+
+    public const PENGGUNA_NONAKTIFKAN = 'pengguna.nonaktifkan';
+
+    public const PENGGUNA_ATUR_KATA_SANDI = 'pengguna.atur-kata-sandi';
+
+    public const ROLE_LIHAT = 'role.lihat';
+
+    public const ROLE_KELOLA = 'role.kelola';
+
+    /** Nama kelompok untuk pengelompokan di layar. */
+    public const GRUP = [
+        'laporan' => 'Laporan Harian',
+        'monitoring' => 'Monitoring Tim',
+        'master' => 'Data Master',
+        'pengguna' => 'Pengguna & Hak Akses',
+    ];
+
+    /**
+     * Seluruh izin, berurut sesuai tampilnya di layar.
+     *
+     * @return list<array{key: string, group_key: string, name: string, description: string}>
+     */
+    public static function semua(): array
+    {
+        $daftar = [
+            ['laporan', self::DASHBOARD_LIHAT, 'Membuka ringkasan', 'Melihat halaman ringkasan beserta angkanya.'],
+            ['laporan', self::LAPORAN_LIHAT, 'Melihat laporan', 'Membuka daftar dan rincian laporan harian.'],
+            ['laporan', self::LAPORAN_BUAT, 'Membuat laporan', 'Menyusun laporan harian baru.'],
+            ['laporan', self::LAPORAN_UBAH_SENDIRI, 'Menyunting draf sendiri', 'Mengubah laporan sendiri selama masih berstatus draf.'],
+            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus draf sendiri', 'Menghapus laporan sendiri selama masih berstatus draf.'],
+            ['laporan', self::LAPORAN_KIRIM, 'Mengirim laporan', 'Mengirim laporan sendiri sehingga menjadi catatan.'],
+            ['laporan', self::LAPORAN_TINJAU, 'Meninjau laporan', 'Menandai laporan orang lain sudah ditinjau.'],
+            ['laporan', self::EXPORT_LAPORAN, 'Mengexport laporan', 'Membuka pratinjau export dan mengunduh berkasnya.'],
+
+            ['monitoring', self::MONITORING_LIHAT, 'Melihat kepatuhan tim', 'Membuka ringkasan siapa yang sudah dan belum melapor.'],
+            ['monitoring', self::MONITORING_KIRIM_PENGINGAT, 'Mengirim pengingat', 'Mengingatkan anggota yang belum mengisi laporan.'],
+
+            ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
+            ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
+            ['master', self::TEMPLATE_LIHAT, 'Melihat template', 'Membaca daftar template laporan.'],
+            ['master', self::TEMPLATE_KELOLA, 'Mengelola template', 'Menambah, mengubah, dan menghapus template laporan.'],
+
+            ['pengguna', self::PENGGUNA_LIHAT, 'Melihat daftar pengguna', 'Membuka daftar akun beserta perannya.'],
+            ['pengguna', self::PENGGUNA_KELOLA, 'Menambah & mengubah pengguna', 'Membuat akun baru dan mengubah datanya, termasuk penetapan peran.'],
+            ['pengguna', self::PENGGUNA_NONAKTIFKAN, 'Menonaktifkan akun', 'Mengaktifkan dan menonaktifkan akun pengguna.'],
+            ['pengguna', self::PENGGUNA_ATUR_KATA_SANDI, 'Mengatur ulang kata sandi', 'Menetapkan kata sandi baru untuk akun lain.'],
+            ['pengguna', self::ROLE_LIHAT, 'Melihat peran', 'Membaca daftar peran beserta hak aksesnya.'],
+            ['pengguna', self::ROLE_KELOLA, 'Mengelola peran & hak akses', 'Membuat peran, mengubah namanya, dan menentukan hak aksesnya.'],
+        ];
+
+        $hasil = [];
+
+        foreach (array_values($daftar) as $urutan => [$grup, $kunci, $nama, $keterangan]) {
+            $hasil[] = [
+                'key' => $kunci,
+                'group_key' => $grup,
+                'name' => $nama,
+                'description' => $keterangan,
+                'sort_order' => $urutan,
+            ];
+        }
+
+        return $hasil;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function kunci(): array
+    {
+        return array_column(self::semua(), 'key');
+    }
+
+    /**
+     * Izin bawaan tiap peran sistem.
+     *
+     * Susunannya mereproduksi perilaku sebelum RBAC persis — itulah yang
+     * membuat rangkaian test yang sudah ada menjadi jaring pengaman saat
+     * otorisasi dialihkan.
+     *
+     * @return array<string, list<string>>
+     */
+    public static function bawaanPeran(): array
+    {
+        $staff = [
+            self::DASHBOARD_LIHAT,
+            self::LAPORAN_LIHAT,
+            self::LAPORAN_BUAT,
+            self::LAPORAN_UBAH_SENDIRI,
+            self::LAPORAN_HAPUS_SENDIRI,
+            self::LAPORAN_KIRIM,
+            self::EXPORT_LAPORAN,
+            self::DEPARTEMEN_LIHAT,
+            self::TEMPLATE_LIHAT,
+        ];
+
+        $supervisor = [
+            ...$staff,
+            self::LAPORAN_TINJAU,
+            self::MONITORING_LIHAT,
+            self::MONITORING_KIRIM_PENGINGAT,
+        ];
+
+        return [
+            // Manager berbeda dari Supervisor pada jangkauan datanya, bukan
+            // pada hak aksesnya.
+            Role::STAFF => $staff,
+            Role::SUPERVISOR => $supervisor,
+            Role::MANAGER => $supervisor,
+            Role::ADMINISTRATOR => self::kunci(),
+        ];
+    }
+}

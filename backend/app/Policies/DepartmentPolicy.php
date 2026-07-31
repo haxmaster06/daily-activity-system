@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Department;
 use App\Models\User;
+use App\Support\KatalogIzin;
 
 /**
  * Deny by default (non-fungsional §2.3).
@@ -16,26 +17,26 @@ class DepartmentPolicy
 {
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->boleh(KatalogIzin::DEPARTEMEN_LIHAT);
     }
 
     public function view(User $user, Department $department): bool
     {
-        return true;
+        return $user->boleh(KatalogIzin::DEPARTEMEN_LIHAT);
     }
 
     public function create(User $user): bool
     {
-        return $user->isAdministrator();
+        return $user->boleh(KatalogIzin::DEPARTEMEN_KELOLA);
     }
 
     public function update(User $user, Department $department): bool
     {
-        return $user->isAdministrator();
+        return $user->boleh(KatalogIzin::DEPARTEMEN_KELOLA);
     }
 
     public function delete(User $user, Department $department): bool
     {
-        return $user->isAdministrator();
+        return $user->boleh(KatalogIzin::DEPARTEMEN_KELOLA);
     }
 }

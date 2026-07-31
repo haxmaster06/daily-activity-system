@@ -5,10 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
-use App\Models\Role;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\Audit;
+use App\Support\PenjagaAkses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
@@ -38,9 +38,11 @@ class UserController extends Controller
                 fn ($query) => $query->where('department_id', $request->integer('departemen_id')),
             )
             ->when(
+                // Menyaring lewat penetapan, bukan kolom cermin: seseorang
+                // dapat memegang beberapa peran sekaligus.
                 $request->filled('role'),
                 fn ($query) => $query->whereHas(
-                    'role',
+                    'roles',
                     fn ($sub) => $sub->where('slug', $request->string('role')),
                 ),
             )
@@ -58,7 +60,12 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $pengguna = User::create($request->validated());
+        $pengguna = PenjagaAkses::jalankan(function () use ($request) {
+            $pengguna = User::create($request->atributPengguna());
+            $pengguna->syncRoles($request->penetapan());
+
+            return $pengguna;
+        });
 
         Audit::catat(
             Audit::AKSI_DIBUAT,
@@ -66,7 +73,7 @@ class UserController extends Controller
             "Membuat pengguna {$pengguna->name}",
             $pengguna,
             // Kata sandi disaring otomatis oleh Audit.
-            $request->validated(),
+            [...$request->atributPengguna(), 'penetapan' => $request->penetapan()],
         );
 
         return ApiResponse::created(
@@ -78,24 +85,22 @@ class UserController extends Controller
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $kolom = ['name', 'email', 'department_id', 'role_id'];
-        $sebelum = $user->only($kolom);
+        $sebelum = [...$user->only($kolom), 'penetapan' => $this->ringkasPenetapan($user)];
 
         /*
-         * Menurunkan role administrator terakhir akan membuat sistem tidak
-         * lagi punya siapa pun yang bisa mengelola pengguna dan departemen —
-         * termasuk untuk mengembalikan role tersebut.
+         * Penjaga dipasang mengelilingi perubahan, bukan menebaknya lebih dulu:
+         * mengubah penetapan peran dapat menghabiskan satu-satunya akun yang
+         * mampu mengembalikannya.
          */
-        if ($this->menghapusAdministratorTerakhir($user, (int) $request->validated('role_id'))) {
-            return ApiResponse::error(
-                'Ini administrator aktif terakhir. Angkat administrator lain terlebih dahulu '
-                .'sebelum mengubah role akun ini.',
-                422,
-            );
-        }
+        PenjagaAkses::jalankan(function () use ($request, $user): void {
+            $user->update($request->atributPengguna());
+            $user->syncRoles($request->penetapan());
+        });
 
-        $user->update($request->validated());
-
-        $perubahan = Audit::selisih($sebelum, $user->only($kolom));
+        $perubahan = Audit::selisih(
+            $sebelum,
+            [...$user->only($kolom), 'penetapan' => $this->ringkasPenetapan($user)],
+        );
 
         if ($perubahan !== []) {
             Audit::catat(
@@ -111,6 +116,21 @@ class UserController extends Controller
             new UserResource($user->load(['role', 'department'])),
             'Pengguna berhasil diperbarui.',
         );
+    }
+
+    /**
+     * Bentuk ringkas penetapan peran untuk pembanding jejak audit.
+     *
+     * @return array<int, string>
+     */
+    private function ringkasPenetapan(User $user): array
+    {
+        return $user->roles
+            ->map(fn ($peran) => $peran->slug.':'.$peran->pivot->scope_level
+                .':'.($peran->pivot->department_id ?? '-'))
+            ->sort()
+            ->values()
+            ->all();
     }
 
     /**
@@ -134,20 +154,23 @@ class UserController extends Controller
         }
 
         /*
-         * Sistem tidak boleh kehabisan administrator aktif. Di jalur ini
-         * cukup dijaga oleh UserPolicy::nonaktifkan yang melarang
-         * menonaktifkan diri sendiri: pelakunya pasti administrator yang
-         * masih aktif, sehingga selalu tersisa minimal satu.
+         * Larangan menonaktifkan diri sendiri di UserPolicy dulu cukup: siapa
+         * pun yang sampai ke sini pasti administrator aktif, sehingga selalu
+         * tersisa satu.
          *
-         * Jalur yang benar-benar berisiko adalah penurunan role — dijaga di
-         * `update()`.
+         * Alasan itu berhenti berlaku sejak wewenang dapat dipecah. Peran yang
+         * hanya memegang izin menonaktifkan — tanpa izin mengelola pengguna —
+         * dapat menonaktifkan pemegang terakhir izin pengelolaan, lalu tidak
+         * ada lagi yang bisa memulihkannya.
          */
-        $user->forceFill(['is_active' => $aktif])->save();
+        PenjagaAkses::jalankan(function () use ($user, $aktif): void {
+            $user->forceFill(['is_active' => $aktif])->save();
 
-        if (! $aktif) {
-            // Token yang sudah terbit ikut dicabut agar sesi berjalan berhenti.
-            $user->tokens()->delete();
-        }
+            if (! $aktif) {
+                // Token yang sudah terbit ikut dicabut agar sesi berjalan berhenti.
+                $user->tokens()->delete();
+            }
+        });
 
         Audit::catat(
             $aktif ? Audit::AKSI_DIAKTIFKAN : Audit::AKSI_DINONAKTIFKAN,
@@ -188,45 +211,5 @@ class UserController extends Controller
         );
 
         return ApiResponse::ok(null, 'Kata sandi berhasil diatur ulang.');
-    }
-
-    /**
-     * Daftar role untuk mengisi pilihan pada form pengguna.
-     */
-    public function roles(): JsonResponse
-    {
-        $this->authorize('viewAny', User::class);
-
-        $roles = Role::orderBy('level')->get()->map(fn (Role $role) => [
-            'id' => $role->id,
-            'slug' => $role->slug,
-            'nama' => $role->name,
-        ]);
-
-        return ApiResponse::ok($roles);
-    }
-
-    /**
-     * Apakah perubahan role ini akan menghabiskan administrator aktif terakhir.
-     */
-    private function menghapusAdministratorTerakhir(User $user, int $roleBaruId): bool
-    {
-        if (! $user->isAdministrator() || ! $user->is_active) {
-            return false;
-        }
-
-        $masihAdministrator = Role::whereKey($roleBaruId)
-            ->where('slug', Role::ADMINISTRATOR)
-            ->exists();
-
-        if ($masihAdministrator) {
-            return false;
-        }
-
-        return User::query()
-            ->where('is_active', true)
-            ->whereHas('role', fn ($query) => $query->where('slug', Role::ADMINISTRATOR))
-            ->whereKeyNot($user->getKey())
-            ->doesntExist();
     }
 }

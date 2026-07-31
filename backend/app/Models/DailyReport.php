@@ -90,26 +90,43 @@ class DailyReport extends Model
      * banyak tempat pasti berbeda di salah satunya, dan yang berbeda itu jadi
      * kebocoran data (CLAUDE.md, Aturan API).
      *
-     * - Staff      : laporannya sendiri
-     * - Supervisor : seluruh anggota departemennya
-     * - Manager    : seluruh departemen
-     * - Administrator: seluruh departemen
+     * Jangkauannya berasal dari penetapan peran pengguna:
+     *
+     * - Pribadi    : laporannya sendiri
+     * - Departemen : laporannya sendiri, ditambah laporan pada departemen yang
+     *                tercakup penetapannya — bisa lebih dari satu
+     * - Korporat   : seluruh laporan
      *
      * @param  Builder<DailyReport>  $query
      */
     public function scopeVisibleTo(Builder $query, User $user): void
     {
-        if ($user->canSeeAllDepartments()) {
+        $jangkauan = $user->jangkauan();
+
+        if ($jangkauan->korporat()) {
             return;
         }
 
-        if ($user->canMonitorTeam()) {
-            $query->where('department_id', $user->department_id);
+        $departemen = $jangkauan->departemenId;
 
-            return;
-        }
+        /*
+         * Kurungnya wajib. Tanpa closure pembungkus, `orWhereIn` di dalamnya
+         * lepas dari seluruh penyaringan lain pada query pemanggil — status,
+         * rentang tanggal, kata pencarian — dan mengembalikan seluruh laporan
+         * departemen itu.
+         */
+        $query->where(function (Builder $sub) use ($user, $departemen): void {
+            /*
+             * Laporan sendiri selalu terlihat, termasuk yang dibuat sebelum
+             * pengguna dipindah departemen: `department_id` laporan disalin
+             * saat laporan dibuat dan tidak ikut berpindah.
+             */
+            $sub->where('user_id', $user->getKey());
 
-        $query->where('user_id', $user->getKey());
+            if ($departemen !== []) {
+                $sub->orWhereIn('department_id', $departemen);
+            }
+        });
     }
 
     /**

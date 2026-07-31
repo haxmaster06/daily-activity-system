@@ -44,7 +44,7 @@ it('menghitung laporan tiap anggota dalam rentang', function (): void {
         ->and($anggota['Belum Melapor']['hari_tanpa_laporan'])->toBe(3);
 });
 
-it('membatasi Supervisor pada departemennya walau meminta departemen lain', function (): void {
+it('membatasi Supervisor pada departemen yang tercakup jangkauannya', function (): void {
     $produksi = Department::factory()->create(['code' => 'PROD_M', 'name' => 'Produksi']);
     $qc = Department::factory()->create(['code' => 'QC_M', 'name' => 'QC']);
 
@@ -53,12 +53,27 @@ it('membatasi Supervisor pada departemennya walau meminta departemen lain', func
 
     Sanctum::actingAs(User::factory()->supervisor()->create(['department_id' => $produksi->id]));
 
-    // Meminta departemen lain secara terang-terangan pun tidak dilayani.
-    $nama = collect(
-        $this->getJson("/api/monitoring?departemen_id={$qc->id}")->json('data.anggota'),
-    )->pluck('nama');
+    $nama = collect($this->getJson('/api/monitoring')->json('data.anggota'))->pluck('nama');
 
     expect($nama)->toContain('Orang Produksi')->not->toContain('Orang QC');
+});
+
+it('menolak permintaan departemen di luar jangkauan, bukan mengabaikannya', function (): void {
+    $produksi = Department::factory()->create(['code' => 'PROD_M3', 'name' => 'Produksi']);
+    $qc = Department::factory()->create(['code' => 'QC_M3', 'name' => 'QC']);
+
+    User::factory()->staff()->create(['name' => 'Orang QC', 'department_id' => $qc->id]);
+
+    Sanctum::actingAs(User::factory()->supervisor()->create(['department_id' => $produksi->id]));
+
+    /*
+     * Layar kini menampilkan pemilih departemen kepada pemantau lebih dari
+     * satu departemen. Pemilih yang tampil tetapi diabaikan diam-diam lebih
+     * membingungkan daripada penolakan yang jelas.
+     */
+    $this->getJson("/api/monitoring?departemen_id={$qc->id}")
+        ->assertStatus(403)
+        ->assertJsonPath('message', 'Departemen tersebut di luar jangkauan Anda.');
 });
 
 it('mengizinkan Manager menyaring per departemen', function (): void {

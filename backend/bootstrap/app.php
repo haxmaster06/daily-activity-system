@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\PastikanBerizin;
 use App\Http\Middleware\PerpanjangSesi;
 use App\Support\ApiResponse;
 use App\Support\ErrorReference;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'aktif' => EnsureUserIsActive::class,
             'perpanjang-sesi' => PerpanjangSesi::class,
+            'izin' => PastikanBerizin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
