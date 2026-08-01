@@ -170,6 +170,26 @@ if (-not (Get-Command wt -ErrorAction SilentlyContinue)) {
     $wtPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 }
 
+# ---- Pilih server backend ----
+#
+# RoadRunner menahan aplikasi tetap hidup di memori dan melayani beberapa
+# permintaan sekaligus. Server bawaan PHP mem-boot Laravel dari nol pada setiap
+# permintaan dan hanya melayani satu per satu. Terukur di mesin pengembangan:
+# endpoint 250-640 ms turun jadi 34-85 ms, halaman penuh 2,5-4,3 dt jadi
+# 0,29-0,68 dt.
+#
+# `octane:start` sengaja tidak dipakai: ia menuntut ext-pcntl yang tidak ada di
+# Windows. RoadRunner dijalankan langsung.
+$rrPath = Join-Path $backendPath "rr.exe"
+if (Test-Path $rrPath) {
+    $perintahBackend = "rr.exe serve -c .rr.dev.yaml"
+    Write-Host "[INFO] Backend memakai RoadRunner." -ForegroundColor Green
+} else {
+    $perintahBackend = "php artisan serve --port=$portBackend"
+    Write-Host "[WARN] rr.exe belum ada - backend memakai server bawaan PHP (jauh lebih lambat)." -ForegroundColor Yellow
+    Write-Host "       Unduh sekali dengan: cd backend; php artisan octane:install --server=roadrunner" -ForegroundColor Yellow
+}
+
 Write-Host "[LAUNCH] Menjalankan server..." -ForegroundColor Cyan
 
 # Catatan: `npm run dev` sudah memakai port 13001 dari package.json,
@@ -178,7 +198,7 @@ if (Test-Path $wtPath) {
     Write-Host "[INFO] Windows Terminal terdeteksi. Membuka tab per-service..." -ForegroundColor Green
 
     # Backend API (Laravel)
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-API`" cmd /k `"php artisan serve --port=$portBackend`""
+    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-API`" cmd /k `"$perintahBackend`""
     # Queue worker - memproses export Excel/PDF di latar belakang
     Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-QUEUE`" cmd /k `"php artisan queue:listen --tries=3 --timeout=300`""
     # Scheduler - pengingat laporan harian & tugas terjadwal
@@ -188,7 +208,7 @@ if (Test-Path $wtPath) {
 } else {
     Write-Host "[WARN] Windows Terminal tidak ditemukan. Membuka jendela terpisah..." -ForegroundColor Yellow
 
-    Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan serve --port=$portBackend" -WindowStyle Normal
+    Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && $perintahBackend" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan queue:listen --tries=3 --timeout=300" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan schedule:work" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$frontendPath`" && npm run dev" -WindowStyle Normal
@@ -204,7 +224,7 @@ Write-Host "  Health Check: http://localhost:$portBackend/api/health"
 Write-Host "  Dokumentasi:  http://localhost:$portBackend/docs/api"
 Write-Host "  Database:     MySQL localhost:$portMysql (Laragon) - dams_db"
 Write-Host "  --------------------------------------------------"
-Write-Host "  Server:       artisan serve + Next.js dev (native)" -ForegroundColor Cyan
+Write-Host "  Server:       RoadRunner + Next.js dev (native)" -ForegroundColor Cyan
 Write-Host "  Queue/Cache:  driver database (Redis dipakai di Docker)" -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Green
 Write-Host ""

@@ -1,0 +1,42 @@
+# RoadRunner untuk pengembangan di Windows.
+#
+# Dipakai lewat `rr.exe serve -c .rr.dev.yaml`, bukan `php artisan octane:start`.
+# Perintah Octane menuntut `ext-pcntl` untuk menangkap sinyal, dan ekstensi itu
+# tidak ada di Windows; RoadRunner sendiri tidak memerlukannya.
+#
+# Alasan memakainya: server bawaan PHP mem-boot Laravel dari nol pada SETIAP
+# permintaan dan hanya melayani satu permintaan sekaligus. Terukur pada mesin
+# pengembangan:
+#
+#   php artisan serve   250-640 ms per endpoint, 5 permintaan bersamaan ~1,4 dt
+#   RoadRunner          34-85 ms per endpoint,  5 permintaan bersamaan ~0,43 dt
+#   Halaman penuh       2,5-4,3 dt  ->  0,29-0,68 dt
+#
+# `rr.exe` tidak ikut di-commit (61 MB). Unduh dengan:
+#   php artisan octane:install --server=roadrunner
+version: '3'
+
+rpc:
+    listen: 'tcp://127.0.0.1:6001'
+
+server:
+    command: 'php ./vendor/laravel/octane/bin/roadrunner-worker'
+    relay: pipes
+    env:
+        APP_BASE_PATH: '.'
+        LARAVEL_OCTANE: '1'
+
+http:
+    address: '127.0.0.1:13002'
+    pool:
+        num_workers: 4
+
+        # Worker didaur ulang tiap 500 permintaan. Aplikasi tetap hidup di
+        # memori antar permintaan, sehingga kebocoran sekecil apa pun akan
+        # menumpuk; mendaur ulang berkala membuatnya tidak pernah sempat
+        # menjadi masalah.
+        max_jobs: 500
+
+logs:
+    mode: production
+    level: error

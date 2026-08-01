@@ -9,8 +9,14 @@ import { cn } from '@/lib/cn';
 import { formatTanggalWaktu } from '@/lib/format';
 import type { JenisNotifikasi, KotakNotifikasi } from '@/lib/notifikasi';
 
-/** Jeda penyegaran lonceng. Cukup jarang untuk tidak membebani server. */
-const JEDA_MUAT_ULANG = 60_000;
+/**
+ * Jeda penyegaran lonceng.
+ *
+ * Tiga menit, bukan satu. Notifikasi DAMS bukan percakapan — laporan masuk dan
+ * pengingat tidak menuntut ditampilkan dalam hitungan detik, sedangkan tiap
+ * penyegaran membebani server untuk seluruh tab yang terbuka sepanjang hari.
+ */
+const JEDA_MUAT_ULANG = 180_000;
 
 const IKON: Record<JenisNotifikasi, typeof Bell> = {
   laporan_dikirim: Inbox,
@@ -47,9 +53,28 @@ export function LoncengNotifikasi() {
   useEffect(() => {
     void muat();
 
-    const pewaktu = setInterval(() => void muat(), JEDA_MUAT_ULANG);
+    /*
+     * Tab yang tidak terlihat berhenti menyegarkan. Tanpa ini, tab yang
+     * ditinggalkan terbuka seharian tetap memanggil server tiap beberapa menit
+     * untuk isi yang tidak dilihat siapa pun — dan orang cenderung
+     * meninggalkan banyak tab terbuka.
+     */
+    const pewaktu = setInterval(() => {
+      if (!document.hidden) void muat();
+    }, JEDA_MUAT_ULANG);
 
-    return () => clearInterval(pewaktu);
+    // Kembali ke tab berarti isinya perlu segar sekarang, bukan menunggu
+    // giliran berikutnya.
+    const saatTerlihat = () => {
+      if (!document.hidden) void muat();
+    };
+
+    document.addEventListener('visibilitychange', saatTerlihat);
+
+    return () => {
+      clearInterval(pewaktu);
+      document.removeEventListener('visibilitychange', saatTerlihat);
+    };
   }, [muat]);
 
   async function tandaiDibaca(id?: string) {
