@@ -149,3 +149,45 @@ it('mengirim jangkauan dan izin hanya untuk dirinya sendiri', function (): void 
     expect($oranglain)->not->toHaveKey('izin')
         ->and($oranglain)->not->toHaveKey('jangkauan');
 });
+
+it('menyimpan penetapan lewat endpoint tersendiri', function (): void {
+    pengelola();
+
+    $departemen = Department::factory()->create(['code' => 'PROD_P6']);
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+
+    $supervisor = RoleFactory::slug(Role::SUPERVISOR);
+
+    /*
+     * Layar Penetapan Peran memakai jalur ini, bukan PUT /api/pengguna/{id}.
+     * Sebelum ada uji ini, satu import yang tertinggal membuat endpoint-nya
+     * gagal total sementara seluruh rangkaian test tetap hijau.
+     */
+    $this->putJson("/api/pengguna/{$target->id}/penetapan", [
+        'penetapan' => [
+            [
+                'role_id' => $supervisor->id,
+                'scope_level' => JangkauanData::DEPARTEMEN,
+                'department_id' => $departemen->id,
+            ],
+        ],
+    ])->assertOk();
+
+    $segar = $target->fresh();
+
+    expect($segar->roles->pluck('slug')->all())->toBe([Role::SUPERVISOR])
+        ->and($segar->jangkauan()->departemenId)->toBe([$departemen->id]);
+});
+
+it('menolak penetapan lewat endpoint tersendiri tanpa izin mengelola', function (): void {
+    $departemen = Department::factory()->create(['code' => 'PROD_P7']);
+    Sanctum::actingAs(User::factory()->supervisor()->create(['department_id' => $departemen->id]));
+
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+
+    $this->putJson("/api/pengguna/{$target->id}/penetapan", [
+        'penetapan' => [
+            ['role_id' => RoleFactory::slug(Role::STAFF)->id, 'scope_level' => 1, 'department_id' => null],
+        ],
+    ])->assertStatus(403);
+});

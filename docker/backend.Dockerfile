@@ -54,6 +54,11 @@ RUN composer dump-autoload --optimize --no-dev --classmap-authoritative \
 
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/dams.ini
+COPY docker/php/pool.conf /usr/local/etc/php-fpm.d/zz-dams.conf
+
+# Jumlah proses PHP-FPM dibaca dari environment saat container berjalan,
+# sehingga dapat disetel per server tanpa membangun ulang image.
+ENV PHP_FPM_MAX_CHILDREN=8
 COPY docker/nginx/backend.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint-backend.sh /usr/local/bin/entrypoint
