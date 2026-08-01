@@ -17,6 +17,7 @@ import {
 import { FilterBar } from '@/components/ui/filter-bar';
 import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { formatAngka } from '@/lib/format';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
 import { hapusPengguna, ubahStatusPengguna } from './actions';
 import { PenetapanRoleDialog } from './penetapan-role-dialog';
@@ -66,6 +67,36 @@ export function UserTable({
     setPemberitahuan({ jenis: hasil.berhasil ? 'berhasil' : 'galat', pesan: hasil.pesan });
 
     if (hasil.berhasil) router.refresh();
+  }
+
+  /**
+   * Peringatan sebelum penghapusan.
+   *
+   * Menyebut angkanya, bukan sekadar "data terkait". Yang menekan tombol harus
+   * tahu persis berapa laporan yang akan hilang — sesudahnya tidak ada lagi
+   * yang dapat mengembalikannya.
+   */
+  function pesanPenghapusan(target: Pengguna | null): string {
+    if (!target) return '';
+
+    const laporan = target.jumlah_laporan ?? 0;
+    const lampiran = target.jumlah_lampiran ?? 0;
+
+    if (laporan === 0 && lampiran === 0) {
+      return `Akun ${target.nama} akan dihapus permanen. Akun ini belum punya laporan, `
+        + 'sehingga tidak ada data laporan yang ikut hilang. Riwayat pada jejak audit tetap tersimpan.';
+    }
+
+    const bagian = [
+      laporan > 0 ? `${formatAngka(laporan)} laporan` : null,
+      lampiran > 0 ? `${formatAngka(lampiran)} lampiran` : null,
+    ].filter(Boolean).join(' dan ');
+
+    return `Akun ${target.nama} akan dihapus permanen beserta ${bagian} miliknya. `
+      + 'Data laporan itu hilang seluruhnya dan ikut mengubah angka rekap bulan '
+      + 'berjalan. Tindakan ini tidak dapat dibatalkan. '
+      + 'Bila hanya ingin menghentikan aksesnya, nonaktifkan saja — laporannya tetap '
+      + 'tersimpan dan namanya tetap terbaca.';
   }
 
   async function hapusPermanen() {
@@ -203,9 +234,8 @@ export function UserTable({
                         </button>
 
                         {/*
-                          Hapus permanen hanya untuk akun yang belum punya
-                          laporan maupun lampiran. Menampilkannya pada akun
-                          lain berarti menawarkan tombol yang pasti ditolak.
+                          Akun administrator awal tidak pernah dapat dihapus —
+                          tombolnya pun tidak ditawarkan.
                         */}
                         {!diriSendiri && item.dapat_dihapus && (
                           <button
@@ -279,7 +309,7 @@ export function UserTable({
         onTutup={() => setKonfirmasiHapus(null)}
         onSetuju={hapusPermanen}
         judul="Hapus Pengguna"
-        pesan={`Akun ${konfirmasiHapus?.nama ?? ''} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan. Riwayat pada jejak audit tetap tersimpan.`}
+        pesan={pesanPenghapusan(konfirmasiHapus)}
         labelAksi="Hapus"
         berisiko
       />

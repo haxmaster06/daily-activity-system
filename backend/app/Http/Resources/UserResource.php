@@ -53,15 +53,16 @@ class UserResource extends JsonResource
                     : (int) $peran->pivot->department_id,
             ])->values(),
 
+            // Akun administrator awal tidak pernah dapat dihapus.
+            'sistem' => (bool) $this->is_system,
+            'dapat_dihapus' => ! $this->is_system,
+
             /*
-             * Dihitung dari jumlah yang sudah ikut dimuat daftar, bukan query
-             * per baris. Tidak dikirim bila hitungannya tidak tersedia —
-             * menebaknya "boleh" akan menampilkan tombol yang pasti ditolak.
+             * Dipakai peringatan sebelum penghapusan: keduanya ikut terhapus
+             * permanen, dan angkanya harus disebutkan sebelum, bukan sesudah.
              */
-            'dapat_dihapus' => $this->when(
-                $this->laporan_count !== null && $this->lampiran_count !== null,
-                fn () => $this->laporan_count === 0 && $this->lampiran_count === 0,
-            ),
+            'jumlah_laporan' => $this->whenCounted('laporan'),
+            'jumlah_lampiran' => $this->whenCounted('lampiran'),
 
             'departemen' => [
                 'id' => $this->department?->id,

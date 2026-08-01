@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\MenerimaPenetapanRole;
 use App\Models\User;
+use App\Rules\BukanDepartemenSistem;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,7 +36,10 @@ class UpdateUserRequest extends FormRequest
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->ignore($target->id),
             ],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'department_id' => [
+                'required', 'integer', 'exists:departments,id',
+                new BukanDepartemenSistem,
+            ],
 
             // Boleh tidak disertakan: penetapan peran punya layarnya sendiri.
             ...$this->aturanPenetapan(wajib: false),

@@ -41,7 +41,8 @@ class AdministratorSeeder extends Seeder
         }
 
         $administrator = Role::where('slug', Role::ADMINISTRATOR)->first();
-        $department = Department::where('code', 'DOC_CONTROL')->first();
+        // Departemen khusus akun sistem — bukan unit kerja mana pun.
+        $department = Department::where('code', Department::KODE_SISTEM)->first();
 
         if ($administrator === null || $department === null) {
             throw new RuntimeException(
@@ -64,6 +65,10 @@ class AdministratorSeeder extends Seeder
         }
 
         $user->save();
+
+        // Akun sistem: tidak pernah dapat dihapus dari layar. Tidak lewat
+        // mass assignment supaya tidak ada payload yang bisa menirunya.
+        $user->forceFill(['is_system' => true])->save();
 
         // Penetapan peran, berdampingan dengan `role_id` selama kolom itu
         // masih menjadi cerminnya. `syncWithoutDetaching` menjaga penetapan

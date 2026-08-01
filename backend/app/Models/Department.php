@@ -12,6 +12,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['code', 'name', 'description', 'is_active'])]
 class Department extends Model
 {
+    /**
+     * Departemen milik akun sistem.
+     *
+     * Bukan unit kerja: tidak muncul sebagai pilihan, tidak dapat diberikan ke
+     * akun lain, dan tidak ikut terhitung pada monitoring maupun rekap.
+     */
+    public const KODE_SISTEM = 'SISTEM';
+
     /** @use HasFactory<DepartmentFactory> */
     use HasFactory;
 
@@ -19,6 +27,7 @@ class Department extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_system' => 'boolean',
         ];
     }
 

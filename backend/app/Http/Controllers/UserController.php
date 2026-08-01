@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\Attachment;
+use App\Models\DailyReport;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\Audit;
 use App\Support\PenjagaAkses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
@@ -163,11 +166,10 @@ class UserController extends Controller
      */
     public function destroy(User $user): JsonResponse
     {
-        if (! $user->dapatDihapus()) {
+        if ($user->is_system) {
             return ApiResponse::error(
-                "{$user->name} sudah memiliki laporan atau lampiran, sehingga akunnya "
-                .'tidak dapat dihapus. Nonaktifkan saja — namanya tetap terbaca pada '
-                .'laporan lama dan ia tidak dapat masuk lagi.',
+                "{$user->name} adalah akun administrator awal dan tidak dapat dihapus. "
+                .'Akun ini satu-satunya jalan masuk bila tidak ada akun lain yang tersisa.',
                 422,
             );
         }
@@ -176,8 +178,34 @@ class UserController extends Controller
 
         $nama = $user->name;
         $email = $user->email;
+        $jumlahLaporan = $user->laporan()->count();
+        $jumlahLampiran = $user->lampiran()->count();
 
         PenjagaAkses::jalankan(function () use ($user): void {
+            /*
+             * Berkas lampiran dihapus lebih dulu, selagi barisnya masih ada.
+             * Baris di basis data ikut terhapus sendiri karena `attachments`
+             * cascade dari laporannya, tetapi berkas di disk tidak — dan
+             * berkas yatim tidak pernah ada yang membersihkannya.
+             */
+            foreach ($user->lampiran()->pluck('path') as $jalur) {
+                Storage::disk('local')->delete($jalur);
+            }
+
+            foreach (
+                Attachment::whereIn('daily_report_id', $user->laporan()->select('id'))
+                    ->pluck('path') as $jalur
+            ) {
+                Storage::disk('local')->delete($jalur);
+            }
+
+            // Lampiran yang diunggahnya pada laporan orang lain: kunci asing
+            // `uploaded_by` menahan penghapusan akun selama barisnya ada.
+            $user->lampiran()->delete();
+
+            // Laporan menyeret bagian, baris isian, dan lampirannya sendiri.
+            $user->laporan()->each(fn (DailyReport $laporan) => $laporan->delete());
+
             /*
              * Token dan notifikasi memakai relasi morph tanpa kunci asing,
              * sehingga tidak ikut terhapus sendiri. Membiarkannya berarti
@@ -191,15 +219,18 @@ class UserController extends Controller
 
         /*
          * Jejak audit tetap utuh: `audit_logs.user_id` menjadi null, tetapi
-         * `user_name` sudah disimpan terpisah sejak awal.
+         * `user_name` sudah disimpan terpisah sejak awal. Jumlah yang ikut
+         * terhapus dicatat — inilah satu-satunya sisa buktinya.
          */
         Audit::catat(
             Audit::AKSI_DIHAPUS,
             Audit::MODUL_PENGGUNA,
             "Menghapus pengguna {$nama} ({$email})",
+            null,
+            ['laporan_terhapus' => $jumlahLaporan, 'lampiran_terhapus' => $jumlahLampiran],
         );
 
-        return ApiResponse::ok(null, 'Pengguna berhasil dihapus.');
+        return ApiResponse::ok(null, "Pengguna {$nama} berhasil dihapus.");
     }
 
     /**

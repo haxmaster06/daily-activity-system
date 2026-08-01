@@ -45,5 +45,20 @@ class DepartmentSeeder extends Seeder
                 $department + ['is_active' => true],
             );
         }
+
+        /*
+         * Departemen akun sistem. Tidak pernah muncul sebagai pilihan dan tidak
+         * dapat diberikan ke akun lain — administrator awal bukan anggota unit
+         * kerja mana pun, dan menempatkannya di salah satunya membuat ia ikut
+         * terhitung pada monitoring departemen itu.
+         */
+        Department::updateOrCreate(
+            ['code' => Department::KODE_SISTEM],
+            [
+                'name' => 'Sistem',
+                'description' => 'Departemen khusus akun administrator awal.',
+                'is_active' => true,
+            ],
+        )->forceFill(['is_system' => true])->save();
     }
 }

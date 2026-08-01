@@ -37,6 +37,12 @@ class DepartmentController extends Controller
                     $sub->where('name', 'like', $kata)->orWhere('code', 'like', $kata);
                 }),
             )
+            /*
+             * Departemen sistem tidak pernah ikut: ia bukan unit kerja, tidak
+             * dapat dipilih untuk akun lain, dan tidak punya laporan. Muncul
+             * sebagai pilihan hanya akan menawarkan sesuatu yang pasti ditolak.
+             */
+            ->where('is_system', false)
             ->orderBy('name')
             ->get();
 

@@ -57,12 +57,13 @@ class UserPolicy
     /**
      * Menghapus akun permanen.
      *
-     * Hanya untuk akun yang belum meninggalkan jejak — salah buat, atau dibuat
-     * lalu tidak jadi dipakai. Akun yang sudah punya laporan dinonaktifkan,
-     * bukan dihapus: laporan merujuk penyusunnya, dan riwayat yang menunjuk ke
-     * ketiadaan tidak dapat dipertanggungjawabkan.
+     * Seluruh laporan dan lampirannya ikut terhapus permanen. Akibat itu
+     * disampaikan lebih dulu di layar; di sini yang dijaga hanya dua hal yang
+     * tidak boleh terjadi bagaimanapun keadaannya.
      *
-     * Tidak boleh menghapus dirinya sendiri, sama seperti menonaktifkan.
+     * Akun sistem — administrator awal dari seeder — tidak pernah dapat
+     * dihapus: ia satu-satunya jalan masuk bila tidak ada akun lain tersisa.
+     * Menghapus diri sendiri juga ditolak, sama seperti menonaktifkan.
      */
     public function delete(User $user, User $target): bool
     {

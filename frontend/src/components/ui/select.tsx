@@ -66,7 +66,27 @@ export function Select({
         </label>
       )}
 
-      <RadixSelect.Root value={nilai} onValueChange={onUbah} disabled={nonaktif}>
+      <RadixSelect.Root
+        value={nilai}
+        /*
+         * Nilai kosong dari Radix diabaikan.
+         *
+         * Ketika daftar pilihannya dipindahkan ke dalam modal, `Content`
+         * di-mount ulang; pada transisi itu Radix tidak menemukan Item yang
+         * cocok dan memancarkan `onValueChange('')` sendiri — menimpa nilai
+         * yang baru saja diisi program, sehingga isian yang sedang disunting
+         * terlihat kosong.
+         *
+         * Radix melarang Item bernilai string kosong, jadi '' tidak pernah
+         * dapat berasal dari pilihan pengguna. Menolaknya aman.
+         */
+        onValueChange={(baru) => {
+          if (baru === '' && nilai !== '') return;
+
+          onUbah(baru);
+        }}
+        disabled={nonaktif}
+      >
         <RadixSelect.Trigger
           id={id}
           aria-invalid={galat ? true : undefined}
@@ -81,7 +101,18 @@ export function Select({
             ukuran === 'sm' ? 'h-input-sm text-body' : 'h-input',
           )}
         >
-          <RadixSelect.Value placeholder={placeholder} />
+          {/*
+            Label dicari sendiri, tidak diserahkan ke Radix.
+
+            `Select.Value` mengambil teksnya dari `Select.Item` yang sedang
+            ter-mount, sedangkan daftar pilihannya baru dipasang ketika dibuka.
+            Akibatnya nilai yang diisi program — mis. saat menyunting data yang
+            sudah ada — menampilkan placeholder sampai daftarnya sempat dibuka
+            sekali, dan pengguna mengira isian itu kosong.
+          */}
+          <RadixSelect.Value placeholder={placeholder}>
+            {opsi.find((item) => item.nilai === nilai)?.label}
+          </RadixSelect.Value>
           <RadixSelect.Icon>
             <ChevronDown aria-hidden="true" className="size-4 text-ink-soft" />
           </RadixSelect.Icon>

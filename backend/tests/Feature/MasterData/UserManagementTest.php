@@ -317,17 +317,43 @@ it('menghapus akun yang belum meninggalkan jejak', function (): void {
         ->exists())->toBeFalse();
 });
 
-it('menolak menghapus akun yang sudah punya laporan', function (): void {
+it('menghapus akun beserta seluruh laporannya', function (): void {
+    $departemen = Department::factory()->create();
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+    $laporan = DailyReport::factory()->milik($target)->create();
+
+    $this->deleteJson("/api/pengguna/{$target->id}")->assertOk();
+
+    expect(User::whereKey($target->id)->exists())->toBeFalse()
+        ->and(DailyReport::whereKey($laporan->id)->exists())->toBeFalse();
+});
+
+it('menolak menghapus akun administrator awal', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $sistem = User::factory()->administrator()->create(['name' => 'Administrator DAMS']);
+    $sistem->forceFill(['is_system' => true])->save();
+
+    $response = $this->deleteJson("/api/pengguna/{$sistem->id}")->assertStatus(422);
+
+    expect($response->json('message'))->toContain('administrator awal')
+        ->and(User::whereKey($sistem->id)->exists())->toBeTrue();
+});
+
+it('mencatat jumlah laporan yang ikut terhapus pada jejak audit', function (): void {
     $departemen = Department::factory()->create();
     Sanctum::actingAs(User::factory()->administrator()->create());
 
     $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
     DailyReport::factory()->milik($target)->create();
+    DailyReport::factory()->milik($target)->create(['report_date' => now()->subDay()]);
 
-    $response = $this->deleteJson("/api/pengguna/{$target->id}")->assertStatus(422);
+    $this->deleteJson("/api/pengguna/{$target->id}")->assertOk();
 
-    expect($response->json('message'))->toContain('Nonaktifkan saja');
-    expect(User::whereKey($target->id)->exists())->toBeTrue();
+    // Setelah datanya hilang, jejak audit satu-satunya bukti berapa yang ikut.
+    expect(AuditLog::latest('id')->first()->changes['laporan_terhapus'])->toBe(2);
 });
 
 it('menolak menghapus diri sendiri', function (): void {
@@ -373,7 +399,7 @@ it('menjaga jejak audit tetap terbaca setelah akunnya dihapus', function (): voi
         ->and($jejak->description)->toContain('Akun Salah Buat');
 });
 
-it('menandai akun mana yang masih dapat dihapus pada daftar', function (): void {
+it('menyertakan jumlah laporan dan lampiran pada daftar pengguna', function (): void {
     $departemen = Department::factory()->create();
     Sanctum::actingAs(User::factory()->administrator()->create());
 
@@ -389,6 +415,43 @@ it('menandai akun mana yang masih dapat dihapus pada daftar', function (): void 
 
     $daftar = collect($this->getJson('/api/pengguna')->assertOk()->json('data'));
 
+    // Keduanya dapat dihapus; yang membedakan hanya akibatnya, dan angkanya
+    // dipakai peringatan sebelum penghapusan.
     expect($daftar->firstWhere('id', $bersih->id)['dapat_dihapus'])->toBeTrue()
-        ->and($daftar->firstWhere('id', $terpakai->id)['dapat_dihapus'])->toBeFalse();
+        ->and($daftar->firstWhere('id', $bersih->id)['jumlah_laporan'])->toBe(0)
+        ->and($daftar->firstWhere('id', $terpakai->id)['dapat_dihapus'])->toBeTrue()
+        ->and($daftar->firstWhere('id', $terpakai->id)['jumlah_laporan'])->toBe(1);
+});
+
+it('menolak memberikan departemen sistem kepada akun lain', function (): void {
+    $sistem = Department::factory()->create(['code' => 'SISTEM_UJI']);
+    $sistem->forceFill(['is_system' => true])->save();
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $target = User::factory()->staff()->create(['department_id' => Department::factory()]);
+
+    $this->putJson("/api/pengguna/{$target->id}", [
+        'name' => $target->name,
+        'email' => $target->email,
+        'department_id' => $sistem->id,
+    ])
+        ->assertStatus(422)
+        ->assertJsonStructure(['errors' => ['department_id']]);
+
+    expect($target->fresh()->department_id)->not->toBe($sistem->id);
+});
+
+it('tidak menawarkan departemen sistem pada daftar pilihan', function (): void {
+    $sistem = Department::factory()->create(['code' => 'SISTEM_UJI2', 'name' => 'Sistem']);
+    $sistem->forceFill(['is_system' => true])->save();
+
+    $biasa = Department::factory()->create(['code' => 'PRODUKSI_UJI2', 'name' => 'Produksi']);
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $kode = collect($this->getJson('/api/departemen')->assertOk()->json('data'))->pluck('kode');
+
+    expect($kode)->toContain('PRODUKSI_UJI2')->not->toContain('SISTEM_UJI2')
+        ->and($biasa->fresh()->is_system)->toBeFalse();
 });

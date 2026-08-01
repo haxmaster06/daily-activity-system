@@ -55,6 +55,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'is_system' => 'boolean',
             'last_login_at' => 'datetime',
         ];
     }
@@ -96,14 +97,17 @@ class User extends Authenticatable
     /**
      * Apakah akun ini dapat dihapus permanen.
      *
-     * Hanya akun yang belum meninggalkan jejak apa pun. Laporan dan lampiran
-     * merujuk penyusunnya lewat kunci asing `restrictOnDelete`; menghapus
-     * akunnya berarti ikut menghapus atau memutus catatan yang harus tetap
-     * utuh. Untuk akun yang sudah dipakai, yang benar adalah menonaktifkannya.
+     * Semua akun dapat dihapus kecuali akun sistem — administrator awal yang
+     * dibuat seeder. Ia satu-satunya jalan masuk ketika tidak ada akun lain
+     * yang tersisa.
+     *
+     * Menghapus akun ikut menghapus seluruh laporan dan lampirannya. Yang
+     * memutuskan hal itu layak atau tidak adalah orang yang menekan tombolnya,
+     * bukan kode ini — tugasnya memastikan akibat itu disampaikan lebih dulu.
      */
     public function dapatDihapus(): bool
     {
-        return $this->laporan()->doesntExist() && $this->lampiran()->doesntExist();
+        return ! $this->is_system;
     }
 
     /**

@@ -44,8 +44,12 @@ export interface Pengguna {
   aktif: boolean;
   role: { slug: string | null; nama: string | null };
   penetapan: PenetapanPeran[];
-  /** Akun yang belum meninggalkan laporan maupun lampiran. */
+  /** Akun administrator awal — tidak pernah dapat dihapus. */
+  sistem?: boolean;
   dapat_dihapus?: boolean;
+  /** Ikut terhapus bila akunnya dihapus; dipakai peringatan sebelum menghapus. */
+  jumlah_laporan?: number;
+  jumlah_lampiran?: number;
   departemen: { id: number | null; kode: string | null; nama: string | null };
 }
 

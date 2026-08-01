@@ -93,3 +93,49 @@ describe('Select', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Departemen wajib dipilih.');
   });
 });
+
+describe('Select dengan nilai yang sudah terisi', () => {
+  it('menampilkan label pilihan tanpa perlu membuka daftarnya', () => {
+    render(
+      <Select
+        id="uji-terisi"
+        label="Departemen"
+        placeholder="Pilih departemen"
+        opsi={BANYAK_OPSI}
+        nilai="d7"
+        onUbah={() => {}}
+      />,
+    );
+
+    /*
+     * Isian yang sedang disunting harus terbaca sejak dibuka. `Select.Value`
+     * milik Radix mengambil teksnya dari Item yang sedang ter-mount, sedangkan
+     * daftarnya baru dipasang ketika dibuka — labelnya dicari sendiri.
+     */
+    expect(screen.getByRole('combobox')).toHaveTextContent('Departemen 7');
+    expect(screen.getByRole('combobox')).not.toHaveTextContent('Pilih departemen');
+  });
+
+  it('mengabaikan nilai kosong yang datang dari Radix', async () => {
+    /*
+     * Radix memancarkan onValueChange('') sendiri ketika daftarnya di-mount
+     * ulang — mis. saat portalnya dipindahkan ke dalam modal. Tanpa penjagaan,
+     * nilai yang baru diisi program ikut terhapus dan isiannya terlihat kosong.
+     */
+    const diterima: string[] = [];
+
+    render(
+      <Select
+        id="uji-reset"
+        label="Departemen"
+        opsi={BANYAK_OPSI}
+        nilai="d3"
+        onUbah={(nilai) => diterima.push(nilai)}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole('combobox')).toHaveTextContent('Departemen 3'));
+
+    expect(diterima).not.toContain('');
+  });
+});

@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\MenerimaPenetapanRole;
 use App\Models\User;
+use App\Rules\BukanDepartemenSistem;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 
@@ -25,7 +26,10 @@ class StoreUserRequest extends FormRequest
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', Password::min(8)],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'department_id' => [
+                'required', 'integer', 'exists:departments,id',
+                new BukanDepartemenSistem,
+            ],
             'is_active' => ['sometimes', 'boolean'],
             ...$this->aturanPenetapan(),
         ];
