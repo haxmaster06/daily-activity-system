@@ -28,6 +28,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <AppHeader
         pengguna={{
+          id: pengguna.id,
           nama: pengguna.nama,
           namaRole: pengguna.namaRole,
           peranLain: Math.max(0, pengguna.penetapan.length - 1),

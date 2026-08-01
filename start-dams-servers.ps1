@@ -12,6 +12,7 @@ $frontendPath = Join-Path $projectRoot "frontend"
 $portFrontend = 13001
 $portBackend = 13002
 $portMysql = 3306
+$portReverb = 13003
 
 Write-Host ""
 Write-Host "====================================================" -ForegroundColor Cyan
@@ -126,8 +127,8 @@ Write-Host ""
 
 # ---- Port Cleaning: hanya port milik DAMS ----
 # Port 3306 sengaja TIDAK disentuh — dipakai bersama project lain.
-$ports = @($portFrontend, $portBackend)
-Write-Host "[PORT CHECK] Membebaskan port aplikasi ($portFrontend/$portBackend)..." -ForegroundColor Yellow
+$ports = @($portFrontend, $portBackend, $portReverb)
+Write-Host "[PORT CHECK] Membebaskan port aplikasi ($portFrontend/$portBackend/$portReverb)..." -ForegroundColor Yellow
 foreach ($port in $ports) {
     $targetPids = @()
     try {
@@ -203,6 +204,8 @@ if (Test-Path $wtPath) {
     Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-QUEUE`" cmd /k `"php artisan queue:listen --tries=3 --timeout=300`""
     # Scheduler - pengingat laporan harian & tugas terjadwal
     Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-SCHEDULER`" cmd /k `"php artisan schedule:work`""
+    # Reverb - WebSocket untuk notifikasi seketika
+    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-REVERB`" cmd /k `"php artisan reverb:start`""
     # Frontend (Next.js)
     Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$frontendPath`" --title `"DAMS-FRONTEND`" cmd /k `"npm run dev`""
 } else {
@@ -211,6 +214,7 @@ if (Test-Path $wtPath) {
     Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && $perintahBackend" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan queue:listen --tries=3 --timeout=300" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan schedule:work" -WindowStyle Normal
+    Start-Process cmd -ArgumentList "/k cd /d `"$backendPath`" && php artisan reverb:start" -WindowStyle Normal
     Start-Process cmd -ArgumentList "/k cd /d `"$frontendPath`" && npm run dev" -WindowStyle Normal
 }
 

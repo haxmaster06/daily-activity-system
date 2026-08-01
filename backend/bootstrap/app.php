@@ -24,6 +24,17 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    /*
+     * Otorisasi channel memakai token Sanctum, bukan sesi.
+     *
+     * Rute bawaan `/broadcasting/auth` dipasang pada grup `web` yang
+     * mengandalkan cookie sesi — dan DAMS tidak punya sesi sama sekali.
+     * Tanpa penggantian ini, setiap langganan channel privat ditolak.
+     */
+    ->withBroadcasting(
+        __DIR__.'/../routes/channels.php',
+        attributes: ['middleware' => ['auth:sanctum', 'aktif']],
+    )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             HandleCors::class,

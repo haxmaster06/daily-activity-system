@@ -2,13 +2,16 @@
 
 namespace App\Notifications;
 
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 /**
  * Dasar seluruh notifikasi DAMS.
  *
- * Hanya channel `database` yang dipakai. Email belum disiapkan, dan
- * mengaktifkannya diam-diam akan mengirim alamat karyawan ke layanan luar.
+ * Dua channel: `database` menyimpannya agar tetap ada setelah dimuat ulang, dan
+ * `broadcast` mendorongnya ke lonceng seketika lewat Reverb. Email belum
+ * disiapkan, dan mengaktifkannya diam-diam akan mengirim alamat karyawan ke
+ * layanan luar.
  *
  * Notifikasi dikirim langsung, tanpa antrean: menulis satu baris jauh lebih
  * murah daripada menjaga agar pekerja antrean selalu hidup, dan lonceng yang
@@ -22,7 +25,7 @@ abstract class NotifikasiDams extends Notification
      */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
     }
 
     /**
@@ -51,5 +54,28 @@ abstract class NotifikasiDams extends Notification
             'pesan' => $this->pesan(),
             'tautan' => $this->tautan(),
         ];
+    }
+
+    /**
+     * Isi yang didorong ke peramban.
+     *
+     * Bentuknya disamakan dengan yang dikembalikan `GET /api/notifikasi`,
+     * sehingga lonceng dapat menyisipkannya langsung tanpa memanggil server
+     * lagi — itulah gunanya mendorong, bukan sekadar memberi tahu ada yang
+     * baru.
+     *
+     * `id` notifikasi diisi Laravel sesudah baris database dibuat.
+     */
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage([
+            'id' => $this->id,
+            'jenis' => $this->jenis(),
+            'judul' => $this->judul(),
+            'pesan' => $this->pesan(),
+            'tautan' => $this->tautan(),
+            'dibaca' => false,
+            'waktu' => now()->toIso8601String(),
+        ]);
     }
 }

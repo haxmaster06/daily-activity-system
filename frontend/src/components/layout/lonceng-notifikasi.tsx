@@ -6,8 +6,9 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Bell, BellRing, CheckCheck, Inbox } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
+import { echoDams } from '@/lib/echo';
 import { formatTanggalWaktu } from '@/lib/format';
-import type { JenisNotifikasi, KotakNotifikasi } from '@/lib/notifikasi';
+import type { JenisNotifikasi, KotakNotifikasi, Notifikasi } from '@/lib/notifikasi';
 
 /**
  * Jeda penyegaran lonceng.
@@ -28,11 +29,17 @@ const IKON: Record<JenisNotifikasi, typeof Bell> = {
 /**
  * Lonceng notifikasi pada bilah navigasi.
  *
- * Isinya diambil berkala dari Route Handler `/api/notifikasi`, bukan langsung
- * dari backend — token berada di cookie httpOnly dan tidak pernah tersedia
- * untuk JavaScript client.
+ * Notifikasi didorong Reverb lewat WebSocket, jadi lonceng berubah seketika
+ * tanpa menunggu penyegaran. Penyegaran berkala tetap ada sebagai jaring
+ * pengaman — sambungan WebSocket dapat putus tanpa pemberitahuan, dan lonceng
+ * yang diam-diam berhenti diperbarui lebih buruk daripada beberapa permintaan
+ * tambahan.
+ *
+ * Isinya diambil dari Route Handler `/api/notifikasi`, bukan langsung dari
+ * backend — token berada di cookie httpOnly dan tidak pernah tersedia untuk
+ * JavaScript client.
  */
-export function LoncengNotifikasi() {
+export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
   const router = useRouter();
   const [kotak, setKotak] = useState<KotakNotifikasi>({
     jumlah_belum_dibaca: 0,
@@ -76,6 +83,46 @@ export function LoncengNotifikasi() {
       document.removeEventListener('visibilitychange', saatTerlihat);
     };
   }, [muat]);
+
+  /*
+   * Notifikasi yang didorong Reverb disisipkan langsung, tanpa memanggil
+   * server lagi — isinya sudah lengkap di muatan siarannya. Memanggil ulang
+   * hanya akan mengembalikan hal yang sama, sedikit lebih lambat.
+   */
+  useEffect(() => {
+    const echo = echoDams();
+    if (echo === null) return;
+
+    const channel = echo.private(`App.Models.User.${penggunaId}`);
+
+    channel.notification((muatan: Record<string, unknown>) => {
+      const masuk: Notifikasi = {
+        id: String(muatan.id ?? ''),
+        jenis: (muatan.jenis as Notifikasi['jenis']) ?? 'umum',
+        judul: String(muatan.judul ?? ''),
+        pesan: String(muatan.pesan ?? ''),
+        tautan: (muatan.tautan as string | null) ?? null,
+        dibaca: false,
+        waktu: (muatan.waktu as string | null) ?? null,
+      };
+
+      setKotak((sebelumnya) => {
+        // Siaran dapat tiba dua kali bila sambungan sempat tersambung ulang.
+        if (sebelumnya.daftar.some((satu) => satu.id === masuk.id)) {
+          return sebelumnya;
+        }
+
+        return {
+          jumlah_belum_dibaca: sebelumnya.jumlah_belum_dibaca + 1,
+          daftar: [masuk, ...sebelumnya.daftar].slice(0, 20),
+        };
+      });
+    });
+
+    return () => {
+      echo.leave(`App.Models.User.${penggunaId}`);
+    };
+  }, [penggunaId]);
 
   async function tandaiDibaca(id?: string) {
     // Ditandai lebih dulu di layar supaya lencana tidak tertinggal di belakang

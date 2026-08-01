@@ -16,6 +16,8 @@ import { bolehBukaPengaturan } from '@/lib/izin';
 import { menuAktif, menuUntukIzin } from '@/lib/nav';
 
 export interface PenggunaHeader {
+  /** Dipakai lonceng untuk mendengarkan channel notifikasi miliknya. */
+  id: number;
   nama: string;
   namaRole: string;
   /** Jumlah peran tambahan di luar peran utama. */
@@ -71,7 +73,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
             onKeluar={() => void keluar()}
           />
 
-          <LoncengNotifikasi />
+          <LoncengNotifikasi penggunaId={pengguna.id} />
 
           {bolehBukaPengaturan(pengguna.izin) && (
             <Link
