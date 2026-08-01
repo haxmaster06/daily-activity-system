@@ -38,7 +38,15 @@ class UpdateUserRequest extends FormRequest
             ],
             'department_id' => [
                 'required', 'integer', 'exists:departments,id',
-                new BukanDepartemenSistem,
+
+                /*
+                 * Akun sistem dikecualikan: departemennya memang departemen
+                 * sistem. Tanpa pengecualian ini, menyunting nama atau email
+                 * akun itu ditolak karena departemennya sendiri dianggap
+                 * pilihan terlarang — dan tidak ada pilihan lain yang sah
+                 * untuknya.
+                 */
+                ...($target->is_system ? [] : [new BukanDepartemenSistem]),
             ],
 
             // Boleh tidak disertakan: penetapan peran punya layarnya sendiri.

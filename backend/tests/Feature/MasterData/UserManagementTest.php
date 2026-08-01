@@ -455,3 +455,27 @@ it('tidak menawarkan departemen sistem pada daftar pilihan', function (): void {
     expect($kode)->toContain('PRODUKSI_UJI2')->not->toContain('SISTEM_UJI2')
         ->and($biasa->fresh()->is_system)->toBeFalse();
 });
+
+it('mengizinkan akun sistem tetap di departemen sistem saat disunting', function (): void {
+    $sistem = Department::factory()->create(['code' => 'SISTEM_UJI3']);
+    $sistem->forceFill(['is_system' => true])->save();
+
+    $admin = User::factory()->administrator()->create(['department_id' => $sistem->id]);
+    $admin->forceFill(['is_system' => true])->save();
+
+    User::factory()->administrator()->create();
+    Sanctum::actingAs($admin);
+
+    /*
+     * Menyunting nama akun sistem tidak boleh ditolak hanya karena
+     * departemennya sendiri termasuk departemen sistem — tidak ada pilihan
+     * lain yang sah untuknya.
+     */
+    $this->putJson("/api/pengguna/{$admin->id}", [
+        'name' => 'Super Admin',
+        'email' => $admin->email,
+        'department_id' => $sistem->id,
+    ])->assertOk();
+
+    expect($admin->fresh()->name)->toBe('Super Admin');
+});

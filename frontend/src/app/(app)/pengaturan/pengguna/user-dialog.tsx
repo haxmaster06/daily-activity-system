@@ -190,15 +190,33 @@ export function UserDialog({
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Select
-              id="departemen"
-              label="Departemen"
-              placeholder="Pilih departemen"
-              nilai={isi.department_id}
-              opsi={departemen.map((item) => ({ nilai: String(item.id), label: item.nama }))}
-              onUbah={(nilai) => setIsi({ ...isi, department_id: nilai })}
-              galat={pesanKolom('department_id')}
-            />
+            {/*
+              Akun sistem tidak diberi pilihan: departemennya memang departemen
+              sistem, dan itu satu-satunya yang sah untuknya. Menampilkan daftar
+              pilihan yang tidak memuat departemennya sendiri hanya membuat
+              isian terlihat kosong dan menolak setiap penyimpanan.
+            */}
+            {pengguna?.sistem ? (
+              <>
+                <p className="field-label">Departemen</p>
+                <p className="flex h-input items-center rounded-input border border-line bg-surface-muted px-2.5 text-body-lg text-ink-muted">
+                  {pengguna.departemen.nama ?? 'Sistem'}
+                </p>
+                <span className="mt-1 block text-caption text-ink-soft">
+                  Akun administrator awal selalu berada di departemen sistem.
+                </span>
+              </>
+            ) : (
+              <Select
+                id="departemen"
+                label="Departemen"
+                placeholder="Pilih departemen"
+                nilai={isi.department_id}
+                opsi={departemen.map((item) => ({ nilai: String(item.id), label: item.nama }))}
+                onUbah={(nilai) => setIsi({ ...isi, department_id: nilai })}
+                galat={pesanKolom('department_id')}
+              />
+            )}
           </div>
 
           {!sedangUbah && (
