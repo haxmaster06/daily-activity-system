@@ -29,7 +29,10 @@ server:
 http:
     address: '127.0.0.1:13002'
     pool:
-        num_workers: 4
+        # Proses, bukan thread: tiap worker menahan satu aplikasi Laravel penuh
+        # di memorinya sendiri. Enam worker berarti enam permintaan dilayani
+        # benar-benar bersamaan, dan pemakaian RAM-nya juga enam kali.
+        num_workers: 6
 
         # Worker didaur ulang tiap 500 permintaan. Aplikasi tetap hidup di
         # memori antar permintaan, sehingga kebocoran sekecil apa pun akan
