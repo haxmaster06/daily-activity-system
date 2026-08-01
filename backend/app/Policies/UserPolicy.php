@@ -53,4 +53,21 @@ class UserPolicy
     {
         return $user->boleh(KatalogIzin::PENGGUNA_ATUR_KATA_SANDI);
     }
+
+    /**
+     * Menghapus akun permanen.
+     *
+     * Hanya untuk akun yang belum meninggalkan jejak — salah buat, atau dibuat
+     * lalu tidak jadi dipakai. Akun yang sudah punya laporan dinonaktifkan,
+     * bukan dihapus: laporan merujuk penyusunnya, dan riwayat yang menunjuk ke
+     * ketiadaan tidak dapat dipertanggungjawabkan.
+     *
+     * Tidak boleh menghapus dirinya sendiri, sama seperti menonaktifkan.
+     */
+    public function delete(User $user, User $target): bool
+    {
+        return $user->boleh(KatalogIzin::PENGGUNA_KELOLA)
+            && ! $user->is($target)
+            && $target->dapatDihapus();
+    }
 }

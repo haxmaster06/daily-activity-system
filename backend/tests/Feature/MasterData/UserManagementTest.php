@@ -1,10 +1,13 @@
 <?php
 
 use App\Models\AuditLog;
+use App\Models\DailyReport;
 use App\Models\Department;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Audit;
 use Database\Factories\RoleFactory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
@@ -292,4 +295,100 @@ it('menolak Staff mengatur ulang kata sandi pengguna lain', function (): void {
         ->assertForbidden();
 
     expect(Hash::check('ambil-alih-akun', $target->fresh()->password))->toBeFalse();
+});
+
+it('menghapus akun yang belum meninggalkan jejak', function (): void {
+    $departemen = Department::factory()->create();
+    User::factory()->administrator()->create();
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+    $target->createToken('uji', expiresAt: now()->addHour());
+
+    $this->deleteJson("/api/pengguna/{$target->id}")->assertOk();
+
+    expect(User::whereKey($target->id)->exists())->toBeFalse();
+
+    // Token yang sudah terbit ikut dicabut — relasi morph tidak punya kunci
+    // asing, jadi tidak terhapus dengan sendirinya.
+    expect(DB::table('personal_access_tokens')
+        ->where('tokenable_id', $target->id)->where('tokenable_type', User::class)
+        ->exists())->toBeFalse();
+});
+
+it('menolak menghapus akun yang sudah punya laporan', function (): void {
+    $departemen = Department::factory()->create();
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+    DailyReport::factory()->milik($target)->create();
+
+    $response = $this->deleteJson("/api/pengguna/{$target->id}")->assertStatus(422);
+
+    expect($response->json('message'))->toContain('Nonaktifkan saja');
+    expect(User::whereKey($target->id)->exists())->toBeTrue();
+});
+
+it('menolak menghapus diri sendiri', function (): void {
+    $admin = User::factory()->administrator()->create([
+        'department_id' => Department::factory(),
+    ]);
+    User::factory()->administrator()->create();
+
+    Sanctum::actingAs($admin);
+
+    $this->deleteJson("/api/pengguna/{$admin->id}")->assertStatus(403);
+
+    expect(User::whereKey($admin->id)->exists())->toBeTrue();
+});
+
+it('menolak penghapusan oleh pengguna tanpa izin mengelola', function (): void {
+    $departemen = Department::factory()->create();
+    Sanctum::actingAs(User::factory()->supervisor()->create(['department_id' => $departemen->id]));
+
+    $target = User::factory()->staff()->create(['department_id' => $departemen->id]);
+
+    $this->deleteJson("/api/pengguna/{$target->id}")->assertStatus(403);
+
+    expect(User::whereKey($target->id)->exists())->toBeTrue();
+});
+
+it('menjaga jejak audit tetap terbaca setelah akunnya dihapus', function (): void {
+    $departemen = Department::factory()->create();
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $target = User::factory()->staff()->create([
+        'name' => 'Akun Salah Buat',
+        'department_id' => $departemen->id,
+    ]);
+
+    $this->deleteJson("/api/pengguna/{$target->id}")->assertOk();
+
+    $jejak = AuditLog::latest('id')->first();
+
+    // Namanya sudah didenormalkan sejak awal, jadi riwayat tidak menunjuk
+    // ke ketiadaan.
+    expect($jejak->action)->toBe(Audit::AKSI_DIHAPUS)
+        ->and($jejak->description)->toContain('Akun Salah Buat');
+});
+
+it('menandai akun mana yang masih dapat dihapus pada daftar', function (): void {
+    $departemen = Department::factory()->create();
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $bersih = User::factory()->staff()->create([
+        'name' => 'Belum Dipakai',
+        'department_id' => $departemen->id,
+    ]);
+    $terpakai = User::factory()->staff()->create([
+        'name' => 'Sudah Melapor',
+        'department_id' => $departemen->id,
+    ]);
+    DailyReport::factory()->milik($terpakai)->create();
+
+    $daftar = collect($this->getJson('/api/pengguna')->assertOk()->json('data'));
+
+    expect($daftar->firstWhere('id', $bersih->id)['dapat_dihapus'])->toBeTrue()
+        ->and($daftar->firstWhere('id', $terpakai->id)['dapat_dihapus'])->toBeFalse();
 });

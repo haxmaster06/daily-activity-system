@@ -44,6 +44,8 @@ export interface Pengguna {
   aktif: boolean;
   role: { slug: string | null; nama: string | null };
   penetapan: PenetapanPeran[];
+  /** Akun yang belum meninggalkan laporan maupun lampiran. */
+  dapat_dihapus?: boolean;
   departemen: { id: number | null; kode: string | null; nama: string | null };
 }
 

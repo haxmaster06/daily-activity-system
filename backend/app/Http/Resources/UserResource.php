@@ -53,6 +53,16 @@ class UserResource extends JsonResource
                     : (int) $peran->pivot->department_id,
             ])->values(),
 
+            /*
+             * Dihitung dari jumlah yang sudah ikut dimuat daftar, bukan query
+             * per baris. Tidak dikirim bila hitungannya tidak tersedia —
+             * menebaknya "boleh" akan menampilkan tombol yang pasti ditolak.
+             */
+            'dapat_dihapus' => $this->when(
+                $this->laporan_count !== null && $this->lampiran_count !== null,
+                fn () => $this->laporan_count === 0 && $this->lampiran_count === 0,
+            ),
+
             'departemen' => [
                 'id' => $this->department?->id,
                 'kode' => $this->department?->code,

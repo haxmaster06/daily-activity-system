@@ -84,6 +84,29 @@ class User extends Authenticatable
     }
 
     /**
+     * Lampiran yang pernah diunggahnya.
+     *
+     * @return HasMany<Attachment, $this>
+     */
+    public function lampiran(): HasMany
+    {
+        return $this->hasMany(Attachment::class, 'uploaded_by');
+    }
+
+    /**
+     * Apakah akun ini dapat dihapus permanen.
+     *
+     * Hanya akun yang belum meninggalkan jejak apa pun. Laporan dan lampiran
+     * merujuk penyusunnya lewat kunci asing `restrictOnDelete`; menghapus
+     * akunnya berarti ikut menghapus atau memutus catatan yang harus tetap
+     * utuh. Untuk akun yang sudah dipakai, yang benar adalah menonaktifkannya.
+     */
+    public function dapatDihapus(): bool
+    {
+        return $this->laporan()->doesntExist() && $this->lampiran()->doesntExist();
+    }
+
+    /**
      * Peran yang dipegang, beserta jangkauan tiap penetapannya.
      *
      * @return BelongsToMany<Role, $this>

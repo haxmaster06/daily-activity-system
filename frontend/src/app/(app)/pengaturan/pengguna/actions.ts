@@ -93,3 +93,20 @@ export async function simpanPenetapanRole(
     return hasilGalat(galat);
   }
 }
+
+/**
+ * Menghapus akun permanen.
+ *
+ * Hanya untuk akun yang belum meninggalkan jejak; sisanya ditolak server
+ * dengan pesan yang mengarahkan ke penonaktifan.
+ */
+export async function hapusPengguna(id: number): Promise<HasilAksi> {
+  try {
+    const { message } = await panggilApi(`/pengguna/${id}`, { method: 'DELETE' });
+    revalidatePath(HALAMAN);
+
+    return hasilBerhasil(message || 'Pengguna berhasil dihapus.');
+  } catch (galat) {
+    return hasilGalat(galat);
+  }
+}

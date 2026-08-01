@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { KeyRound, Plus, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import { KeyRound, Plus, ShieldCheck, Trash2, UserCheck, UserX } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -18,7 +18,7 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
-import { ubahStatusPengguna } from './actions';
+import { hapusPengguna, ubahStatusPengguna } from './actions';
 import { PenetapanRoleDialog } from './penetapan-role-dialog';
 import { ResetPasswordDialog } from './reset-password-dialog';
 import { UserDialog } from './user-dialog';
@@ -46,6 +46,7 @@ export function UserTable({
   const [sedangResetSandi, setSedangResetSandi] = useState<Pengguna | null>(null);
   const [sedangAturPeran, setSedangAturPeran] = useState<Pengguna | null>(null);
   const [konfirmasiStatus, setKonfirmasiStatus] = useState<Pengguna | null>(null);
+  const [konfirmasiHapus, setKonfirmasiHapus] = useState<Pengguna | null>(null);
   const [pemberitahuan, setPemberitahuan] = useState<{
     jenis: 'galat' | 'berhasil';
     pesan: string;
@@ -62,6 +63,17 @@ export function UserTable({
     const hasil = await ubahStatusPengguna(konfirmasiStatus.id, !konfirmasiStatus.aktif);
 
     setKonfirmasiStatus(null);
+    setPemberitahuan({ jenis: hasil.berhasil ? 'berhasil' : 'galat', pesan: hasil.pesan });
+
+    if (hasil.berhasil) router.refresh();
+  }
+
+  async function hapusPermanen() {
+    if (!konfirmasiHapus) return;
+
+    const hasil = await hapusPengguna(konfirmasiHapus.id);
+
+    setKonfirmasiHapus(null);
     setPemberitahuan({ jenis: hasil.berhasil ? 'berhasil' : 'galat', pesan: hasil.pesan });
 
     if (hasil.berhasil) router.refresh();
@@ -190,6 +202,26 @@ export function UserTable({
                           <KeyRound aria-hidden="true" className="size-3.5" />
                         </button>
 
+                        {/*
+                          Hapus permanen hanya untuk akun yang belum punya
+                          laporan maupun lampiran. Menampilkannya pada akun
+                          lain berarti menawarkan tombol yang pasti ditolak.
+                        */}
+                        {!diriSendiri && item.dapat_dihapus && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setKonfirmasiHapus(item);
+                            }}
+                            aria-label={`Hapus ${item.nama}`}
+                            title="Hapus permanen"
+                            className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-danger-text"
+                          >
+                            <Trash2 aria-hidden="true" className="size-3.5" />
+                          </button>
+                        )}
+
                         {!diriSendiri && (
                           <button
                             type="button"
@@ -240,6 +272,16 @@ export function UserTable({
       <ResetPasswordDialog
         pengguna={sedangResetSandi}
         onTutup={() => setSedangResetSandi(null)}
+      />
+
+      <ConfirmDialog
+        terbuka={konfirmasiHapus !== null}
+        onTutup={() => setKonfirmasiHapus(null)}
+        onSetuju={hapusPermanen}
+        judul="Hapus Pengguna"
+        pesan={`Akun ${konfirmasiHapus?.nama ?? ''} akan dihapus permanen. Tindakan ini tidak dapat dibatalkan. Riwayat pada jejak audit tetap tersimpan.`}
+        labelAksi="Hapus"
+        berisiko
       />
 
       <ConfirmDialog

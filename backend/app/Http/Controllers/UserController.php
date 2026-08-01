@@ -27,6 +27,8 @@ class UserController extends Controller
 
         $pengguna = User::query()
             ->with(['role', 'department'])
+            // Dipakai menentukan akun mana yang masih dapat dihapus.
+            ->withCount(['laporan', 'lampiran'])
             ->when($request->filled('cari'), function ($query) use ($request) {
                 $kata = '%'.$request->string('cari')->trim().'%';
                 $query->where(fn ($sub) => $sub
@@ -149,6 +151,55 @@ class UserController extends Controller
             new UserResource($user->load(['role', 'department'])),
             'Penetapan peran berhasil disimpan.',
         );
+    }
+
+    /**
+     * Menghapus akun permanen.
+     *
+     * Hanya akun yang belum meninggalkan jejak. Yang sudah punya laporan
+     * ditolak di sini dengan pesan yang mengarahkan ke penonaktifan — kunci
+     * asing memang akan menolaknya juga, tetapi galat basis data bukan jawaban
+     * yang dapat dipahami pengguna.
+     */
+    public function destroy(User $user): JsonResponse
+    {
+        if (! $user->dapatDihapus()) {
+            return ApiResponse::error(
+                "{$user->name} sudah memiliki laporan atau lampiran, sehingga akunnya "
+                .'tidak dapat dihapus. Nonaktifkan saja — namanya tetap terbaca pada '
+                .'laporan lama dan ia tidak dapat masuk lagi.',
+                422,
+            );
+        }
+
+        $this->authorize('delete', $user);
+
+        $nama = $user->name;
+        $email = $user->email;
+
+        PenjagaAkses::jalankan(function () use ($user): void {
+            /*
+             * Token dan notifikasi memakai relasi morph tanpa kunci asing,
+             * sehingga tidak ikut terhapus sendiri. Membiarkannya berarti
+             * meninggalkan token yang masih dapat dipakai.
+             */
+            $user->tokens()->delete();
+            $user->notifications()->delete();
+
+            $user->delete();
+        });
+
+        /*
+         * Jejak audit tetap utuh: `audit_logs.user_id` menjadi null, tetapi
+         * `user_name` sudah disimpan terpisah sejak awal.
+         */
+        Audit::catat(
+            Audit::AKSI_DIHAPUS,
+            Audit::MODUL_PENGGUNA,
+            "Menghapus pengguna {$nama} ({$email})",
+        );
+
+        return ApiResponse::ok(null, 'Pengguna berhasil dihapus.');
     }
 
     /**

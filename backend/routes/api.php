@@ -103,6 +103,13 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::put('/pengguna/{user}/kata-sandi', [UserController::class, 'aturUlangKataSandi'])
         ->name('pengguna.kata-sandi');
 
+    /*
+     * Menghapus akun hanya untuk yang belum meninggalkan jejak. Akun yang sudah
+     * punya laporan dinonaktifkan, bukan dihapus.
+     */
+    Route::delete('/pengguna/{user}', [UserController::class, 'destroy'])
+        ->name('pengguna.destroy');
+
     Route::get('/template/opsi-kolom', [ReportTemplateController::class, 'opsiKolom'])
         ->name('template.opsi-kolom');
     Route::get('/template', [ReportTemplateController::class, 'index'])->name('template.index');
