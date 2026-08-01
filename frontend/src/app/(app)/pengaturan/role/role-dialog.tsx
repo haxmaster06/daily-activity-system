@@ -26,10 +26,15 @@ interface RoleDialogProps {
 /** Radix Select tidak menerima string kosong sebagai nilai item. */
 const TANPA_SALINAN = '__kosong__';
 
+/*
+ * Label sependek mungkin: isian ini duduk di kolom sempit, dan label panjang
+ * membuat teksnya terpotong justru di bagian yang membedakan. Penjelasannya
+ * ditaruh sebagai teks bantuan, bukan di dalam labelnya.
+ */
 const OPSI_JANGKAUAN = [
-  { nilai: String(JANGKAUAN_PRIBADI), label: 'Pribadi — hanya datanya sendiri' },
-  { nilai: String(JANGKAUAN_DEPARTEMEN), label: 'Departemen — satu departemen' },
-  { nilai: String(JANGKAUAN_KORPORAT), label: 'Korporat — seluruh departemen' },
+  { nilai: String(JANGKAUAN_PRIBADI), label: 'Pribadi' },
+  { nilai: String(JANGKAUAN_DEPARTEMEN), label: 'Departemen' },
+  { nilai: String(JANGKAUAN_KORPORAT), label: 'Korporat' },
 ];
 
 /**

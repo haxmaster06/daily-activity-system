@@ -53,7 +53,7 @@ export function Select({
   const idGalat = galat ? `${id}-galat` : undefined;
 
   return (
-    <div className={className}>
+    <div className={cn('min-w-0', className)}>
       {label && (
         <label htmlFor={id} className="field-label">
           {label}
@@ -91,8 +91,10 @@ export function Select({
           id={id}
           aria-invalid={galat ? true : undefined}
           aria-describedby={[idBantuan, idGalat].filter(Boolean).join(' ') || undefined}
+          /* Teks penuh tetap terbaca lewat tooltip dan daftar pilihannya. */
+          title={opsi.find((item) => item.nilai === nilai)?.label ?? placeholder}
           className={cn(
-            'flex w-full items-center justify-between gap-2 rounded-input border border-line bg-surface px-2.5',
+            'flex w-full min-w-0 items-center justify-between gap-2 rounded-input border border-line bg-surface px-2.5',
             'text-left text-body-lg text-ink transition-colors duration-fast',
             'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30',
             'disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-ink-soft',
@@ -110,10 +112,21 @@ export function Select({
             sudah ada — menampilkan placeholder sampai daftarnya sempat dibuka
             sekali, dan pengguna mengira isian itu kosong.
           */}
-          <RadixSelect.Value placeholder={placeholder}>
-            {opsi.find((item) => item.nilai === nilai)?.label}
-          </RadixSelect.Value>
-          <RadixSelect.Icon>
+          {/*
+            Satu baris, dipotong bila perlu.
+
+            Tingginya tetap (32–40px). Label panjang yang dibiarkan membungkus
+            akan jebol keluar kotaknya dan menabrak isian di bawahnya — persis
+            keadaan yang dilarang standar §6.5. Pemotongan di sini tidak
+            menyembunyikan informasi: teks penuhnya ada di tooltip dan pada
+            daftar pilihannya.
+          */}
+          <span className="min-w-0 flex-1 truncate">
+            <RadixSelect.Value placeholder={placeholder}>
+              {opsi.find((item) => item.nilai === nilai)?.label}
+            </RadixSelect.Value>
+          </span>
+          <RadixSelect.Icon className="shrink-0">
             <ChevronDown aria-hidden="true" className="size-4 text-ink-soft" />
           </RadixSelect.Icon>
         </RadixSelect.Trigger>

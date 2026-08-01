@@ -308,6 +308,30 @@ Aturannya:
 Tabel yang seluruhnya hanya bacaan (pratinjau export, misalnya) tidak
 memerlukan ini.
 
+## 6.5 Kontrol tidak boleh jebol oleh isinya
+
+Isian bertinggi tetap — Select, input, tombol — **tidak pernah membungkus**.
+Label yang lebih panjang daripada kotaknya membuat teksnya turun ke baris kedua
+lalu keluar dari kotak dan menabrak isian di bawahnya.
+
+Aturannya:
+
+* Tiap kontrol memakai `min-w-0` supaya dapat menyusut di dalam grid. Tanpa itu
+  isi kontrol menolak mengecil dan justru melebarkan kolomnya
+* Nilai terpilih pada Select ditampilkan **satu baris**; bila tidak muat,
+  dipotong dengan elipsis. Teks penuhnya tetap terbaca lewat tooltip dan pada
+  daftar pilihannya — ini pengecualian sah dari larangan `truncate` (§6.2),
+  karena yang dipotong adalah tampilan kontrol, bukan isi halaman
+* Ikon di dalam kontrol memakai `shrink-0` — ikon yang ikut menyusut menjadi
+  gepeng sebelum teksnya menyusut
+* **Label pilihan dibuat sependek mungkin.** Penjelasannya ditaruh sebagai teks
+  bantuan di bawah isian, bukan disisipkan ke dalam labelnya. "Departemen"
+  bukan "Departemen — satu departemen"
+
+Patokan yang mudah diperiksa: perkecil jendela sampai kolomnya sesempit
+mungkin. Tidak boleh ada teks yang keluar dari kotaknya, dan tinggi barisnya
+tidak boleh berubah.
+
 ---
 
 # BAGIAN 7 — FORM
@@ -376,6 +400,8 @@ komponen itu.
   tindakan satu jalan (§6.3)
 * Tindakan merusak yang terpicu klik baris — hapus dan nonaktifkan tetap ikon
 * Modal yang seluruh isinya ikut menggulir, termasuk judul dan tombolnya (§7.2)
+* Isian bertinggi tetap yang teksnya membungkus lalu keluar dari kotaknya (§6.5)
+* Penjelasan panjang disisipkan ke dalam label pilihan, bukan ke teks bantuan (§6.5)
 * Komponen UI dari library di luar Radix / React Aria tanpa alasan tertulis
   di `docs/standar-library-ui.md` §9
 
@@ -438,6 +464,7 @@ adalah jaring pengaman terakhir, bukan jawaban pertama.
 * [ ] Tabel: header sticky, badan menggulir, filter dan pagination server-side
 * [ ] Tindakan utama baris dijalankan lewat klik baris, bukan ikon (§6.3)
 * [ ] Modal memakai komponen `Modal` — judul dan tombolnya tetap (§7.2)
+* [ ] Diperiksa pada kolom tersempit: tidak ada kontrol yang jebol (§6.5)
 * [ ] Keadaan kosong, memuat, dan galat semuanya ditangani (§10)
 * [ ] Seluruh teks Bahasa Indonesia, tanpa nama kolom database
 * [ ] Animasi memakai nilai dari `lib/gerak.ts`

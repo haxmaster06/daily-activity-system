@@ -26,10 +26,15 @@ interface PenetapanRoleDialogProps {
 /** Radix Select tidak menerima string kosong sebagai nilai item. */
 const IKUT_PENGGUNA = '__ikut__';
 
+/*
+ * Label sependek mungkin: isian ini duduk di kolom sempit, dan label panjang
+ * membuat teksnya terpotong justru di bagian yang membedakan. Penjelasannya
+ * ditaruh sebagai teks bantuan, bukan di dalam labelnya.
+ */
 const OPSI_JANGKAUAN = [
-  { nilai: String(JANGKAUAN_PRIBADI), label: 'Pribadi — hanya datanya sendiri' },
-  { nilai: String(JANGKAUAN_DEPARTEMEN), label: 'Departemen — satu departemen' },
-  { nilai: String(JANGKAUAN_KORPORAT), label: 'Korporat — seluruh departemen' },
+  { nilai: String(JANGKAUAN_PRIBADI), label: 'Pribadi' },
+  { nilai: String(JANGKAUAN_DEPARTEMEN), label: 'Departemen' },
+  { nilai: String(JANGKAUAN_KORPORAT), label: 'Korporat' },
 ];
 
 interface Baris {
@@ -173,7 +178,7 @@ export function PenetapanRoleDialog({
             {baris.map((satu, index) => (
               <li
                 key={index}
-                className="grid items-end gap-2 rounded-input border border-line p-2.5 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                className="grid items-end gap-2 rounded-input border border-line p-2.5 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1.3fr_auto]"
               >
                 <Select
                   id={`peran-${index}`}
@@ -200,6 +205,13 @@ export function PenetapanRoleDialog({
                   nilai={satu.scopeLevel}
                   opsi={OPSI_JANGKAUAN}
                   onUbah={(nilai) => ubah(index, { scopeLevel: nilai })}
+                  bantuan={
+                    satu.scopeLevel === String(JANGKAUAN_PRIBADI)
+                      ? 'Hanya datanya sendiri'
+                      : satu.scopeLevel === String(JANGKAUAN_KORPORAT)
+                        ? 'Seluruh departemen'
+                        : 'Satu departemen'
+                  }
                 />
 
                 <Select
@@ -210,7 +222,7 @@ export function PenetapanRoleDialog({
                     // Selalu tersurat, tidak pernah placeholder kosong: pilihan
                     // ini membuat jangkauannya ikut berpindah bila pengguna
                     // dipindah departemen.
-                    { nilai: IKUT_PENGGUNA, label: 'Departemen pengguna (mengikuti)' },
+                    { nilai: IKUT_PENGGUNA, label: 'Mengikuti pengguna' },
                     ...departemen.map((item) => ({
                       nilai: String(item.id),
                       label: item.nama,
