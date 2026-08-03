@@ -5,6 +5,7 @@ import { TabelIsian } from '@/components/laporan/tabel-isian';
 import { PillNav, type ItemTab } from '@/components/ui/pill-nav';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { GalatApi } from '@/lib/api';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import { ambilLaporan } from '@/lib/laporan-server';
 import { RAGAM_STATUS } from '@/lib/laporan';
@@ -20,7 +21,7 @@ export default async function DetailLaporanPage({
   params: Promise<{ id: string }>;
 }) {
   const pengguna = await penggunaSaatIni();
-  if (pengguna === null) redirect('/api/auth/sesi-berakhir');
+  if (pengguna === null) redirect(RUTE_SESI_BERAKHIR);
 
   const { id } = await params;
 

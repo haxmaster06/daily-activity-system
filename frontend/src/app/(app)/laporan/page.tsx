@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { melihatOrangLain } from '@/lib/izin';
 import { ambilDaftarLaporan } from '@/lib/laporan-server';
 import { penggunaSaatIni } from '@/lib/session';
@@ -20,7 +21,7 @@ export default async function LaporanPage({
   searchParams: Promise<Params>;
 }) {
   const pengguna = await penggunaSaatIni();
-  if (pengguna === null) redirect('/api/auth/sesi-berakhir');
+  if (pengguna === null) redirect(RUTE_SESI_BERAKHIR);
 
   const filter = await searchParams;
 

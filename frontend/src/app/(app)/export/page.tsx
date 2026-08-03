@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { ambilPratinjauExport } from '@/lib/export-server';
 import { ambilDepartemen } from '@/lib/master-data';
 import { bolehMenyaringDepartemen } from '@/lib/izin';
@@ -26,7 +27,7 @@ export default async function ExportPage({
   searchParams: Promise<Params>;
 }) {
   const pengguna = await penggunaSaatIni();
-  if (pengguna === null) redirect('/api/auth/sesi-berakhir');
+  if (pengguna === null) redirect(RUTE_SESI_BERAKHIR);
 
   const filter = await searchParams;
 

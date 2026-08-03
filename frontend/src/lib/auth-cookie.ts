@@ -8,6 +8,20 @@ import 'server-only';
 
 export const NAMA_COOKIE_TOKEN = 'dams_token';
 
+/**
+ * Tujuan pengalihan ketika token ditolak backend.
+ *
+ * Halaman biasa, bukan Route Handler. Sesi dapat berakhir di tengah navigasi
+ * antar halaman, dan pada navigasi seperti itu router Next mengambil tujuan
+ * pengalihan sebagai muatan RSC — Route Handler tidak pernah menghasilkannya,
+ * sehingga yang muncul di layar adalah galat mentah alih-alih halaman masuk.
+ *
+ * Penanda `sesi=berakhir` dibaca dua pihak: middleware membuang cookie yang
+ * sudah basi, dan halaman masuk menjelaskan kepada pengguna mengapa ia ada di
+ * sana.
+ */
+export const RUTE_SESI_BERAKHIR = '/login?sesi=berakhir';
+
 export interface OpsiCookieToken {
   httpOnly: true;
   sameSite: 'lax';

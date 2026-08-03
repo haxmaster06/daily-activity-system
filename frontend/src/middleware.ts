@@ -29,6 +29,23 @@ export function middleware(request: NextRequest) {
   }
 
   if (punyaToken && halamanMasuk) {
+    /*
+     * Cookie masih ada tetapi tokennya sudah ditolak backend — halaman yang
+     * mendapat penolakan itulah yang memasang penanda ini. Cookie basinya
+     * dibuang di sini karena Server Component tidak boleh menghapus cookie,
+     * sedangkan middleware boleh.
+     *
+     * Tanpa cabang ini pengguna terperangkap: middleware melihat cookie lalu
+     * memantulkannya ke /dashboard, dashboard mendapat 401 lalu mengarah ke
+     * /login lagi, berputar tanpa henti.
+     */
+    if (request.nextUrl.searchParams.get('sesi') === 'berakhir') {
+      const jawaban = NextResponse.next();
+      jawaban.cookies.delete(NAMA_COOKIE_TOKEN);
+
+      return jawaban;
+    }
+
     const tujuan = request.nextUrl.clone();
     tujuan.pathname = '/dashboard';
     tujuan.search = '';

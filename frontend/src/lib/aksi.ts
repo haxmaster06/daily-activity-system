@@ -3,6 +3,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 
 import { GalatApi } from '@/lib/api';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 
 /**
  * Hasil Server Action yang dikonsumsi komponen form.
@@ -37,7 +38,7 @@ export function hasilGalat(galat: unknown): HasilAksi {
      * diantar ke halaman masuk, lengkap dengan penjelasan penyebabnya.
      */
     if (galat.status === 401) {
-      redirect('/api/auth/sesi-berakhir');
+      redirect(RUTE_SESI_BERAKHIR);
     }
 
     return {

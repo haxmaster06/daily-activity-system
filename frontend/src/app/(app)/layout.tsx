@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { PageTransition } from '@/components/ui/page-transition';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { penggunaSaatIni } from '@/lib/session';
 
 /**
@@ -16,12 +17,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
    * Middleware hanya memeriksa keberadaan cookie. Di sini sesi diverifikasi ke
    * backend, sehingga token kedaluwarsa atau dicabut tetap tertahan.
    *
-   * Tujuannya bukan /login melainkan Route Handler pembersih cookie: Server
-   * Component tidak boleh menghapus cookie, dan mengarahkan langsung ke /login
-   * sementara cookie basi masih terpasang akan dilempar balik oleh middleware.
+   * Penjaga ini TIDAK menggantikan pemeriksaan di tiap halaman. Layout hanya
+   * dijalankan ulang pada pemuatan penuh; berpindah antar halaman di dalam
+   * grup ini memakai kerangka yang sudah terpasang, sehingga sesi yang berakhir
+   * di tengah pemakaian tidak akan pernah sampai ke sini. Setiap halaman
+   * memeriksanya sendiri — sudah terbukti lewat percobaan, bukan dugaan.
    */
   if (pengguna === null) {
-    redirect('/api/auth/sesi-berakhir');
+    redirect(RUTE_SESI_BERAKHIR);
   }
 
   return (

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
 import { GalatApi, panggilApi } from '@/lib/api';
-import { NAMA_COOKIE_TOKEN } from '@/lib/auth-cookie';
+import { NAMA_COOKIE_TOKEN, RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { JANGKAUAN_PRIBADI, type Jangkauan } from '@/lib/izin';
 import { bolehAkses } from '@/lib/nav';
 
@@ -112,13 +112,7 @@ export async function wajibAkses(href: string): Promise<PenggunaSesi> {
   const pengguna = await penggunaSaatIni();
 
   if (pengguna === null) {
-    /*
-     * Lewat Route Handler, bukan langsung ke /login: cookie yang sudah basi
-     * harus dihapus dulu, dan Server Component tidak boleh menghapus cookie.
-     * Tanpa itu middleware melihat cookie, mengizinkan halaman, lalu halaman
-     * mengarahkan ke /login lagi — berputar tanpa henti.
-     */
-    redirect('/api/auth/sesi-berakhir');
+    redirect(RUTE_SESI_BERAKHIR);
   }
 
   if (!bolehAkses(pengguna.izin, href)) {

@@ -5,6 +5,7 @@ import { CalendarCheck, CalendarRange, ClipboardList, Plus, UserX } from 'lucide
 import { KartuStatistik } from '@/components/dashboard/kartu-statistik';
 import { PageHeader } from '@/components/layout/page-header';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { formatAngka, formatTanggal, formatTanggalLengkap } from '@/lib/format';
 import { RAGAM_STATUS } from '@/lib/laporan';
 import { ambilRingkasanDashboard } from '@/lib/ringkasan-server';
@@ -14,7 +15,7 @@ export const metadata = { title: 'Dashboard — DAMS' };
 
 export default async function DashboardPage() {
   const pengguna = await penggunaSaatIni();
-  if (pengguna === null) redirect('/api/auth/sesi-berakhir');
+  if (pengguna === null) redirect(RUTE_SESI_BERAKHIR);
 
   const ringkasan = await ambilRingkasanDashboard();
   const { kartu, laporan_saya_hari_ini: laporanSaya } = ringkasan;
