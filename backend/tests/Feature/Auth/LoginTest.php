@@ -144,8 +144,13 @@ it('mengunci per akun, bukan seluruh alamat IP', function (): void {
 });
 
 it('memperpanjang masa berlaku token saat "Ingat saya" dicentang', function (): void {
-    config()->set('sanctum.expiration', 480);
-    config()->set('sanctum.expiration_remembered', 10080);
+    /*
+     * Masa berlaku dinyalakan di dalam test ini sendiri. Bawaannya 0 — keluar
+     * otomatis dimatikan — dan test yang bergantung pada nilai `.env` mesin
+     * yang menjalankannya akan berubah hasil tanpa ada kode yang berubah.
+     */
+    config()->set('dams.sesi.menit', 480);
+    config()->set('dams.sesi.menit_diingat', 10080);
 
     User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
 
@@ -286,7 +291,7 @@ it('memperpanjang masa berlaku sesi selama aplikasi dipakai', function (): void 
 });
 
 it('tidak menulis ulang masa berlaku pada tiap permintaan', function (): void {
-    config(['dams.sesi.ambang_perpanjangan' => 0.5]);
+    config(['dams.sesi.menit' => 720, 'dams.sesi.ambang_perpanjangan' => 0.5]);
 
     $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
 
@@ -299,4 +304,87 @@ it('tidak menulis ulang masa berlaku pada tiap permintaan', function (): void {
 
     // Sisa umurnya masih penuh; menggesernya hanya membuang tulisan ke basis data.
     expect($user->tokens()->first()->expires_at->equalTo($sebelum))->toBeTrue();
+});
+
+/*
+ * Keluar otomatis dimatikan.
+ *
+ * Diminta pemilik project: pengguna yang sedang mengisi laporan panjang
+ * terlempar keluar dan kehilangan isiannya. Setelan disetel nol secara
+ * eksplisit di sini, bukan mengandalkan `.env` mesin yang menjalankan test.
+ */
+it('membuat token tanpa masa berlaku ketika keluar otomatis dimatikan', function (): void {
+    config(['dams.sesi.menit' => 0, 'dams.sesi.menit_diingat' => 0]);
+
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $jawaban = $this->postJson('/api/login', [
+        'email' => 'ahmad@hbmcorp.co.id',
+        'password' => 'rahasia',
+    ])->assertOk();
+
+    expect($jawaban->json('data.kedaluwarsa_pada'))->toBeNull()
+        ->and($user->tokens()->first()->expires_at)->toBeNull();
+});
+
+it('tetap memberi cookie tanggal kedaluwarsa meski sesi tanpa batas', function (): void {
+    config(['dams.sesi.menit' => 0, 'dams.sesi.menit_diingat' => 0]);
+
+    User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $batas = $this->postJson('/api/login', [
+        'email' => 'ahmad@hbmcorp.co.id',
+        'password' => 'rahasia',
+    ])->json('data.cookie_berlaku_sampai');
+
+    /*
+     * Tanpa tanggal, cookie pembawa token jadi cookie sesi dan hilang begitu
+     * peramban ditutup — pengguna diminta masuk lagi tiap pagi, justru yang
+     * ingin dihindari.
+     */
+    expect($batas)->not->toBeNull()
+        ->and(now()->diffInDays($batas))->toBeGreaterThan(300);
+});
+
+it('tidak mengeluarkan perangkat lain ketika batas perangkat dimatikan', function (): void {
+    config(['dams.sesi.menit' => 0, 'dams.sesi.maksimal_perangkat' => 0]);
+
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    /*
+     * Token pendahulunya dibuat langsung, bukan lewat masuk berulang: rute
+     * masuk dibatasi lima percobaan per menit, dan yang diuji di sini
+     * pembersihan token, bukan pembatasan itu.
+     */
+    $tokenPertama = $user->createToken('perangkat-lama')->plainTextToken;
+
+    foreach (range(1, 5) as $ignored) {
+        $user->createToken('perangkat-lain');
+    }
+
+    masukSebagai('ahmad@hbmcorp.co.id');
+
+    lupakanAutentikasi();
+
+    expect($user->tokens()->count())->toBe(7);
+
+    // Yang pertama masuk masih dapat bekerja: tidak ada yang menggusurnya.
+    $this->withHeader('Authorization', "Bearer {$tokenPertama}")
+        ->getJson('/api/me')
+        ->assertOk();
+});
+
+it('melayani permintaan token tanpa masa berlaku tanpa mencoba menggesernya', function (): void {
+    config(['dams.sesi.menit' => 0]);
+
+    $user = User::factory()->create(['email' => 'ahmad@hbmcorp.co.id', 'password' => 'rahasia']);
+
+    $token = masukSebagai('ahmad@hbmcorp.co.id');
+
+    lupakanAutentikasi();
+
+    $this->withHeader('Authorization', "Bearer {$token}")->getJson('/api/me')->assertOk();
+
+    // `PerpanjangSesi` tidak boleh mengarang tanggal untuk sesi tanpa batas.
+    expect($user->tokens()->first()->expires_at)->toBeNull();
 });

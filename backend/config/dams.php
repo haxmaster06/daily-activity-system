@@ -7,32 +7,53 @@ return [
     | Sesi Pengguna
     |--------------------------------------------------------------------------
     |
-    | Masa berlaku dihitung dari aktivitas terakhir, bukan dari waktu masuk.
-    | Selama aplikasi dipakai, sesinya diperpanjang oleh middleware
-    | `PerpanjangSesi`; yang meninggalkan komputer tetap keluar sendiri.
+    | Keluar otomatis DIMATIKAN atas permintaan pemilik project: pengguna yang
+    | sedang mengisi laporan panjang pernah terlempar keluar dan kehilangan
+    | isiannya. Sesi kini berlaku sampai pengguna menekan Keluar.
     |
-    | Karena itu `sanctum.expiration` dimatikan: batas mutlak sejak `created_at`
-    | akan memutus pengguna yang sedang bekerja, tepat pada jam yang paling
+    | Nilai 0 pada ketiga setelan di bawah berarti "tanpa batas". Diisi angka
+    | lebih dari 0, mekanismenya hidup kembali tanpa perubahan kode:
+    | masa berlaku dihitung dari aktivitas terakhir — bukan dari waktu masuk —
+    | dan digeser middleware `PerpanjangSesi` selama aplikasi dipakai.
+    |
+    | Yang perlu diketahui sebelum membiarkannya mati:
+    |
+    | - Token yang tidak pernah kedaluwarsa tetap berlaku selamanya bila
+    |   tercuri. Tidak ada lagi batas waktu yang menutupnya sendiri.
+    | - Perangkat di area produksi sering dipakai bergantian. Yang lupa menekan
+    |   Keluar meninggalkan sesinya terbuka untuk pemakai berikutnya.
+    |
+    | Cara mencabutnya bila terjadi: nonaktifkan akunnya, atau atur ulang kata
+    | sandinya — keduanya membuang seluruh token pengguna tersebut.
+    |
+    | `sanctum.expiration` tetap dimatikan. Batas mutlak sejak `created_at`
+    | memutus pengguna yang sedang bekerja, tepat pada jam yang paling
     | merepotkan.
     |
     */
 
     'sesi' => [
 
-        // Menit tanpa aktivitas sebelum sesi berakhir.
-        'menit' => (int) env('DAMS_SESI_MENIT', 720),
+        // Menit tanpa aktivitas sebelum sesi berakhir. 0 = tanpa batas.
+        'menit' => (int) env('DAMS_SESI_MENIT', 0),
 
-        // Dipakai bila pengguna mencentang "Ingat saya". Sengaja dibatasi:
-        // perangkat di area produksi sering dipakai bergantian, sehingga sesi
-        // tidak boleh berlaku tanpa batas.
-        'menit_diingat' => (int) env('DAMS_SESI_MENIT_DIINGAT', 10080),
+        // Dipakai bila pengguna mencentang "Ingat saya". 0 = tanpa batas.
+        'menit_diingat' => (int) env('DAMS_SESI_MENIT_DIINGAT', 0),
 
         /*
          * Jumlah perangkat yang boleh dipakai bersamaan oleh satu akun.
-         * Melebihi batas, token tertua yang dibuang — bukan yang terbaru,
+         * 0 = tanpa batas.
+         *
+         * Ikut dimatikan, dan itu memang perlu. Batas ini membuang token
+         * tertua saat jumlahnya terlampaui — artinya masuk dari perangkat
+         * baru mengeluarkan seseorang yang mungkin sedang bekerja. Selama
+         * sesi tidak lagi kedaluwarsa sendiri, token juga tidak pernah
+         * berkurang, sehingga batas itu akan tersentuh jauh lebih sering.
+         *
+         * Bila dihidupkan lagi: yang tertua yang dibuang, bukan yang terbaru,
          * supaya masuk dari perangkat baru tidak pernah gagal.
          */
-        'maksimal_perangkat' => (int) env('DAMS_SESI_MAKSIMAL_PERANGKAT', 5),
+        'maksimal_perangkat' => (int) env('DAMS_SESI_MAKSIMAL_PERANGKAT', 0),
 
         /*
          * Sesi hanya diperpanjang bila sisa umurnya sudah kurang dari bagian

@@ -11,7 +11,6 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
 
   const [email, setEmail] = useState('');
   const [kataSandi, setKataSandi] = useState('');
-  const [ingat, setIngat] = useState(false);
   const [kataSandiTerlihat, setKataSandiTerlihat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [memproses, setMemproses] = useState(false);
@@ -37,7 +36,7 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: kataSandi, ingat }),
+        body: JSON.stringify({ email, password: kataSandi }),
       });
 
       const hasil = await response.json();
@@ -126,15 +125,15 @@ export function LoginForm({ lanjut }: { lanjut: string }) {
         </div>
       </div>
 
-      <label className="flex w-fit items-center gap-2 text-body text-ink-muted">
-        <input
-          type="checkbox"
-          checked={ingat}
-          onChange={(e) => setIngat(e.target.checked)}
-          className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
-        />
-        Ingat saya
-      </label>
+      {/*
+        Centang "Ingat saya" dihapus, bukan disembunyikan.
+
+        Sesi tidak lagi berakhir sendiri (DAMS_SESI_MENIT=0), sehingga
+        mencentangnya dan tidak mencentangnya menghasilkan hal yang sama
+        persis. Kendali yang tidak mengubah apa pun lebih buruk daripada
+        tidak ada. Backend tetap menerima `ingat`; kembalikan kotak ini bila
+        masa berlaku sesi dihidupkan lagi.
+      */}
 
       {/* Aksi utama halaman — satu-satunya Spectacular Button di sini. */}
       <SpectacularButton type="submit" memproses={memproses} disabled={!siap} penuh>

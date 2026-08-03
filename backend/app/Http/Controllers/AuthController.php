@@ -6,6 +6,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Support\ApiResponse;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -57,8 +58,13 @@ class AuthController extends Controller
 
         $this->rapikanToken($user);
 
+        /*
+         * Nol berarti sesi tidak pernah berakhir sendiri: token dibuat tanpa
+         * `expires_at`, dan `PerpanjangSesi` melewatinya karena tidak ada
+         * tanggal yang bisa digeser. Lihat catatan di config/dams.php.
+         */
         $menit = $request->masaBerlakuMenit();
-        $masaBerlaku = now()->addMinutes($menit);
+        $masaBerlaku = $menit > 0 ? now()->addMinutes($menit) : null;
 
         $token = $user->createToken(
             name: 'dams-web',
@@ -78,7 +84,7 @@ class AuthController extends Controller
 
         return ApiResponse::ok([
             'token' => $token->plainTextToken,
-            'kedaluwarsa_pada' => $masaBerlaku->toIso8601String(),
+            'kedaluwarsa_pada' => $masaBerlaku?->toIso8601String(),
             /*
              * Batas umur cookie pembawa token, bukan batas sesi.
              *
@@ -88,9 +94,7 @@ class AuthController extends Controller
              * Yang menentukan sesi berakhir tetap `expires_at` di server;
              * cookie hanya wadahnya.
              */
-            'cookie_berlaku_sampai' => now()
-                ->addMinutes((int) config('dams.sesi.menit_diingat', 10080))
-                ->toIso8601String(),
+            'cookie_berlaku_sampai' => $this->batasCookie()->toIso8601String(),
             'pengguna' => new UserResource($user),
         ], 'Berhasil masuk.');
     }
@@ -120,6 +124,21 @@ class AuthController extends Controller
     }
 
     /**
+     * Sampai kapan cookie pembawa token boleh hidup di peramban.
+     *
+     * Ketika sesi tidak lagi berakhir sendiri, cookie tetap butuh tanggal:
+     * tanpa itu ia jadi cookie sesi dan hilang begitu peramban ditutup —
+     * pengguna diminta masuk lagi tiap pagi. Dipakai 400 hari karena itu
+     * batas atas yang diterima peramban; lebih dari itu dipangkas sendiri.
+     */
+    private function batasCookie(): CarbonInterface
+    {
+        $menit = (int) config('dams.sesi.menit_diingat', 0);
+
+        return $menit > 0 ? now()->addMinutes($menit) : now()->addDays(400);
+    }
+
+    /**
      * Membereskan token sebelum yang baru dibuat.
      *
      * Satu akun boleh dipakai di beberapa perangkat — komputer di ruang kerja
@@ -130,12 +149,20 @@ class AuthController extends Controller
      * Yang dibuang: token yang sudah lewat masa berlakunya, lalu yang tertua
      * bila jumlahnya melebihi batas perangkat. Yang tertua, bukan yang
      * terbaru, supaya masuk dari perangkat baru tidak pernah ditolak.
+     *
+     * Batas 0 mematikan pembuangan itu. Membuang token tertua berarti
+     * mengeluarkan seseorang yang mungkin sedang bekerja — persis gangguan
+     * yang diminta pemilik project untuk dihilangkan.
      */
     private function rapikanToken(User $user): void
     {
         $user->tokens()->whereNotNull('expires_at')->where('expires_at', '<=', now())->delete();
 
-        $batas = max(1, (int) config('dams.sesi.maksimal_perangkat', 5));
+        $batas = (int) config('dams.sesi.maksimal_perangkat', 0);
+
+        if ($batas <= 0) {
+            return;
+        }
 
         // Disisakan satu tempat untuk token yang sedang dibuat.
         $dipertahankan = $user->tokens()->latest('id')->limit($batas - 1)->pluck('id');
