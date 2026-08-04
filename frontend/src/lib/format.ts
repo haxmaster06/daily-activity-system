@@ -118,6 +118,75 @@ export function formatAngka(nilai: number | string | null | undefined, desimal =
   });
 }
 
+/**
+ * Kebalikan `formatAngka` — mengubah tulisan pengguna menjadi angka.
+ *
+ * Di sinilah data paling mudah rusak tanpa terlihat: salah menafsirkan `1.234`
+ * membuat seribu dua ratus tiga puluh empat tersimpan sebagai 1,234, dan tidak
+ * ada yang menyadarinya sampai rekapan bulanan terlihat janggal. Karena itu
+ * aturannya ditulis lengkap di sini, bukan disebar sebagai tebakan:
+ *
+ * | Bentuk                       | Ditafsirkan             | Contoh                |
+ * |------------------------------|-------------------------|-----------------------|
+ * | ada koma dan titik           | pemisah paling kanan    | `1.234,5` -> 1234.5   |
+ * |                              | adalah desimal          | `1,234.5` -> 1234.5   |
+ * | hanya koma                   | koma adalah desimal     | `12,75`   -> 12.75    |
+ * | satu titik, <=2 angka        | titik adalah desimal    | `12.75`   -> 12.75    |
+ * | titik selain itu             | titik adalah ribuan     | `1.234`   -> 1234     |
+ *
+ * Titik dengan paling banyak dua angka di belakangnya diperlakukan sebagai
+ * desimal karena papan angka mengetikkan titik, dan `12.75` yang dimaksudkan
+ * sebagai dua belas koma tujuh lima jauh lebih sering daripada seribu dua ratus
+ * tujuh puluh lima yang ditulis tanpa pemisah ribuan lain.
+ *
+ * Penjaga sesungguhnya bukan aturan ini, melainkan `InputAngka` yang menuliskan
+ * kembali hasilnya begitu isian ditinggalkan — pengguna langsung melihat angka
+ * mana yang dipahami sistem.
+ */
+export function parseAngka(teks: string | number | null | undefined): number | null {
+  if (typeof teks === 'number') return Number.isFinite(teks) ? teks : null;
+  if (teks === null || teks === undefined) return null;
+
+  const bersih = teks.trim().replace(/\s/g, '');
+  if (bersih === '') return null;
+
+  const negatif = bersih.startsWith('-');
+  const angka = bersih.replace(/^[+-]/, '');
+
+  if (!/^[\d.,]+$/.test(angka)) return null;
+
+  const titikTerakhir = angka.lastIndexOf('.');
+  const komaTerakhir = angka.lastIndexOf(',');
+
+  let pemisahDesimal = -1;
+
+  if (titikTerakhir !== -1 && komaTerakhir !== -1) {
+    pemisahDesimal = Math.max(titikTerakhir, komaTerakhir);
+  } else if (komaTerakhir !== -1) {
+    pemisahDesimal = komaTerakhir;
+  } else if (titikTerakhir !== -1) {
+    const jumlahTitik = (angka.match(/\./g) ?? []).length;
+    const angkaDiBelakang = angka.length - titikTerakhir - 1;
+
+    if (jumlahTitik === 1 && angkaDiBelakang <= 2 && angkaDiBelakang > 0) {
+      pemisahDesimal = titikTerakhir;
+    }
+  }
+
+  const bagianBulat =
+    pemisahDesimal === -1
+      ? angka.replace(/[.,]/g, '')
+      : angka.slice(0, pemisahDesimal).replace(/[.,]/g, '');
+  const bagianPecahan = pemisahDesimal === -1 ? '' : angka.slice(pemisahDesimal + 1);
+
+  if (bagianBulat === '' && bagianPecahan === '') return null;
+
+  const hasil = Number(`${bagianBulat || '0'}.${bagianPecahan || '0'}`);
+  if (!Number.isFinite(hasil)) return null;
+
+  return negatif ? -hasil : hasil;
+}
+
 /** "2,4 MB" — ukuran berkas lampiran. */
 export function formatUkuranBerkas(bytes: number | null | undefined): string {
   if (!bytes || bytes < 0) return '—';

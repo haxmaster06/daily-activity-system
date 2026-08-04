@@ -286,3 +286,36 @@ it('tidak mengubah kode template saat namanya diperbarui', function (): void {
         ->assertJsonPath('data.nama', 'Nama Baru')
         ->assertJsonPath('data.kode', 'TEMPLATE_UJI');
 });
+
+it('menyimpan angka di belakang koma untuk kolom desimal', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $this->postJson('/api/template', [
+        'name' => 'Uji Desimal',
+        'fields' => [[
+            'key' => 'kadar',
+            'label' => 'Kadar',
+            'type' => 'decimal',
+            'desimal' => 3,
+        ]],
+    ])->assertCreated();
+
+    expect(TemplateField::where('key', 'kadar')->first()->desimal)->toBe(3);
+});
+
+it('menolak angka di belakang koma pada kolom yang bukan desimal', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $response = $this->postJson('/api/template', [
+        'name' => 'Uji Desimal Salah',
+        'fields' => [[
+            'key' => 'catatan',
+            'label' => 'Catatan',
+            'type' => 'text',
+            'desimal' => 2,
+        ]],
+    ])->assertStatus(422);
+
+    expect($response->json('errors')['fields.0.desimal'][0])
+        ->toBe('Angka di belakang koma hanya berlaku untuk kolom angka desimal.');
+});

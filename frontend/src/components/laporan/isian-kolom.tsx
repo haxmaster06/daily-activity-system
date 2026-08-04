@@ -3,10 +3,12 @@
 import { Calculator } from 'lucide-react';
 
 import { DatePicker } from '@/components/ui/date-picker';
+import { InputAngka } from '@/components/ui/input-angka';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/cn';
+import { formatAngka } from '@/lib/format';
 import type { NilaiBaris } from '@/lib/laporan';
-import type { KolomTemplate } from '@/lib/template';
+import { TIPE_ANGKA, type KolomTemplate } from '@/lib/template';
 
 interface IsianKolomProps {
   kolom: KolomTemplate;
@@ -125,21 +127,15 @@ export function IsianKolom({
     case 'integer':
     case 'decimal':
       return (
-        <input
+        <InputAngka
           id={id}
-          type="number"
-          inputMode="decimal"
-          step={kolom.tipe === 'integer' ? 1 : 'any'}
-          min={kolom.nilai_min ?? undefined}
-          max={kolom.nilai_maks ?? undefined}
-          value={isi === null || isi === undefined ? '' : String(isi)}
-          onChange={(e) =>
-            onUbah(kolom.kunci, e.target.value === '' ? null : Number(e.target.value))
-          }
+          nilai={typeof isi === 'number' ? isi : null}
+          onUbah={(angka) => onUbah(kolom.kunci, angka)}
+          desimal={kolom.tipe === 'integer' ? 0 : (kolom.desimal ?? 2)}
+          bulat={kolom.tipe === 'integer'}
           placeholder={kolom.placeholder ?? undefined}
-          aria-label={kolom.label}
-          aria-invalid={Boolean(galat)}
-          className={cn('field field-sm text-right tabular-nums', galat && 'border-danger')}
+          label={kolom.label}
+          bermasalah={Boolean(galat)}
         />
       );
 
@@ -189,6 +185,12 @@ function tampilkanNilai(
 
   if (kolom.tipe === 'select') {
     return kolom.pilihan?.find((p) => p.nilai === isi)?.label ?? String(isi);
+  }
+
+  // Angka dibaca dengan pemisah Indonesia, sama seperti saat diisi — kalau
+  // tidak, nilai yang sama tampil berbeda antara mode isi dan mode baca.
+  if (typeof isi === 'number' && TIPE_ANGKA.includes(kolom.tipe)) {
+    return formatAngka(isi, kolom.tipe === 'integer' ? 0 : (kolom.desimal ?? 2));
   }
 
   return String(isi);

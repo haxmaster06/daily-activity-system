@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'key', 'label', 'group_label', 'type', 'is_required', 'sort_order',
     'unit', 'placeholder', 'help_text', 'options', 'lookup_source',
-    'computed_from', 'min_value', 'max_value',
+    'computed_from', 'min_value', 'max_value', 'desimal',
 ])]
 class TemplateField extends Model
 {
@@ -63,6 +63,7 @@ class TemplateField extends Model
             'options' => 'array',
             'min_value' => 'decimal:3',
             'max_value' => 'decimal:3',
+            'desimal' => 'integer',
         ];
     }
 

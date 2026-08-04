@@ -37,6 +37,8 @@ export interface KolomTemplate {
   rumus: string | null;
   nilai_min: number | null;
   nilai_maks: number | null;
+  /** Angka di belakang koma untuk tipe `decimal`. Null berarti bawaan (2). */
+  desimal: number | null;
 }
 
 export interface Template {

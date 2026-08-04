@@ -9,6 +9,7 @@ import {
   formatTanggalWaktu,
   formatUkuranBerkas,
   formatWaktu,
+  parseAngka,
   toApiDate,
   toFileStamp,
 } from './format';
@@ -87,5 +88,62 @@ describe('format angka', () => {
   it('menampilkan ukuran berkas lampiran', () => {
     expect(formatUkuranBerkas(2_516_582)).toBe('2,4 MB');
     expect(formatUkuranBerkas(0)).toBe('—');
+  });
+});
+
+describe('urai angka', () => {
+  it('membaca koma sebagai pemisah desimal', () => {
+    expect(parseAngka('12,75')).toBe(12.75);
+    expect(parseAngka('0,25')).toBe(0.25);
+    expect(parseAngka('-3,5')).toBe(-3.5);
+  });
+
+  it('membaca titik sebagai desimal bila di belakangnya paling banyak dua angka', () => {
+    // Papan angka mengetikkan titik, dan yang dimaksud hampir selalu desimal.
+    expect(parseAngka('12.75')).toBe(12.75);
+    expect(parseAngka('0.5')).toBe(0.5);
+  });
+
+  it('membaca titik sebagai pemisah ribuan bila bukan bentuk desimal', () => {
+    expect(parseAngka('1.234')).toBe(1234);
+    expect(parseAngka('1.234.567')).toBe(1234567);
+  });
+
+  it('memakai pemisah paling kanan ketika koma dan titik hadir bersama', () => {
+    expect(parseAngka('1.234,5')).toBe(1234.5);
+    expect(parseAngka('1,234.5')).toBe(1234.5);
+    expect(parseAngka('1.234.567,89')).toBe(1234567.89);
+  });
+
+  it('mengembalikan null untuk isian yang bukan angka', () => {
+    expect(parseAngka('')).toBeNull();
+    expect(parseAngka('   ')).toBeNull();
+    expect(parseAngka('-')).toBeNull();
+    expect(parseAngka('abc')).toBeNull();
+    expect(parseAngka('12kg')).toBeNull();
+    expect(parseAngka(null)).toBeNull();
+    expect(parseAngka(undefined)).toBeNull();
+  });
+
+  it('meneruskan angka yang memang sudah berupa angka', () => {
+    expect(parseAngka(12.75)).toBe(12.75);
+    expect(parseAngka(0)).toBe(0);
+    expect(parseAngka(Number.NaN)).toBeNull();
+  });
+
+  it('bolak-balik dengan formatAngka tanpa berubah nilai', () => {
+    // Inilah jaring pengamannya: apa pun yang ditampilkan ke pengguna harus
+    // dapat dibaca kembali menjadi angka yang sama persis.
+    for (const [angka, desimal] of [
+      [0, 0],
+      [7, 0],
+      [1234, 0],
+      [1234.5, 1],
+      [1234567.89, 2],
+      [-980.25, 2],
+      [0.125, 3],
+    ] as const) {
+      expect(parseAngka(formatAngka(angka, desimal))).toBe(angka);
+    }
   });
 });

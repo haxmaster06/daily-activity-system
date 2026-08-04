@@ -38,6 +38,7 @@ class TemplateFieldResource extends JsonResource
             'rumus' => $this->computed_from,
             'nilai_min' => $this->min_value === null ? null : (float) $this->min_value,
             'nilai_maks' => $this->max_value === null ? null : (float) $this->max_value,
+            'desimal' => $this->desimal,
         ];
     }
 }

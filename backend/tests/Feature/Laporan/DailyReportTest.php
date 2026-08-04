@@ -210,3 +210,50 @@ it('menolak pengguna lain menyunting laporan yang bukan miliknya', function (): 
     $this->putJson("/api/laporan/{$laporan->id}", muatanLaporan($template))
         ->assertForbidden();
 });
+
+it('menolak angka yang pecahannya melebihi pengaturan kolom', function (): void {
+    $template = siapkanMaster();
+
+    // Kolom angka desimal dengan dua angka di belakang koma.
+    $template->fields()->create([
+        'key' => 'berat',
+        'label' => 'Berat',
+        'type' => 'decimal',
+        'desimal' => 2,
+        'sort_order' => 90,
+    ]);
+
+    Sanctum::actingAs(User::factory()->staff()->create());
+
+    $response = $this->postJson('/api/laporan', muatanLaporan($template, [[
+        'aktivitas' => 'Menimbang',
+        'status' => 'selesai',
+        // Pembagian di sisi klien dapat menitipkan belasan digit ke kolom JSON.
+        'berat' => 12.3456789,
+    ]]));
+
+    $response->assertStatus(422);
+    expect($response->json('errors'))->toHaveKey('sections.0.items.0.berat');
+});
+
+it('menerima angka pecahan yang sesuai pengaturan kolom', function (): void {
+    $template = siapkanMaster();
+
+    $template->fields()->create([
+        'key' => 'berat',
+        'label' => 'Berat',
+        'type' => 'decimal',
+        'desimal' => 2,
+        'sort_order' => 90,
+    ]);
+
+    Sanctum::actingAs(User::factory()->staff()->create());
+
+    $this->postJson('/api/laporan', muatanLaporan($template, [[
+        'aktivitas' => 'Menimbang',
+        'status' => 'selesai',
+        'berat' => 12.75,
+    ]]))->assertCreated();
+
+    expect(DailyReportItem::first()->data['berat'])->toBe(12.75);
+});

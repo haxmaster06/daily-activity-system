@@ -57,6 +57,7 @@ class ReportTemplateRequest extends FormRequest
             'fields.*.computed_from' => ['nullable', 'string', 'max:191'],
             'fields.*.min_value' => ['nullable', 'numeric'],
             'fields.*.max_value' => ['nullable', 'numeric'],
+            'fields.*.desimal' => ['nullable', 'integer', 'min:0', 'max:4'],
         ];
     }
 
@@ -106,6 +107,15 @@ class ReportTemplateRequest extends FormRequest
                     $validator->errors()->add(
                         "fields.{$index}.unit",
                         'Satuan hanya berlaku untuk kolom angka.',
+                    );
+                }
+
+                // Angka di belakang koma hanya berarti pada kolom desimal.
+                // Bilangan bulat selalu nol, dan teks tidak punya koma.
+                if ($tipe !== TemplateField::TIPE_DECIMAL && ($field['desimal'] ?? null) !== null) {
+                    $validator->errors()->add(
+                        "fields.{$index}.desimal",
+                        'Angka di belakang koma hanya berlaku untuk kolom angka desimal.',
                     );
                 }
 

@@ -8,8 +8,8 @@ import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { Wizard } from '@/components/ui/wizard';
 import type { Departemen } from '@/lib/master-data';
-import type { OpsiPenyusunKolom, Template } from '@/lib/template';
-import { LABEL_TIPE } from '@/lib/template';
+import type { OpsiPenyusunKolom, Template, TipeKolom } from '@/lib/template';
+import { LABEL_TIPE, TIPE_ANGKA } from '@/lib/template';
 import { buatTemplate, perbaruiTemplate, type KiriKolom } from './actions';
 import { KOLOM_KOSONG, kunciDariLabel, PenyusunKolom, type DraftKolom } from './penyusun-kolom';
 
@@ -20,6 +20,18 @@ interface TemplateWizardProps {
   template: Template | null;
   departemen: Departemen[];
   opsi: OpsiPenyusunKolom;
+}
+
+const bertipeAngka = (tipe: TipeKolom): boolean => TIPE_ANGKA.includes(tipe);
+
+/** Isian kosong berarti "tidak diatur", bukan nol. */
+function angkaAtauNull(teks: string): number | null {
+  const bersih = teks.trim();
+  if (bersih === '') return null;
+
+  const angka = Number(bersih.replace(',', '.'));
+
+  return Number.isFinite(angka) ? angka : null;
 }
 
 interface Identitas {
@@ -86,6 +98,10 @@ export function TemplateWizard({
           options: (k.pilihan ?? []).map((p) => p.label).join(', '),
           lookup_source: k.sumber_master ?? '',
           computed_from: k.rumus ?? '',
+          placeholder: k.placeholder ?? '',
+          min_value: k.nilai_min === null ? '' : String(k.nilai_min),
+          max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
+          desimal: k.desimal === null ? '' : String(k.desimal),
         })),
       );
     } else {
@@ -145,6 +161,12 @@ export function TemplateWizard({
           : null,
       lookup_source: k.lookup_source || null,
       computed_from: k.computed_from.trim() || null,
+      placeholder: k.placeholder.trim() || null,
+      // Batas dan angka pecahan hanya berarti pada kolom angka; dikirim null
+      // untuk tipe lain supaya validasi backend tidak menolaknya.
+      min_value: bertipeAngka(k.type) ? angkaAtauNull(k.min_value) : null,
+      max_value: bertipeAngka(k.type) ? angkaAtauNull(k.max_value) : null,
+      desimal: k.type === 'decimal' ? angkaAtauNull(k.desimal) : null,
     }));
   }
 

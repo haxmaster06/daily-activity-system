@@ -106,11 +106,29 @@ final class ValidasiIsianTemplate
         }
 
         if ($kolom->bertipeAngka()) {
+            /*
+             * Di-cast ke float lebih dulu. `min_value` dan `max_value` memakai
+             * cast `decimal:3`, jadi isinya string `"100.000"` — Laravel masih
+             * mengurainya, tetapi menyisipkan string ke aturan angka adalah
+             * kerapuhan yang tinggal menunggu giliran, dan pesan galatnya ikut
+             * menampilkan nol di belakang koma yang tidak berarti apa-apa bagi
+             * pembacanya.
+             */
             if ($kolom->min_value !== null) {
-                $aturan[] = 'min:'.$kolom->min_value;
+                $aturan[] = 'min:'.(float) $kolom->min_value;
             }
             if ($kolom->max_value !== null) {
-                $aturan[] = 'max:'.$kolom->max_value;
+                $aturan[] = 'max:'.(float) $kolom->max_value;
+            }
+
+            /*
+             * Angka pecahan dibatasi sesuai pengaturan kolom. Tanpa ini,
+             * pembagian di sisi klien dapat menitipkan belasan digit ke dalam
+             * kolom JSON, dan angka itu tampil berbeda dari yang dilihat
+             * pengisi saat menyimpannya.
+             */
+            if ($kolom->type === TemplateField::TIPE_DECIMAL && $kolom->desimal !== null) {
+                $aturan[] = 'decimal:0,'.$kolom->desimal;
             }
         }
 

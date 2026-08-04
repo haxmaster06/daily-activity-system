@@ -18,6 +18,11 @@ export interface DraftKolom {
   options: string;
   lookup_source: string;
   computed_from: string;
+  placeholder: string;
+  /** Disimpan sebagai teks supaya isian yang belum lengkap tidak runtuh. */
+  min_value: string;
+  max_value: string;
+  desimal: string;
 }
 
 export const KOLOM_KOSONG: DraftKolom = {
@@ -31,6 +36,10 @@ export const KOLOM_KOSONG: DraftKolom = {
   options: '',
   lookup_source: '',
   computed_from: '',
+  placeholder: '',
+  min_value: '',
+  max_value: '',
+  desimal: '',
 };
 
 /**
@@ -238,6 +247,62 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                     )}
                   </div>
 
+                  {item.type === 'decimal' && (
+                    <div>
+                      <label htmlFor={`desimal-${index}`} className="field-label">
+                        Angka di belakang koma
+                      </label>
+                      <Select
+                        id={`desimal-${index}`}
+                        nilai={item.desimal || '2'}
+                        onUbah={(nilai) => ubahSatu(index, { desimal: nilai })}
+                        ukuran="sm"
+                        opsi={[
+                          { nilai: '0', label: 'Tanpa koma — 12' },
+                          { nilai: '1', label: 'Satu — 12,5' },
+                          { nilai: '2', label: 'Dua — 12,75' },
+                          { nilai: '3', label: 'Tiga — 12,750' },
+                          { nilai: '4', label: 'Empat — 12,7500' },
+                        ]}
+                      />
+                      {galat(index, 'desimal') && (
+                        <span className="field-error">{galat(index, 'desimal')}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div>
+                    <label htmlFor={`min-${index}`} className="field-label">
+                      Nilai terkecil
+                    </label>
+                    <input
+                      id={`min-${index}`}
+                      value={item.min_value}
+                      onChange={(e) => ubahSatu(index, { min_value: e.target.value })}
+                      placeholder="Kosongkan bila bebas"
+                      className="field field-sm"
+                    />
+                    {galat(index, 'min_value') && (
+                      <span className="field-error">{galat(index, 'min_value')}</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor={`maks-${index}`} className="field-label">
+                      Nilai terbesar
+                    </label>
+                    <input
+                      id={`maks-${index}`}
+                      value={item.max_value}
+                      onChange={(e) => ubahSatu(index, { max_value: e.target.value })}
+                      placeholder="Kosongkan bila bebas"
+                      className="field field-sm"
+                    />
+                    {galat(index, 'max_value') && (
+                      <span className="field-error">{galat(index, 'max_value')}</span>
+                    )}
+                  </div>
+
                   <div>
                     <label htmlFor={`rumus-${index}`} className="field-label">
                       Dihitung otomatis dari
@@ -258,6 +323,38 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                   </div>
                 </>
               )}
+
+              <div>
+                <label htmlFor={`contoh-${index}`} className="field-label">
+                  Teks contoh
+                </label>
+                <input
+                  id={`contoh-${index}`}
+                  value={item.placeholder}
+                  onChange={(e) => ubahSatu(index, { placeholder: e.target.value })}
+                  placeholder="Tampil samar saat isian kosong"
+                  className="field field-sm"
+                />
+                {galat(index, 'placeholder') && (
+                  <span className="field-error">{galat(index, 'placeholder')}</span>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor={`bantuan-${index}`} className="field-label">
+                  Teks bantuan
+                </label>
+                <input
+                  id={`bantuan-${index}`}
+                  value={item.help_text}
+                  onChange={(e) => ubahSatu(index, { help_text: e.target.value })}
+                  placeholder="Penjelasan singkat untuk pengisi"
+                  className="field field-sm"
+                />
+                {galat(index, 'help_text') && (
+                  <span className="field-error">{galat(index, 'help_text')}</span>
+                )}
+              </div>
 
               <div className="sm:col-span-2">
                 <label htmlFor={`kunci-${index}`} className="field-label">

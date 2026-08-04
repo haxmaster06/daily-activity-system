@@ -19,6 +19,14 @@ export interface KiriKolom {
   options: { nilai: string; label: string }[] | null;
   lookup_source: string | null;
   computed_from: string | null;
+  /*
+   * Keempatnya sudah lama divalidasi backend tetapi tidak pernah dikirim dari
+   * sini, sehingga batas nilai dan teks contoh mustahil diatur lewat layar.
+   */
+  placeholder: string | null;
+  min_value: number | null;
+  max_value: number | null;
+  desimal: number | null;
 }
 
 export interface KiriTemplate {
