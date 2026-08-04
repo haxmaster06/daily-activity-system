@@ -53,6 +53,15 @@
 *.sql.gz
 *.dump
 
+# Skill agen — buatan pihak ketiga, dipasang tiap pengembang sendiri.
+#
+# Sekitar 2 MB dan lisensinya milik penulisnya masing-masing, sedangkan
+# repository ini publik. `/.claude/skills` adalah junction ke `/.agents/skills`
+# supaya Claude Code menemukannya — Claude Code hanya memindai `.claude/skills`,
+# sementara `.agents/` konvensi tool lain.
+/.agents/skills
+/.claude/skills
+
 # Editor & OS
 .DS_Store
 Thumbs.db
