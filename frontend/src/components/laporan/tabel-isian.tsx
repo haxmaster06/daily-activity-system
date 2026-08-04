@@ -23,6 +23,25 @@ interface TabelIsianProps {
   terkunci?: boolean;
 }
 
+/** Lebar minimum sel per tipe — sebelumnya rata untuk semua kolom. */
+const LEBAR: Partial<Record<KolomTemplate['tipe'], string>> = {
+  boolean: 'min-w-16',
+  integer: 'min-w-24',
+  decimal: 'min-w-24',
+  month: 'min-w-28',
+  date: 'min-w-32',
+  select: 'min-w-32',
+  master: 'min-w-40',
+  textarea: 'min-w-56',
+};
+
+/** Lebar kolom nomor baris, dan lebar tiap kolom beku. Dipakai menghitung `left`. */
+const LEBAR_NOMOR = 40;
+const LEBAR_BEKU = 160;
+
+/** Paling banyak dua kolom beku — lebih dari itu memakan lebar yang diselamatkan. */
+const MAKSIMAL_BEKU = 2;
+
 /**
  * Tabel isian satu bagian laporan, dibentuk dari definisi kolom template.
  *
@@ -31,7 +50,20 @@ interface TabelIsianProps {
  * Oven, Ayak, Packing, dan Xray.
  *
  * Tabel menggulir di dalam dirinya sendiri; halaman tidak pernah menggulir
- * mendatar (standar UI/UX §6.2).
+ * mendatar (standar UI/UX §6.2). Kolom yang ditandai beku tetap menempel di
+ * kiri saat digulir, sehingga masih jelas baris mana yang sedang diisi.
+ *
+ * **Papan ketik.** Tab dan Shift-Tab dibiarkan apa adanya — itu perilaku bawaan
+ * peramban dan sudah benar. Yang ditambahkan:
+ *
+ * - `Enter` turun satu baris pada kolom yang sama
+ * - `Enter` di sel terakhir baris terakhir menambah baris baru
+ * - `Alt` + panah berpindah sel ke segala arah
+ *
+ * `Alt` dipakai, bukan panah polos, karena sel dapat berisi `Select` (Radix)
+ * dan `DatePicker` serta `Combobox` (React Aria) yang menangkap panah dan Enter
+ * untuk keperluannya sendiri. Penangannya juga berhenti begitu fokus berada di
+ * dalam kontrol semacam itu — mengambil alih tombolnya akan merusak keduanya.
  */
 export function TabelIsian({
   kolom,
@@ -82,14 +114,125 @@ export function TabelIsian({
     return typeof nilaiInduk === 'string' && nilaiInduk !== '' ? nilaiInduk : null;
   }
 
+  /*
+   * Kolom beku diambil dari urutan kolom, bukan dari urutan penandaannya:
+   * `position: sticky left` hanya masuk akal untuk kolom yang memang berada di
+   * kiri. Kolom bertanda beku yang letaknya di tengah tabel diabaikan.
+   */
+  const urutanBeku = new Map<string, number>();
+  for (const item of kolom) {
+    if (!item.beku) break;
+    if (urutanBeku.size >= MAKSIMAL_BEKU) break;
+
+    urutanBeku.set(item.kunci, urutanBeku.size);
+  }
+
+  /** Gaya menempel untuk sel kolom beku, atau undefined bila tidak beku. */
+  function gayaBeku(kunci: string) {
+    const posisi = urutanBeku.get(kunci);
+
+    return posisi === undefined
+      ? undefined
+      : { left: LEBAR_NOMOR + posisi * LEBAR_BEKU, width: LEBAR_BEKU, minWidth: LEBAR_BEKU };
+  }
+
+  /**
+   * Memindahkan fokus antar sel.
+   *
+   * Sel dialamati lewat `data-sel`, bukan lewat urutan tab: sebagian kontrol
+   * memuat lebih dari satu elemen yang dapat difokus, sehingga menghitung
+   * urutan tab akan meleset.
+   */
+  function fokuskan(barisTujuan: number, kolomTujuan: number): boolean {
+    const sel = document.querySelector<HTMLElement>(
+      `[data-sel="${awalanGalat}-${barisTujuan}-${kolomTujuan}"]`,
+    );
+
+    const isian = sel?.querySelector<HTMLElement>('input, textarea, [role="combobox"], button');
+
+    if (!isian) return false;
+
+    isian.focus();
+    if (isian instanceof HTMLInputElement || isian instanceof HTMLTextAreaElement) {
+      isian.select();
+    }
+
+    return true;
+  }
+
+  function tombolSel(
+    event: React.KeyboardEvent<HTMLTableCellElement>,
+    barisIni: number,
+    kolomIni: number,
+  ) {
+    if (terkunci) return;
+
+    /*
+     * Kontrol yang menangani tombolnya sendiri dibiarkan sepenuhnya. Tanpa
+     * penjaga ini, panah tidak lagi memindahkan pilihan di dalam Select dan
+     * Enter tidak lagi memilih isi Combobox.
+     */
+    const sasaran = event.target as HTMLElement;
+    const kontrolSendiri = sasaran.closest(
+      '[role="combobox"], [role="listbox"], [role="group"], textarea',
+    );
+
+    const denganAlt = event.altKey;
+
+    if (kontrolSendiri && !denganAlt) return;
+
+    if (denganAlt && event.key.startsWith('Arrow')) {
+      const arah = {
+        ArrowUp: [barisIni - 1, kolomIni],
+        ArrowDown: [barisIni + 1, kolomIni],
+        ArrowLeft: [barisIni, kolomIni - 1],
+        ArrowRight: [barisIni, kolomIni + 1],
+      }[event.key];
+
+      if (arah && fokuskan(arah[0], arah[1])) event.preventDefault();
+
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+
+      if (fokuskan(barisIni + 1, kolomIni)) return;
+
+      // Baris terakhir: Enter menambah baris baru dan pindah ke sana, supaya
+      // mengisi berturut-turut tidak perlu menyentuh tetikus sama sekali.
+      onUbah?.([...baris, barisKosong(kolom)]);
+
+      // Baris barunya baru ada setelah render berikutnya.
+      requestAnimationFrame(() => fokuskan(barisIni + 1, kolomIni));
+
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      (event.target as HTMLElement).blur();
+    }
+  }
+
+  /** Nomor urut sel dalam satu baris, dipakai penomoran fokus. */
+  let nomorKolom = -1;
+
   return (
     <div className="overflow-hidden rounded-card border border-line">
       <div className="max-h-[26rem] overflow-auto">
         <table className="w-full min-w-max border-collapse text-table">
-          <thead className="sticky top-0 z-10 bg-surface-muted">
+          {/*
+            Lapisan z ditulis eksplisit karena inilah yang paling mudah salah:
+            header harus di atas sel biasa, sel beku di atas sel biasa, dan
+            header beku di atas keduanya.
+          */}
+          <thead className="sticky top-0 z-20 bg-surface-muted">
             {adaGrup && (
               <tr className="border-b border-line">
-                <th className="w-10 px-2 py-1.5" />
+                <th
+                  className="sticky left-0 z-30 w-10 bg-surface-muted px-2 py-1.5"
+                  style={{ width: LEBAR_NOMOR }}
+                />
                 {grup.map((g, i) => (
                   <th
                     key={`${g.nama ?? 'tanpa'}-${i}`}
@@ -107,46 +250,73 @@ export function TabelIsian({
             )}
 
             <tr className="border-b border-line">
-              <th className="w-10 px-2 py-2 text-center text-caption font-semibold text-ink-soft">
+              <th
+                className="sticky left-0 z-30 w-10 bg-surface-muted px-2 py-2 text-center text-caption font-semibold text-ink-soft"
+                style={{ width: LEBAR_NOMOR }}
+              >
                 #
               </th>
               {grup.map((g, gi) =>
-                g.kolom.map((item, ki) => (
-                  <th
-                    key={item.kunci}
-                    scope="col"
-                    className={cn(
-                      'whitespace-nowrap px-2 py-2 text-left text-caption font-semibold text-ink-muted',
-                      ki === 0 && g.nama && gi > 0 && 'border-l border-line',
-                    )}
-                  >
-                    {item.label}
-                    {item.satuan && (
-                      <span className="ml-1 font-normal text-ink-soft">({item.satuan})</span>
-                    )}
-                    {item.wajib && <span className="ml-0.5 text-danger">*</span>}
-                  </th>
-                )),
+                g.kolom.map((item, ki) => {
+                  const beku = gayaBeku(item.kunci);
+
+                  return (
+                    <th
+                      key={item.kunci}
+                      scope="col"
+                      style={beku}
+                      // `title` memunculkan teks bantuan yang selama ini
+                      // tersimpan di template tetapi tidak pernah dirender.
+                      title={item.bantuan ?? undefined}
+                      className={cn(
+                        'whitespace-nowrap px-2 py-2 text-left text-caption font-semibold text-ink-muted',
+                        ki === 0 && g.nama && gi > 0 && 'border-l border-line',
+                        beku && 'sticky z-30 bg-surface-muted',
+                      )}
+                    >
+                      {item.label}
+                      {item.satuan && (
+                        <span className="ml-1 font-normal text-ink-soft">({item.satuan})</span>
+                      )}
+                      {item.wajib && <span className="ml-0.5 text-danger">*</span>}
+                      {item.bantuan && <span className="sr-only"> — {item.bantuan}</span>}
+                    </th>
+                  );
+                }),
               )}
               {!terkunci && <th className="w-10 px-2 py-2" />}
             </tr>
           </thead>
 
           <tbody className="divide-y divide-line bg-surface">
-            {baris.map((isi, index) => (
+            {baris.map((isi, index) => {
+              // Dihitung ulang tiap baris supaya nomor selnya sejajar antar baris.
+              nomorKolom = -1;
+
+              return (
               <tr key={index} className="align-top">
-                <td className="px-2 py-1.5 text-center text-caption text-ink-soft">
+                <td
+                  className="sticky left-0 z-10 w-10 bg-surface px-2 py-1.5 text-center text-caption text-ink-soft"
+                  style={{ width: LEBAR_NOMOR }}
+                >
                   {index + 1}
                 </td>
 
                 {grup.map((g, gi) =>
-                  g.kolom.map((item, ki) => (
+                  g.kolom.map((item, ki) => {
+                    const beku = gayaBeku(item.kunci);
+                    const nomor = ++nomorKolom;
+
+                    return (
                     <td
                       key={item.kunci}
+                      data-sel={`${awalanGalat}-${index}-${nomor}`}
+                      onKeyDown={(e) => tombolSel(e, index, nomor)}
+                      style={beku}
                       className={cn(
                         'px-2 py-1.5',
                         ki === 0 && g.nama && gi > 0 && 'border-l border-line',
-                        item.tipe === 'textarea' ? 'min-w-56' : 'min-w-32',
+                        beku ? 'sticky z-10 bg-surface' : (LEBAR[item.tipe] ?? 'min-w-32'),
                       )}
                     >
                       <IsianKolom
@@ -166,7 +336,8 @@ export function TabelIsian({
                         </span>
                       )}
                     </td>
-                  )),
+                    );
+                  }),
                 )}
 
                 {!terkunci && (
@@ -184,7 +355,8 @@ export function TabelIsian({
                   </td>
                 )}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

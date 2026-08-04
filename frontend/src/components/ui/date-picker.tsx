@@ -26,6 +26,14 @@ import { cn } from '@/lib/cn';
 
 interface DatePickerProps {
   label: string;
+  /**
+   * Menyembunyikan label secara visual.
+   *
+   * Dipakai di dalam sel tabel, tempat judul kolomnya sudah menjadi label.
+   * Tetap dirender bagi pembaca layar — yang hilang hanya tampilannya.
+   */
+  tanpaLabel?: boolean;
+  ukuran?: 'sm' | 'md';
   /** Format ISO `YYYY-MM-DD`, atau kosong. */
   nilai: string | null;
   onUbah: (nilai: string | null) => void;
@@ -60,6 +68,8 @@ export function DatePicker({
   nonaktif = false,
   minimal,
   maksimal,
+  tanpaLabel = false,
+  ukuran = 'md',
 }: DatePickerProps) {
   return (
     <AriaDatePicker
@@ -72,9 +82,9 @@ export function DatePicker({
       maxValue={keCalendarDate(maksimal ?? null) ?? undefined}
       className="flex flex-col"
     >
-      <Label className="field-label">
+      <Label className={tanpaLabel ? 'sr-only' : 'field-label'}>
         {label}
-        {wajib && (
+        {wajib && !tanpaLabel && (
           <span className="text-danger" aria-hidden="true">
             {' '}
             *
@@ -84,7 +94,10 @@ export function DatePicker({
 
       <Group
         className={cn(
-          'flex h-input w-full items-center rounded-input border border-line bg-surface pl-2.5',
+          'flex w-full items-center rounded-input border border-line bg-surface pl-2.5',
+          // Tinggi sel tabel wajib sama untuk semua tipe (§6.5): baris yang
+          // tingginya berubah-ubah membuat tabel terlihat rusak.
+          ukuran === 'sm' ? 'h-input-sm' : 'h-input',
           'transition-colors duration-fast',
           'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/30',
           galat && 'border-danger focus-within:border-danger focus-within:ring-danger/30',

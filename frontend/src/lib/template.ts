@@ -50,6 +50,8 @@ export interface KolomTemplate {
   master_jenis: { id: number; slug: string; nama: string; induk_id: number | null } | null;
   /** Kunci kolom pada template yang sama yang menyaring daftar ini. */
   master_induk_kunci: string | null;
+  /** Kolom menempel di kiri saat tabel isian digulir mendatar. */
+  beku: boolean;
 }
 
 export interface Template {

@@ -110,6 +110,7 @@ export function TemplateWizard({
           placeholder: k.placeholder ?? '',
           master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
           master_induk_key: k.master_induk_kunci ?? '',
+          beku: k.beku,
           min_value: k.nilai_min === null ? '' : String(k.nilai_min),
           max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
           desimal: k.desimal === null ? '' : String(k.desimal),
@@ -203,6 +204,7 @@ export function TemplateWizard({
       desimal: k.type === 'decimal' ? angkaAtauNull(k.desimal) : null,
       master_type_id: k.type === 'master' && k.master_type_id ? Number(k.master_type_id) : null,
       master_induk_key: k.type === 'master' ? k.master_induk_key || null : null,
+      beku: k.beku,
     }));
   }
 

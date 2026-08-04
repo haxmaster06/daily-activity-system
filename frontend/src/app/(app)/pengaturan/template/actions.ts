@@ -29,6 +29,7 @@ export interface KiriKolom {
   desimal: number | null;
   master_type_id: number | null;
   master_induk_key: string | null;
+  beku: boolean;
 }
 
 export interface KiriTemplate {

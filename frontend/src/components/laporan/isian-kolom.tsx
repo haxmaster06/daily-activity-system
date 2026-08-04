@@ -111,6 +111,10 @@ export function IsianKolom({
       return (
         <DatePicker
           label={kolom.label}
+          // Label kolom sudah menjadi header tabel; merendernya lagi di tiap
+          // sel membuat tinggi barisnya berbeda dari sel lain (§6.5).
+          tanpaLabel
+          ukuran="sm"
           nilai={typeof isi === 'string' ? isi : null}
           onUbah={(baru) => onUbah(kolom.kunci, baru)}
           galat={galat}

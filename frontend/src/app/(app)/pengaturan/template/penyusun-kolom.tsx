@@ -27,6 +27,7 @@ export interface DraftKolom {
   computed_from: string;
   master_type_id: string;
   master_induk_key: string;
+  beku: boolean;
   placeholder: string;
   /** Disimpan sebagai teks supaya isian yang belum lengkap tidak runtuh. */
   min_value: string;
@@ -47,6 +48,7 @@ export const KOLOM_KOSONG: DraftKolom = {
   computed_from: '',
   master_type_id: '',
   master_induk_key: '',
+  beku: false,
   placeholder: '',
   min_value: '',
   max_value: '',
@@ -480,6 +482,20 @@ export function PenyusunKolom({
                 />
                 Wajib diisi
               </label>
+
+              <label className="flex w-fit items-center gap-2 text-body text-ink-muted sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={item.beku}
+                  onChange={(e) => ubahSatu(index, { beku: e.target.checked })}
+                  className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+                />
+                Tetap terlihat saat digulir
+              </label>
+              <span className="text-caption text-ink-soft sm:col-span-2">
+                Berlaku untuk paling banyak dua kolom pertama. Kolom identitas yang tetap
+                terlihat membuat pengisi tidak kehilangan jejak baris saat menggulir ke kanan.
+              </span>
             </div>
           </div>
         );
