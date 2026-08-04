@@ -3,8 +3,8 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 
 import { Select } from '@/components/ui/select';
-import { cn } from '@/lib/cn';
 import { LABEL_TIPE, TIPE_ANGKA, type OpsiPenyusunKolom, type TipeKolom } from '@/lib/template';
+import { PenyusunRumus } from './penyusun-rumus';
 
 export interface DraftKolom {
   key: string;
@@ -81,6 +81,24 @@ interface PenyusunKolomProps {
 export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolomProps) {
   function ubahSatu(index: number, perubahan: Partial<DraftKolom>) {
     onUbah(kolom.map((item, i) => (i === index ? { ...item, ...perubahan } : item)));
+  }
+
+  /**
+   * Kolom yang boleh dirujuk rumus milik kolom ke-`index`.
+   *
+   * Kolom angka lain yang sudah punya kunci dan label, tanpa dirinya sendiri —
+   * aturan yang sama dengan `ReportTemplateRequest::withValidator()`, kini
+   * ditegakkan juga di layar sehingga rumus yang mustahil tidak pernah sempat
+   * tersusun.
+   */
+  function rujukanUntuk(index: number) {
+    return kolom
+      .map((item, i) => ({ item, i }))
+      .filter(
+        ({ item, i }) =>
+          i !== index && TIPE_ANGKA.includes(item.type) && item.key !== '' && item.label !== '',
+      )
+      .map(({ item }) => ({ kunci: item.key, label: item.label }));
   }
 
   function ubahLabel(index: number, label: string) {
@@ -303,23 +321,17 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                     )}
                   </div>
 
-                  <div>
-                    <label htmlFor={`rumus-${index}`} className="field-label">
-                      Dihitung otomatis dari
-                    </label>
-                    <input
+                  <div className="sm:col-span-2">
+                    <PenyusunRumus
                       id={`rumus-${index}`}
-                      value={item.computed_from}
-                      onChange={(e) => ubahSatu(index, { computed_from: e.target.value })}
-                      placeholder="qty_masuk - qty_keluar"
-                      className={cn('field field-sm font-mono')}
+                      nilai={item.computed_from}
+                      onUbah={(rumus) => ubahSatu(index, { computed_from: rumus })}
+                      rujukan={rujukanUntuk(index)}
+                      galat={galat(index, 'computed_from')}
                     />
                     <span className="mt-1 block text-caption text-ink-soft">
-                      Pakai kunci kolom lain. Kolom ini akan terkunci saat pengisian.
+                      Kolom ini akan terkunci saat pengisian.
                     </span>
-                    {galat(index, 'computed_from') && (
-                      <span className="field-error">{galat(index, 'computed_from')}</span>
-                    )}
                   </div>
                 </>
               )}

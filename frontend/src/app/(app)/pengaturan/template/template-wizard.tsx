@@ -12,6 +12,7 @@ import type { OpsiPenyusunKolom, Template, TipeKolom } from '@/lib/template';
 import { LABEL_TIPE, TIPE_ANGKA } from '@/lib/template';
 import { buatTemplate, perbaruiTemplate, type KiriKolom } from './actions';
 import { KOLOM_KOSONG, kunciDariLabel, PenyusunKolom, type DraftKolom } from './penyusun-kolom';
+import { rumusSah } from './penyusun-rumus';
 
 interface TemplateWizardProps {
   terbuka: boolean;
@@ -135,6 +136,29 @@ export function TemplateWizard({
     const ganda = kunci.find((k, i) => kunci.indexOf(k) !== i);
     if (ganda) {
       setGalat(`Kunci "${ganda}" dipakai lebih dari satu kolom.`);
+      return false;
+    }
+
+    /*
+     * Rumus diperiksa di sini, bukan menunggu balasan server. Rumus yang
+     * kurungnya tidak berpasangan atau menyebut kolom yang sudah berganti nama
+     * tersimpan tanpa keluhan lalu menghitung nol diam-diam saat laporan diisi.
+     */
+    const rumusRusak = kolom.findIndex((k, i) => {
+      if (k.computed_from.trim() === '') return false;
+
+      const rujukan = kolom
+        .filter((lain, j) => j !== i && bertipeAngka(lain.type) && lain.key.trim() !== '')
+        .map((lain) => ({ kunci: lain.key.trim(), label: lain.label.trim() }));
+
+      return !rumusSah(k.computed_from, rujukan);
+    });
+
+    if (rumusRusak !== -1) {
+      setGalat(
+        `Rumus pada kolom ${rumusRusak + 1} belum lengkap atau menyebut kolom yang tidak ada.`,
+      );
+
       return false;
     }
 
