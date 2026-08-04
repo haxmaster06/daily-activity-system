@@ -58,6 +58,17 @@ final class ValidasiIsianTemplate
                         $nama["{$kunci}.{$bagian}"] = mb_strtolower($kolom->label);
                     }
                 }
+
+                // Tiap isi pilihan majemuk diperiksa terhadap daftar yang sama
+                // dengan kolom pilihan tunggal.
+                if ($kolom->type === TemplateField::TIPE_MULTISELECT) {
+                    $nilaiSah = array_column($kolom->options ?? [], 'nilai');
+
+                    $aturan["{$kunci}.*"] = $nilaiSah === []
+                        ? ['string', 'max:64']
+                        : ['string', 'in:'.implode(',', $nilaiSah)];
+                    $nama["{$kunci}.*"] = mb_strtolower($kolom->label);
+                }
             }
         }
 
@@ -100,8 +111,11 @@ final class ValidasiIsianTemplate
             TemplateField::TIPE_MONTH => 'date_format:Y-m',
             TemplateField::TIPE_BOOLEAN => 'boolean',
             TemplateField::TIPE_SELECT => 'string',
+            // Jam disimpan sebagai `HH:MM`, bukan waktu penuh.
+            TemplateField::TIPE_TIME => 'date_format:H:i',
             // Nilai kolom master berupa salinan `{kode, nama}`, bukan skalar.
             TemplateField::TIPE_MASTER => 'array',
+            TemplateField::TIPE_MULTISELECT => 'array',
             default => 'string',
         };
 

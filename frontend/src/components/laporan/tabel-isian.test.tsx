@@ -41,6 +41,7 @@ function kolom(
     master_jenis: null,
     master_induk_kunci: null,
     beku: false,
+    tampilan: null,
     ...tambahan,
   };
 }

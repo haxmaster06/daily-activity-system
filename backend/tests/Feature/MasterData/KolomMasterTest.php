@@ -315,3 +315,57 @@ it('tidak menagih laporan dari akun sistem', function (): void {
     expect($wajib)->toContain($staf->id)
         ->and($wajib)->not->toContain($superadmin->id);
 });
+
+it('menyimpan pilihan majemuk sebagai daftar dan menolak isi di luar pilihan', function (): void {
+    $template = ReportTemplate::create(['code' => 'UJI_MULTI', 'name' => 'Uji Multi']);
+    $template->fields()->create([
+        'key' => 'aktivitas',
+        'label' => 'Aktivitas',
+        'type' => 'text',
+        'is_required' => true,
+    ]);
+    $template->fields()->create([
+        'key' => 'mesin',
+        'label' => 'Mesin',
+        'type' => 'multiselect',
+        'options' => [
+            ['nilai' => 'oven', 'label' => 'Oven'],
+            ['nilai' => 'ayak', 'label' => 'Ayak'],
+        ],
+    ]);
+
+    Sanctum::actingAs(User::factory()->staff()->create());
+
+    $muatan = fn (array $mesin) => [
+        'report_date' => now()->toDateString(),
+        'sections' => [[
+            'report_template_id' => $template->id,
+            'items' => [['aktivitas' => 'Produksi', 'mesin' => $mesin]],
+        ]],
+    ];
+
+    $this->postJson('/api/laporan', $muatan(['oven', 'ayak']))->assertCreated();
+
+    expect(DailyReportItem::first()->data['mesin'])->toBe(['oven', 'ayak']);
+
+    // Tiap isi diperiksa terhadap daftar yang sama dengan pilihan tunggal.
+    $this->postJson('/api/laporan', $muatan(['mesin_karangan']))->assertStatus(422);
+});
+
+it('menolak jam yang bukan format HH:MM', function (): void {
+    $template = ReportTemplate::create(['code' => 'UJI_JAM', 'name' => 'Uji Jam']);
+    $template->fields()->create(['key' => 'mulai', 'label' => 'Jam Mulai', 'type' => 'time']);
+
+    Sanctum::actingAs(User::factory()->staff()->create());
+
+    $kirim = fn (string $jam) => $this->postJson('/api/laporan', [
+        'report_date' => now()->toDateString(),
+        'sections' => [[
+            'report_template_id' => $template->id,
+            'items' => [['mulai' => $jam]],
+        ]],
+    ]);
+
+    $kirim('08:15')->assertCreated();
+    $kirim('25:99')->assertStatus(422);
+});

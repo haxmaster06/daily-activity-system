@@ -13,7 +13,9 @@ export type TipeKolom =
   | 'decimal'
   | 'date'
   | 'month'
+  | 'time'
   | 'select'
+  | 'multiselect'
   | 'master'
   | 'boolean';
 
@@ -52,6 +54,8 @@ export interface KolomTemplate {
   master_induk_kunci: string | null;
   /** Kolom menempel di kiri saat tabel isian digulir mendatar. */
   beku: boolean;
+  /** Variasi tampilan saat diisi. Null berarti tipe ini hanya punya satu. */
+  tampilan: string | null;
 }
 
 export interface Template {
@@ -83,9 +87,42 @@ export const LABEL_TIPE: Record<TipeKolom, string> = {
   decimal: 'Angka desimal',
   date: 'Tanggal',
   month: 'Bulan',
+  time: 'Jam',
   select: 'Pilihan',
+  multiselect: 'Pilihan majemuk',
   master: 'Pilihan dari daftar master',
   boolean: 'Ya / Tidak',
+};
+
+/**
+ * Variasi tampilan per tipe. Entri pertama tiap tipe adalah bawaannya.
+ *
+ * Salinan dari `TemplateField::TAMPILAN` di backend. Disalin, bukan diambil
+ * lewat API, karena penyusun template membutuhkannya sebelum kolomnya ada.
+ */
+export const TAMPILAN: Partial<Record<TipeKolom, { nilai: string; label: string }[]>> = {
+  select: [
+    { nilai: 'dropdown', label: 'Dropdown' },
+    { nilai: 'tombol', label: 'Tombol berjajar' },
+    { nilai: 'radio', label: 'Radio' },
+  ],
+  boolean: [
+    { nilai: 'centang', label: 'Kotak centang' },
+    { nilai: 'sakelar', label: 'Sakelar' },
+  ],
+  integer: [
+    { nilai: 'biasa', label: 'Angka biasa' },
+    { nilai: 'stepper', label: 'Dengan tombol naik-turun' },
+  ],
+  decimal: [
+    { nilai: 'biasa', label: 'Angka biasa' },
+    { nilai: 'persen', label: 'Persen' },
+    { nilai: 'uang', label: 'Rupiah' },
+  ],
+  text: [
+    { nilai: 'biasa', label: 'Teks biasa' },
+    { nilai: 'kode', label: 'Kode (huruf seragam)' },
+  ],
 };
 
 /** Kolom yang menerima satuan dan batas nilai. */

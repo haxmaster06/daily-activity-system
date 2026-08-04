@@ -225,6 +225,18 @@ final class DataExport
                 $field->type === TemplateField::TIPE_MASTER => is_array($nilai)
                     ? (string) ($nilai['nama'] ?? $nilai['kode'] ?? '')
                     : (string) $nilai,
+                /*
+                 * Pilihan majemuk digabung menjadi satu teks. Sel Excel hanya
+                 * menampung satu nilai, dan memecahnya menjadi beberapa kolom
+                 * akan membuat lebar tabel berubah-ubah antar laporan.
+                 */
+                $field->type === TemplateField::TIPE_MULTISELECT => is_array($nilai)
+                    ? implode(', ', array_map(
+                        fn ($satu) => self::labelPilihan($field->options, $satu),
+                        $nilai,
+                    ))
+                    : (string) $nilai,
+                $field->type === TemplateField::TIPE_TIME => (string) $nilai,
                 default => $nilai,
             };
         }

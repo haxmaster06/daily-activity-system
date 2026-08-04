@@ -55,7 +55,9 @@ it('menghasilkan nilai export yang dapat ditulis ke sel untuk setiap tipe', func
         TemplateField::TIPE_DECIMAL => 12.75,
         TemplateField::TIPE_DATE => '2026-08-04',
         TemplateField::TIPE_MONTH => '2026-08',
+        TemplateField::TIPE_TIME => '08:15',
         TemplateField::TIPE_SELECT => 'selesai',
+        TemplateField::TIPE_MULTISELECT => ['selesai'],
         TemplateField::TIPE_BOOLEAN => true,
         TemplateField::TIPE_MASTER => ['kode' => 'SUP_001', 'nama' => 'Pemasok Contoh'],
     ];

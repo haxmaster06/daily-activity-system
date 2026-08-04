@@ -2,6 +2,7 @@
 
 import { Calculator } from 'lucide-react';
 
+import { ButtonGroup } from '@/components/ui/button-group';
 import { DatePicker } from '@/components/ui/date-picker';
 import { InputAngka } from '@/components/ui/input-angka';
 import { Select } from '@/components/ui/select';
@@ -95,6 +96,43 @@ export function IsianKolom({
 
   switch (kolom.tipe) {
     case 'select':
+      /*
+       * Tombol berjajar hanya masuk akal untuk pilihan yang sedikit. Di atas
+       * empat pilihan ia melebar melewati selnya dan melanggar §6.5, jadi
+       * dikembalikan ke dropdown tanpa perlu administrator memikirkannya.
+       */
+      if (kolom.tampilan === 'tombol' && (kolom.pilihan ?? []).length <= 4) {
+        return (
+          <ButtonGroup
+            label={kolom.label}
+            nilai={typeof isi === 'string' ? isi : ''}
+            onUbah={(baru) => onUbah(kolom.kunci, baru)}
+            opsi={(kolom.pilihan ?? []).map((p) => ({ nilai: p.nilai, label: p.label }))}
+          />
+        );
+      }
+
+      if (kolom.tampilan === 'radio') {
+        return (
+          <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <legend className="sr-only">{kolom.label}</legend>
+            {(kolom.pilihan ?? []).map((p) => (
+              <label key={p.nilai} className="flex items-center gap-1.5 text-body text-ink-muted">
+                <input
+                  type="radio"
+                  name={id}
+                  value={p.nilai}
+                  checked={isi === p.nilai}
+                  onChange={() => onUbah(kolom.kunci, p.nilai)}
+                  className="size-3.5 border-line text-primary focus:ring-primary"
+                />
+                {p.label}
+              </label>
+            ))}
+          </fieldset>
+        );
+      }
+
       return (
         <Select
           id={id}
@@ -104,6 +142,50 @@ export function IsianKolom({
           opsi={(kolom.pilihan ?? []).map((p) => ({ nilai: p.nilai, label: p.label }))}
           onUbah={(baru) => onUbah(kolom.kunci, baru)}
           galat={galat}
+        />
+      );
+
+    case 'multiselect':
+      return (
+        <fieldset className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <legend className="sr-only">{kolom.label}</legend>
+          {(kolom.pilihan ?? []).map((p) => {
+            const terpilih = Array.isArray(isi) && isi.includes(p.nilai);
+
+            return (
+              <label key={p.nilai} className="flex items-center gap-1.5 text-body text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={terpilih}
+                  onChange={(e) => {
+                    const sekarang: string[] = Array.isArray(isi) ? isi : [];
+
+                    onUbah(
+                      kolom.kunci,
+                      e.target.checked
+                        ? [...sekarang, p.nilai]
+                        : sekarang.filter((satu) => satu !== p.nilai),
+                    );
+                  }}
+                  className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+                />
+                {p.label}
+              </label>
+            );
+          })}
+        </fieldset>
+      );
+
+    case 'time':
+      return (
+        <input
+          id={id}
+          type="time"
+          value={typeof isi === 'string' ? isi : ''}
+          onChange={(e) => onUbah(kolom.kunci, e.target.value || null)}
+          aria-label={kolom.label}
+          aria-invalid={Boolean(galat)}
+          className="field field-sm"
         />
       );
 
@@ -135,6 +217,38 @@ export function IsianKolom({
       );
 
     case 'boolean':
+      if (kolom.tampilan === 'sakelar') {
+        return (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isi === true}
+            aria-label={kolom.label}
+            onClick={() => onUbah(kolom.kunci, isi !== true)}
+            className={cn(
+              'flex h-input-sm items-center gap-2 rounded-input px-1 text-body',
+              isi === true ? 'text-primary' : 'text-ink-soft',
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                'relative h-4 w-7 shrink-0 rounded-full transition-colors duration-fast',
+                isi === true ? 'bg-primary' : 'bg-line',
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 size-3 rounded-full bg-surface transition-all duration-fast',
+                  isi === true ? 'left-3.5' : 'left-0.5',
+                )}
+              />
+            </span>
+            {isi === true ? 'Ya' : 'Tidak'}
+          </button>
+        );
+      }
+
       return (
         <label className="flex h-input-sm items-center gap-2 text-body text-ink-muted">
           <input
@@ -161,6 +275,9 @@ export function IsianKolom({
           placeholder={kolom.placeholder ?? undefined}
           label={kolom.label}
           bermasalah={Boolean(galat)}
+          awalan={kolom.tampilan === 'uang' ? 'Rp' : undefined}
+          akhiran={kolom.tampilan === 'persen' ? '%' : undefined}
+          stepper={kolom.tampilan === 'stepper'}
         />
       );
 
@@ -205,7 +322,11 @@ export function IsianKolom({
           placeholder={kolom.placeholder ?? undefined}
           aria-label={kolom.label}
           aria-invalid={Boolean(galat)}
-          className={cn('field field-sm', galat && 'border-danger')}
+          className={cn(
+            'field field-sm',
+            kolom.tampilan === 'kode' && 'font-mono uppercase',
+            galat && 'border-danger',
+          )}
         />
       );
   }
@@ -218,6 +339,14 @@ function tampilkanNilai(kolom: KolomTemplate, isi: NilaiSel | undefined): string
   // Kolom master menyimpan salinan `{kode, nama}`; bentuk lama berupa string
   // biasa tetap terbaca lewat `nilaiMaster`.
   if (kolom.tipe === 'master') return nilaiMaster(isi)?.nama ?? '—';
+
+  if (kolom.tipe === 'multiselect') {
+    const daftar = Array.isArray(isi) ? isi : [isi];
+
+    return daftar
+      .map((satu) => kolom.pilihan?.find((p) => p.nilai === satu)?.label ?? String(satu))
+      .join(', ');
+  }
 
   if (kolom.tipe === 'boolean') return isi === true ? 'Ya' : 'Tidak';
 

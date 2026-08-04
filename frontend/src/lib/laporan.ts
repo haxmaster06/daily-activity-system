@@ -18,7 +18,7 @@ export type StatusBaris = 'belum_mulai' | 'dalam_proses' | 'selesai';
  * tetap mungkin muncul pada kolom master — laporan lama yang kolomnya dulu
  * bertipe teks menyimpan string biasa, dan laporan itu harus tetap terbaca.
  */
-export type NilaiSel = string | number | boolean | NilaiMaster | null;
+export type NilaiSel = string | number | boolean | string[] | NilaiMaster | null;
 
 /** Nilai satu baris, berkunci `template_fields.key`. */
 export type NilaiBaris = Record<string, NilaiSel>;

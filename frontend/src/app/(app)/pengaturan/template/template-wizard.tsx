@@ -114,6 +114,7 @@ export function TemplateWizard({
           master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
           master_induk_key: k.master_induk_kunci ?? '',
           beku: k.beku,
+          tampilan: k.tampilan ?? '',
           min_value: k.nilai_min === null ? '' : String(k.nilai_min),
           max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
           desimal: k.desimal === null ? '' : String(k.desimal),
@@ -190,7 +191,7 @@ export function TemplateWizard({
       unit: k.unit.trim() || null,
       help_text: k.help_text.trim() || null,
       options:
-        k.type === 'select' && k.options.trim() !== ''
+        (k.type === 'select' || k.type === 'multiselect') && k.options.trim() !== ''
           ? k.options
               .split(',')
               .map((teks) => teks.trim())
@@ -208,6 +209,7 @@ export function TemplateWizard({
       master_type_id: k.type === 'master' && k.master_type_id ? Number(k.master_type_id) : null,
       master_induk_key: k.type === 'master' ? k.master_induk_key || null : null,
       beku: k.beku,
+      tampilan: k.tampilan || null,
     }));
   }
 

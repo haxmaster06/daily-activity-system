@@ -3,7 +3,13 @@
 import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 
 import { Select } from '@/components/ui/select';
-import { LABEL_TIPE, TIPE_ANGKA, type OpsiPenyusunKolom, type TipeKolom } from '@/lib/template';
+import {
+  LABEL_TIPE,
+  TAMPILAN,
+  TIPE_ANGKA,
+  type OpsiPenyusunKolom,
+  type TipeKolom,
+} from '@/lib/template';
 import { PenyusunRumus } from './penyusun-rumus';
 
 /** Daftar master seperlunya untuk penyusun kolom. */
@@ -28,6 +34,7 @@ export interface DraftKolom {
   master_type_id: string;
   master_induk_key: string;
   beku: boolean;
+  tampilan: string;
   placeholder: string;
   /** Disimpan sebagai teks supaya isian yang belum lengkap tidak runtuh. */
   min_value: string;
@@ -49,6 +56,7 @@ export const KOLOM_KOSONG: DraftKolom = {
   master_type_id: '',
   master_induk_key: '',
   beku: false,
+  tampilan: '',
   placeholder: '',
   min_value: '',
   max_value: '',
@@ -313,7 +321,23 @@ export function PenyusunKolom({
                 </>
               )}
 
-              {item.type === 'select' && (
+              {/*
+                Variasi tampilan hanya ditawarkan untuk tipe yang memang punya
+                lebih dari satu. Menampilkannya dalam keadaan mati akan
+                menawarkan pengaturan yang tidak mengubah apa pun.
+              */}
+              {(TAMPILAN[item.type]?.length ?? 0) > 1 && (
+                <Select
+                  id={`tampilan-${index}`}
+                  label="Tampilan saat diisi"
+                  ukuran="sm"
+                  nilai={item.tampilan || (TAMPILAN[item.type]?.[0].nilai ?? '')}
+                  opsi={TAMPILAN[item.type] ?? []}
+                  onUbah={(nilai) => ubahSatu(index, { tampilan: nilai })}
+                />
+              )}
+
+              {(item.type === 'select' || item.type === 'multiselect') && (
                 <div className="sm:col-span-2">
                   <label htmlFor={`pilihan-${index}`} className="field-label">
                     Daftar pilihan

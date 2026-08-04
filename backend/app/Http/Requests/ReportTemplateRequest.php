@@ -64,6 +64,7 @@ class ReportTemplateRequest extends FormRequest
             'fields.*.master_type_id' => ['nullable', 'integer', 'exists:master_types,id'],
             'fields.*.master_induk_key' => ['nullable', 'string', 'max:64'],
             'fields.*.beku' => ['sometimes', 'boolean'],
+            'fields.*.tampilan' => ['nullable', 'string', 'max:24'],
         ];
     }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { formatAngka, parseAngka } from '@/lib/format';
@@ -12,6 +13,12 @@ interface Props {
   /** Angka di belakang koma saat ditampilkan. 0 untuk bilangan bulat. */
   desimal?: number;
   bulat?: boolean;
+  /** Ditampilkan di dalam kotak, mis. "Rp". Bukan bagian dari nilainya. */
+  awalan?: string;
+  /** Ditampilkan di dalam kotak, mis. "%". Bukan bagian dari nilainya. */
+  akhiran?: string;
+  /** Menambahkan tombol naik-turun di sisi kanan. */
+  stepper?: boolean;
   placeholder?: string;
   label: string;
   bermasalah?: boolean;
@@ -49,6 +56,9 @@ export function InputAngka({
   onUbah,
   desimal = 0,
   bulat = false,
+  awalan,
+  akhiran,
+  stepper = false,
   placeholder,
   label,
   bermasalah = false,
@@ -89,7 +99,20 @@ export function InputAngka({
     }
   }
 
-  return (
+  /** Menambah atau mengurangi satu satuan, dipakai tombol naik-turun. */
+  function geser(arah: 1 | -1) {
+    const dasar = parseAngka(draf ?? nilai) ?? 0;
+    const langkah = bulat ? 1 : 1 / 10 ** desimal;
+    // Dibulatkan ulang supaya penjumlahan pecahan biner tidak meninggalkan
+    // ekor seperti 0.30000000000000004.
+    const baru = Math.round((dasar + arah * langkah) * 10 ** desimal) / 10 ** desimal;
+
+    setDraf(null);
+    nilaiTerakhir.current = baru;
+    onUbah(baru);
+  }
+
+  const isian = (
     <input
       id={id}
       type="text"
@@ -110,9 +133,65 @@ export function InputAngka({
       className={cn(
         ukuran === 'sm' ? 'field field-sm' : 'field',
         'text-right tabular-nums',
+        (awalan || akhiran || stepper) && 'border-0 bg-transparent px-1 focus:ring-0',
         bermasalah && 'border-danger',
         className,
       )}
     />
+  );
+
+  if (!awalan && !akhiran && !stepper) {
+    return isian;
+  }
+
+  /*
+   * Awalan dan akhiran hanya tampilan; nilai yang tersimpan tetap angka murni.
+   * Menjadikannya bagian dari isian akan membuat "Rp" ikut terurai dan
+   * mengubah angkanya.
+   */
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-0.5 rounded-input border border-line bg-surface px-1.5',
+        ukuran === 'sm' ? 'h-input-sm' : 'h-input',
+        'focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/25',
+        bermasalah && 'border-danger',
+      )}
+    >
+      {awalan && (
+        <span aria-hidden="true" className="shrink-0 text-caption text-ink-soft">
+          {awalan}
+        </span>
+      )}
+
+      <span className="min-w-0 flex-1">{isian}</span>
+
+      {akhiran && (
+        <span aria-hidden="true" className="shrink-0 text-caption text-ink-soft">
+          {akhiran}
+        </span>
+      )}
+
+      {stepper && !terkunci && (
+        <span className="flex shrink-0 flex-col">
+          <button
+            type="button"
+            onClick={() => geser(1)}
+            aria-label={`Naikkan ${label}`}
+            className="grid h-3 w-4 place-items-center text-ink-soft hover:text-ink"
+          >
+            <ChevronUp aria-hidden="true" className="size-3" />
+          </button>
+          <button
+            type="button"
+            onClick={() => geser(-1)}
+            aria-label={`Turunkan ${label}`}
+            className="grid h-3 w-4 place-items-center text-ink-soft hover:text-ink"
+          >
+            <ChevronDown aria-hidden="true" className="size-3" />
+          </button>
+        </span>
+      )}
+    </div>
   );
 }
