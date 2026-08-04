@@ -60,7 +60,7 @@ class MonitoringController extends Controller
 
         $anggota = User::query()
             ->with('department')
-            ->where('is_active', true)
+            ->wajibMelapor()
             ->when(
                 ! $jangkauan->korporat(),
                 fn ($query) => $query->whereIn('department_id', $jangkauan->departemenId),

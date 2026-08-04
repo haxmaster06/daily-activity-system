@@ -6,6 +6,7 @@ use App\Support\JangkauanData;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -74,6 +75,27 @@ class User extends Authenticatable
     public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Akun yang memang wajib mengisi laporan harian.
+     *
+     * Akun sistem dan pemegang departemen sistem tidak termasuk. Departemen
+     * sistem bukan unit kerja — tidak punya pekerjaan harian untuk dilaporkan —
+     * sehingga menampilkannya pada "Belum Melapor Hari Ini" hanya menghasilkan
+     * peringatan yang tidak pernah dapat diselesaikan siapa pun.
+     *
+     * Dipusatkan di sini supaya Dashboard, Monitoring, dan pengingat memakai
+     * aturan yang sama persis. Sebelumnya masing-masing menyaring sendiri, dan
+     * dua di antaranya sudah mulai berbeda.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeWajibMelapor(Builder $query): void
+    {
+        $query->where('is_active', true)
+            ->where('is_system', false)
+            ->whereHas('department', fn (Builder $sub) => $sub->where('is_system', false));
     }
 
     /**

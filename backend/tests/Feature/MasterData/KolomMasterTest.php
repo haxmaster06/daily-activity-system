@@ -1,12 +1,14 @@
 <?php
 
 use App\Models\DailyReportItem;
+use App\Models\Department;
 use App\Models\MasterData;
 use App\Models\MasterType;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
 use App\Models\User;
 use App\Support\PindahkanSumberMaster;
+use Database\Seeders\DepartmentSeeder;
 use Laravel\Sanctum\Sanctum;
 
 function jenisSupplier(): MasterType
@@ -288,4 +290,28 @@ it('menolak kolom Status yang tipenya bukan pilihan', function (): void {
 
     expect($response->json('errors')['fields.0.type'][0])
         ->toContain('Kolom Status harus bertipe Pilihan');
+});
+
+it('tidak menagih laporan dari akun sistem', function (): void {
+    $this->seed(DepartmentSeeder::class);
+
+    $sistem = Department::where('code', Department::KODE_SISTEM)
+        ->firstOrFail();
+    $kerja = Department::where('is_system', false)->firstOrFail();
+
+    $superadmin = User::factory()->administrator()->create([
+        'department_id' => $sistem->id,
+        'is_system' => true,
+    ]);
+    $staf = User::factory()->staff()->create(['department_id' => $kerja->id]);
+
+    /*
+     * Departemen sistem bukan unit kerja dan tidak punya pekerjaan harian
+     * untuk dilaporkan. Menagihnya menghasilkan peringatan yang tidak pernah
+     * dapat diselesaikan siapa pun.
+     */
+    $wajib = User::query()->wajibMelapor()->pluck('id');
+
+    expect($wajib)->toContain($staf->id)
+        ->and($wajib)->not->toContain($superadmin->id);
 });
