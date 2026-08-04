@@ -39,6 +39,17 @@ class TemplateFieldResource extends JsonResource
             'nilai_min' => $this->min_value === null ? null : (float) $this->min_value,
             'nilai_maks' => $this->max_value === null ? null : (float) $this->max_value,
             'desimal' => $this->desimal,
+            'master_jenis_id' => $this->master_type_id,
+            'master_jenis' => $this->whenLoaded(
+                'jenisMaster',
+                fn () => $this->jenisMaster === null ? null : [
+                    'id' => $this->jenisMaster->id,
+                    'slug' => $this->jenisMaster->slug,
+                    'nama' => $this->jenisMaster->name,
+                    'induk_id' => $this->jenisMaster->parent_type_id,
+                ],
+            ),
+            'master_induk_kunci' => $this->master_induk_key,
         ];
     }
 }

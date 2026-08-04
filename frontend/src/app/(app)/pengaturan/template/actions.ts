@@ -27,6 +27,8 @@ export interface KiriKolom {
   min_value: number | null;
   max_value: number | null;
   desimal: number | null;
+  master_type_id: number | null;
+  master_induk_key: string | null;
 }
 
 export interface KiriTemplate {

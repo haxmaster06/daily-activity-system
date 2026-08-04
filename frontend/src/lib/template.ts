@@ -14,7 +14,14 @@ export type TipeKolom =
   | 'date'
   | 'month'
   | 'select'
+  | 'master'
   | 'boolean';
+
+/** Nilai kolom master: salinan, bukan kunci asing. */
+export interface NilaiMaster {
+  kode: string;
+  nama: string;
+}
 
 export interface PilihanKolom {
   nilai: string;
@@ -39,6 +46,10 @@ export interface KolomTemplate {
   nilai_maks: number | null;
   /** Angka di belakang koma untuk tipe `decimal`. Null berarti bawaan (2). */
   desimal: number | null;
+  master_jenis_id: number | null;
+  master_jenis: { id: number; slug: string; nama: string; induk_id: number | null } | null;
+  /** Kunci kolom pada template yang sama yang menyaring daftar ini. */
+  master_induk_kunci: string | null;
 }
 
 export interface Template {
@@ -69,6 +80,7 @@ export const LABEL_TIPE: Record<TipeKolom, string> = {
   date: 'Tanggal',
   month: 'Bulan',
   select: 'Pilihan',
+  master: 'Pilihan dari daftar master',
   boolean: 'Ya / Tidak',
 };
 

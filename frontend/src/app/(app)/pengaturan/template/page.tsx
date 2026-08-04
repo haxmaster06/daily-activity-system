@@ -1,5 +1,6 @@
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { ambilDepartemen } from '@/lib/master-data';
+import { ambilJenisMaster } from '@/lib/master-server';
 import { wajibAkses } from '@/lib/session';
 import { ambilOpsiKolom, ambilTemplate } from '@/lib/template-server';
 import { TemplateManager } from './template-manager';
@@ -27,10 +28,11 @@ export default async function TemplatePage({
   if (filter.departemen_id) query.set('departemen_id', filter.departemen_id);
   if (filter.status) query.set('status', filter.status);
 
-  const [template, departemen, opsi] = await Promise.all([
+  const [template, departemen, opsi, jenisMaster] = await Promise.all([
     ambilTemplate(query),
     ambilDepartemen(),
     ambilOpsiKolom(),
+    ambilJenisMaster(),
   ]);
 
   return (
@@ -38,7 +40,12 @@ export default async function TemplatePage({
       <Breadcrumb
         jejak={[{ label: 'Pengaturan', href: '/pengaturan' }, { label: 'Template Laporan' }]}
       />
-      <TemplateManager template={template} departemen={departemen} opsi={opsi} />
+      <TemplateManager
+        template={template}
+        departemen={departemen}
+        opsi={opsi}
+        jenisMaster={jenisMaster}
+      />
     </>
   );
 }

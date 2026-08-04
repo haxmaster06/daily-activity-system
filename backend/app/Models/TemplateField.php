@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'key', 'label', 'group_label', 'type', 'is_required', 'sort_order',
     'unit', 'placeholder', 'help_text', 'options', 'lookup_source',
     'computed_from', 'min_value', 'max_value', 'desimal',
+    'master_type_id', 'master_induk_key',
 ])]
 class TemplateField extends Model
 {
@@ -29,6 +30,9 @@ class TemplateField extends Model
 
     public const TIPE_BOOLEAN = 'boolean';
 
+    /** Pilihan diambil dari daftar master, bukan diketik di template. */
+    public const TIPE_MASTER = 'master';
+
     /**
      * Seluruh tipe kolom yang dikenal, beserta label Bahasa Indonesia untuk
      * ditampilkan pada penyusun template.
@@ -43,10 +47,17 @@ class TemplateField extends Model
         self::TIPE_DATE => 'Tanggal',
         self::TIPE_MONTH => 'Bulan',
         self::TIPE_SELECT => 'Pilihan',
+        self::TIPE_MASTER => 'Pilihan dari daftar master',
         self::TIPE_BOOLEAN => 'Ya / Tidak',
     ];
 
-    /** Sumber master data untuk kolom autocomplete. */
+    /**
+     * Sumber master data lama.
+     *
+     * @deprecated Digantikan `master_type_id` yang menunjuk `master_types`.
+     *             Kolom `lookup_source` masih ada demi rollback dan akan
+     *             di-drop pada rilis berikutnya (ADR-008, dua tahap).
+     */
     public const SUMBER_LOOKUP = [
         'supplier' => 'Supplier',
         'customer' => 'Customer',
@@ -75,6 +86,16 @@ class TemplateField extends Model
         return $this->belongsTo(ReportTemplate::class, 'report_template_id');
     }
 
+    /**
+     * Daftar master yang menjadi sumber pilihannya.
+     *
+     * @return BelongsTo<MasterType, $this>
+     */
+    public function jenisMaster(): BelongsTo
+    {
+        return $this->belongsTo(MasterType::class, 'master_type_id');
+    }
+
     /** Kolom hitungan terkunci di antarmuka (standar interaksi §1.2). */
     public function dihitungOtomatis(): bool
     {
@@ -85,5 +106,11 @@ class TemplateField extends Model
     public function bertipeAngka(): bool
     {
         return in_array($this->type, [self::TIPE_INTEGER, self::TIPE_DECIMAL], true);
+    }
+
+    /** Pilihannya diambil dari daftar master. */
+    public function bertipeMaster(): bool
+    {
+        return $this->type === self::TIPE_MASTER;
     }
 }

@@ -5,21 +5,41 @@ import { Calculator } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { InputAngka } from '@/components/ui/input-angka';
 import { Select } from '@/components/ui/select';
+import { IsianMaster } from '@/components/laporan/isian-master';
 import { cn } from '@/lib/cn';
 import { formatAngka } from '@/lib/format';
-import type { NilaiBaris } from '@/lib/laporan';
-import { TIPE_ANGKA, type KolomTemplate } from '@/lib/template';
+import type { NilaiBaris, NilaiSel } from '@/lib/laporan';
+import { TIPE_ANGKA, type KolomTemplate, type NilaiMaster } from '@/lib/template';
 
 interface IsianKolomProps {
   kolom: KolomTemplate;
   nilai: NilaiBaris;
-  onUbah: (kunci: string, nilai: string | number | boolean | null) => void;
+  onUbah: (kunci: string, nilai: NilaiSel) => void;
   /** Nilai kolom hitungan, sudah dihitung pemanggil. */
   hasilHitungan?: number | null;
   galat?: string;
   /** Dipakai menyusun id unik antar baris. */
   idBaris: string;
   terkunci?: boolean;
+  /** Kode master pada kolom penyaring, bila kolom ini disaring kolom lain. */
+  indukKode?: string | null;
+}
+
+/**
+ * Membaca nilai kolom master.
+ *
+ * Bentuk skalar tetap diterima: kolom yang dulunya teks lalu diubah menjadi
+ * master meninggalkan baris lama berisi string biasa, dan laporan itu harus
+ * tetap terbaca selamanya.
+ */
+function nilaiMaster(isi: unknown): NilaiMaster | null {
+  if (isi === null || isi === undefined || isi === '') return null;
+
+  if (typeof isi === 'object' && 'kode' in isi) {
+    return isi as NilaiMaster;
+  }
+
+  return { kode: String(isi), nama: String(isi) };
 }
 
 /**
@@ -41,6 +61,7 @@ export function IsianKolom({
   galat,
   idBaris,
   terkunci = false,
+  indukKode,
 }: IsianKolomProps) {
   const id = `${idBaris}-${kolom.kunci}`;
   const isi = nilai[kolom.kunci];
@@ -139,6 +160,18 @@ export function IsianKolom({
         />
       );
 
+    case 'master':
+      return (
+        <IsianMaster
+          id={id}
+          kolom={kolom}
+          nilai={nilaiMaster(isi)}
+          onUbah={(dipilih) => onUbah(kolom.kunci, dipilih)}
+          indukKode={indukKode ?? null}
+          bermasalah={Boolean(galat)}
+        />
+      );
+
     case 'textarea':
       return (
         <textarea
@@ -175,11 +208,12 @@ export function IsianKolom({
 }
 
 /** Tampilan nilai untuk mode baca saja. */
-function tampilkanNilai(
-  kolom: KolomTemplate,
-  isi: string | number | boolean | null | undefined,
-): string {
+function tampilkanNilai(kolom: KolomTemplate, isi: NilaiSel | undefined): string {
   if (isi === null || isi === undefined || isi === '') return '—';
+
+  // Kolom master menyimpan salinan `{kode, nama}`; bentuk lama berupa string
+  // biasa tetap terbaca lewat `nilaiMaster`.
+  if (kolom.tipe === 'master') return nilaiMaster(isi)?.nama ?? '—';
 
   if (kolom.tipe === 'boolean') return isi === true ? 'Ya' : 'Tidak';
 

@@ -6,6 +6,13 @@ import { Select } from '@/components/ui/select';
 import { LABEL_TIPE, TIPE_ANGKA, type OpsiPenyusunKolom, type TipeKolom } from '@/lib/template';
 import { PenyusunRumus } from './penyusun-rumus';
 
+/** Daftar master seperlunya untuk penyusun kolom. */
+export interface RingkasanJenisMaster {
+  id: number;
+  nama: string;
+  induk_id: number | null;
+}
+
 export interface DraftKolom {
   key: string;
   label: string;
@@ -18,6 +25,8 @@ export interface DraftKolom {
   options: string;
   lookup_source: string;
   computed_from: string;
+  master_type_id: string;
+  master_induk_key: string;
   placeholder: string;
   /** Disimpan sebagai teks supaya isian yang belum lengkap tidak runtuh. */
   min_value: string;
@@ -36,6 +45,8 @@ export const KOLOM_KOSONG: DraftKolom = {
   options: '',
   lookup_source: '',
   computed_from: '',
+  master_type_id: '',
+  master_induk_key: '',
   placeholder: '',
   min_value: '',
   max_value: '',
@@ -44,7 +55,7 @@ export const KOLOM_KOSONG: DraftKolom = {
 
 /**
  * Radix Select tidak menerima string kosong sebagai nilai item, sehingga
- * pilihan "tanpa master data" memakai penanda tersendiri.
+ * pilihan "tidak disaring" memakai penanda tersendiri.
  */
 const TANPA_MASTER = '__tanpa__';
 
@@ -64,6 +75,8 @@ interface PenyusunKolomProps {
   kolom: DraftKolom[];
   onUbah: (kolom: DraftKolom[]) => void;
   opsi: OpsiPenyusunKolom;
+  /** Daftar master yang dapat menjadi sumber pilihan sebuah kolom. */
+  jenisMaster: RingkasanJenisMaster[];
   galatKolom: Record<string, string[]>;
 }
 
@@ -78,9 +91,47 @@ interface PenyusunKolomProps {
  * Pilihan. Kolom yang tidak berlaku disembunyikan, bukan ditampilkan dalam
  * keadaan mati.
  */
-export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolomProps) {
+export function PenyusunKolom({
+  kolom,
+  onUbah,
+  opsi,
+  jenisMaster,
+  galatKolom,
+}: PenyusunKolomProps) {
   function ubahSatu(index: number, perubahan: Partial<DraftKolom>) {
     onUbah(kolom.map((item, i) => (i === index ? { ...item, ...perubahan } : item)));
+  }
+
+  /** Jenis induk sebuah daftar master, bila daftarnya berinduk. */
+  function indukDari(idJenis: string) {
+    const jenis = jenisMaster.find((satu) => String(satu.id) === idJenis);
+    if (!jenis?.induk_id) return null;
+
+    return jenisMaster.find((satu) => satu.id === jenis.induk_id) ?? null;
+  }
+
+  /**
+   * Kolom yang dapat menyaring kolom ke-`index`.
+   *
+   * Hanya kolom master pada template yang sama yang mengambil pilihannya dari
+   * daftar induk. Aturan yang sama ditegakkan server; di sini supaya pilihan
+   * yang pasti ditolak tidak pernah sempat ditawarkan.
+   */
+  function penyaringUntuk(index: number, idJenis: string) {
+    const induk = indukDari(idJenis);
+    if (induk === null) return [];
+
+    return kolom
+      .map((item, i) => ({ item, i }))
+      .filter(
+        ({ item, i }) =>
+          i !== index
+          && item.type === 'master'
+          && item.master_type_id === String(induk.id)
+          && item.key !== ''
+          && item.label !== '',
+      )
+      .map(({ item }) => ({ nilai: item.key, label: item.label }));
   }
 
   /**
@@ -212,19 +263,53 @@ export function PenyusunKolom({ kolom, onUbah, opsi, galatKolom }: PenyusunKolom
                 </span>
               </div>
 
-              <Select
-                id={`sumber-${index}`}
-                label="Ambil pilihan dari master data"
-                ukuran="sm"
-                nilai={item.lookup_source || TANPA_MASTER}
-                opsi={[
-                  { nilai: TANPA_MASTER, label: 'Tidak, ketik manual' },
-                  ...opsi.sumber_master,
-                ]}
-                onUbah={(nilai) =>
-                  ubahSatu(index, { lookup_source: nilai === TANPA_MASTER ? '' : nilai })
-                }
-              />
+              {item.type === 'master' && (
+                <>
+                  <Select
+                    id={`daftar-${index}`}
+                    label="Ambil pilihan dari daftar"
+                    ukuran="sm"
+                    placeholder="Pilih daftar master..."
+                    nilai={item.master_type_id}
+                    opsi={jenisMaster.map((satu) => ({
+                      nilai: String(satu.id),
+                      label: satu.nama,
+                    }))}
+                    onUbah={(nilai) =>
+                      // Kolom penyaring ikut dilepas: daftar barunya belum tentu
+                      // berinduk pada daftar yang sama.
+                      ubahSatu(index, { master_type_id: nilai, master_induk_key: '' })
+                    }
+                    wajib
+                    galat={galat(index, 'master_type_id')}
+                  />
+
+                  {/*
+                    Pemilih penyaring hanya muncul bila daftarnya memang
+                    berinduk. Menawarkannya pada daftar yang tidak berinduk
+                    berarti menawarkan pengaturan yang pasti ditolak.
+                  */}
+                  {indukDari(item.master_type_id) !== null && (
+                    <Select
+                      id={`penyaring-${index}`}
+                      label="Disaring oleh kolom"
+                      ukuran="sm"
+                      nilai={item.master_induk_key || TANPA_MASTER}
+                      opsi={[
+                        { nilai: TANPA_MASTER, label: 'Tidak disaring' },
+                        ...penyaringUntuk(index, item.master_type_id),
+                      ]}
+                      onUbah={(nilai) =>
+                        ubahSatu(index, {
+                          master_induk_key: nilai === TANPA_MASTER ? '' : nilai,
+                        })
+                      }
+                      bantuan={`Memilih ${indukDari(item.master_type_id)?.nama ?? 'induk'} pada kolom itu akan mempersempit pilihan di sini.`}
+                      galat={galat(index, 'master_induk_key')}
+                    />
+                  )}
+                </>
+              )}
 
               {item.type === 'select' && (
                 <div className="sm:col-span-2">

@@ -314,7 +314,7 @@ class DailyReportController extends Controller
             'user',
             'department',
             'peninjau',
-            'sections.template.fields',
+            'sections.template.fields.jenisMaster',
             'sections.items',
             'attachments.pengunggah',
         ]);

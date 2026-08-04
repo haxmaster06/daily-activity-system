@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\DailyReportItem;
+use App\Models\MasterType;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
 use Illuminate\Foundation\Http\FormRequest;
@@ -58,6 +60,8 @@ class ReportTemplateRequest extends FormRequest
             'fields.*.min_value' => ['nullable', 'numeric'],
             'fields.*.max_value' => ['nullable', 'numeric'],
             'fields.*.desimal' => ['nullable', 'integer', 'min:0', 'max:4'],
+            'fields.*.master_type_id' => ['nullable', 'integer', 'exists:master_types,id'],
+            'fields.*.master_induk_key' => ['nullable', 'string', 'max:64'],
         ];
     }
 
@@ -109,6 +113,26 @@ class ReportTemplateRequest extends FormRequest
                         'Satuan hanya berlaku untuk kolom angka.',
                     );
                 }
+
+                /*
+                 * Kolom berkunci `status` disalin ke `daily_report_items
+                 * .progress_status` yang terindeks, dan hanya bila tipenya
+                 * pilihan (`ValidasiIsianTemplate::statusBaris()`). Mengubah
+                 * tipenya membuat Monitoring berhenti menyaring — tanpa galat,
+                 * tanpa ada yang memberi tahu. Ditolak di sini.
+                 */
+                if (
+                    ($field['key'] ?? null) === DailyReportItem::KUNCI_STATUS
+                    && $tipe !== TemplateField::TIPE_SELECT
+                ) {
+                    $validator->errors()->add(
+                        "fields.{$index}.type",
+                        'Kolom Status harus bertipe Pilihan. Monitoring memakai kolom ini '
+                        .'untuk menyaring laporan, dan tipe lain membuatnya berhenti bekerja.',
+                    );
+                }
+
+                $this->periksaKolomMaster($validator, $index, $field, $tipe);
 
                 // Angka di belakang koma hanya berarti pada kolom desimal.
                 // Bilangan bulat selalu nol, dan teks tidak punya koma.
@@ -171,6 +195,86 @@ class ReportTemplateRequest extends FormRequest
                 }
             }
         });
+    }
+
+    /**
+     * Aturan khusus kolom yang mengambil pilihannya dari daftar master.
+     *
+     * @param  array<string, mixed>  $field
+     */
+    private function periksaKolomMaster(
+        Validator $validator,
+        int $index,
+        array $field,
+        string $tipe,
+    ): void {
+        $jenisId = $field['master_type_id'] ?? null;
+        $indukKunci = $field['master_induk_key'] ?? null;
+
+        if ($tipe !== TemplateField::TIPE_MASTER) {
+            if ($jenisId !== null) {
+                $validator->errors()->add(
+                    "fields.{$index}.master_type_id",
+                    'Daftar master hanya berlaku untuk kolom bertipe pilihan dari daftar master.',
+                );
+            }
+
+            return;
+        }
+
+        if ($jenisId === null) {
+            $validator->errors()->add(
+                "fields.{$index}.master_type_id",
+                'Daftar master belum dipilih.',
+            );
+
+            return;
+        }
+
+        $jenis = MasterType::find($jenisId);
+
+        if ($jenis === null) {
+            return;
+        }
+
+        /*
+         * Kolom penyaring hanya masuk akal bila daftarnya memang berinduk, dan
+         * kolom yang ditunjuknya harus benar-benar ada pada template yang sama
+         * serta mengambil pilihannya dari daftar induk itu. Tanpa pemeriksaan
+         * ini, penyaringan gagal diam-diam saat laporan diisi: daftarnya
+         * tampil kosong tanpa ada yang menjelaskan kenapa.
+         */
+        if ($indukKunci === null || $indukKunci === '') {
+            return;
+        }
+
+        if (! $jenis->berinduk()) {
+            $validator->errors()->add(
+                "fields.{$index}.master_induk_key",
+                "Daftar {$jenis->name} tidak berinduk, jadi kolom penyaringnya harus dikosongkan.",
+            );
+
+            return;
+        }
+
+        $penyaring = collect($this->input('fields', []))
+            ->first(fn ($lain) => ($lain['key'] ?? null) === $indukKunci);
+
+        if ($penyaring === null) {
+            $validator->errors()->add(
+                "fields.{$index}.master_induk_key",
+                'Kolom penyaring tidak ada pada template ini.',
+            );
+
+            return;
+        }
+
+        if ((int) ($penyaring['master_type_id'] ?? 0) !== (int) $jenis->parent_type_id) {
+            $validator->errors()->add(
+                "fields.{$index}.master_induk_key",
+                'Kolom penyaring harus mengambil pilihannya dari daftar induk.',
+            );
+        }
     }
 
     /**

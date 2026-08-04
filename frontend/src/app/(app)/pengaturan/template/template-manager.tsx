@@ -20,12 +20,14 @@ import { formatAngka } from '@/lib/format';
 import type { Departemen } from '@/lib/master-data';
 import type { OpsiPenyusunKolom, Template } from '@/lib/template';
 import { hapusTemplate } from './actions';
+import type { RingkasanJenisMaster } from './penyusun-kolom';
 import { TemplateWizard } from './template-wizard';
 
 interface TemplateManagerProps {
   template: Template[];
   departemen: Departemen[];
   opsi: OpsiPenyusunKolom;
+  jenisMaster: RingkasanJenisMaster[];
 }
 
 /**
@@ -36,7 +38,12 @@ interface TemplateManagerProps {
  * makin banyak tab makin tergulir keluar layar dan makin sulit ditemukan
  * (docs/standar-ui-ux.md §2).
  */
-export function TemplateManager({ template, departemen, opsi }: TemplateManagerProps) {
+export function TemplateManager({
+  template,
+  departemen,
+  opsi,
+  jenisMaster,
+}: TemplateManagerProps) {
   const router = useRouter();
 
   const [wizardTerbuka, setWizardTerbuka] = useState(false);
@@ -191,6 +198,7 @@ export function TemplateManager({ template, departemen, opsi }: TemplateManagerP
         template={sedangDiubah}
         departemen={departemen}
         opsi={opsi}
+        jenisMaster={jenisMaster}
       />
 
       <ConfirmDialog

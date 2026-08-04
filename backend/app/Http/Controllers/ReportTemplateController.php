@@ -48,7 +48,7 @@ class ReportTemplateController extends Controller
              * mengisi wizard saat template disunting. Mengambilnya satu per
              * satu saat dialog dibuka akan menghasilkan permintaan berulang.
              */
-            ->when($request->boolean('dengan_kolom'), fn ($query) => $query->with('fields'))
+            ->when($request->boolean('dengan_kolom'), fn ($query) => $query->with('fields.jenisMaster'))
             ->when(
                 $request->filled('departemen_id'),
                 fn ($query) => $query->untukDepartemen($request->integer('departemen_id')),
@@ -70,7 +70,7 @@ class ReportTemplateController extends Controller
         $this->authorize('view', $template);
 
         return ApiResponse::ok(
-            new ReportTemplateResource($template->load(['department', 'fields'])),
+            new ReportTemplateResource($template->load(['department', 'fields.jenisMaster'])),
         );
     }
 
@@ -119,7 +119,7 @@ class ReportTemplateController extends Controller
         );
 
         return ApiResponse::created(
-            new ReportTemplateResource($template->load(['department', 'fields'])),
+            new ReportTemplateResource($template->load(['department', 'fields.jenisMaster'])),
             'Template berhasil dibuat.',
         );
     }

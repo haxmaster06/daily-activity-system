@@ -1,4 +1,4 @@
-import type { KolomTemplate } from '@/lib/template';
+import type { KolomTemplate, NilaiMaster } from '@/lib/template';
 
 /**
  * Bentuk laporan harian.
@@ -11,8 +11,17 @@ export type StatusLaporan = 'draf' | 'dikirim' | 'ditinjau';
 
 export type StatusBaris = 'belum_mulai' | 'dalam_proses' | 'selesai';
 
+/**
+ * Isi satu sel.
+ *
+ * Kolom master menyimpan salinan `{kode, nama}`; sisanya skalar. Bentuk skalar
+ * tetap mungkin muncul pada kolom master — laporan lama yang kolomnya dulu
+ * bertipe teks menyimpan string biasa, dan laporan itu harus tetap terbaca.
+ */
+export type NilaiSel = string | number | boolean | NilaiMaster | null;
+
 /** Nilai satu baris, berkunci `template_fields.key`. */
-export type NilaiBaris = Record<string, string | number | boolean | null>;
+export type NilaiBaris = Record<string, NilaiSel>;
 
 export interface BarisLaporan {
   id: number;

@@ -179,6 +179,19 @@ class MasterDataController extends Controller
                 $request->filled('induk_id'),
                 fn ($query) => $query->where('parent_id', $request->integer('induk_id')),
             )
+            /*
+             * Saat laporan diisi, yang dipegang antarmuka adalah kode induknya
+             * — itu yang tersimpan di dalam laporan, bukan id. Menyuruh
+             * antarmuka menerjemahkannya lebih dulu berarti satu permintaan
+             * tambahan pada tiap ketikan.
+             */
+            ->when(
+                $request->filled('induk_kode'),
+                fn ($query) => $query->whereHas(
+                    'induk',
+                    fn ($sub) => $sub->where('code', $request->string('induk_kode')),
+                ),
+            )
             ->when(
                 $request->boolean('hanya_aktif'),
                 fn ($query) => $query->aktif(),

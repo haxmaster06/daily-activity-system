@@ -6,6 +6,7 @@ use App\Models\DailyReportItem;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -44,6 +45,19 @@ final class ValidasiIsianTemplate
                 $aturan[$kunci] = self::aturanKolom($kolom);
                 // Pengguna melihat label kolom, bukan kunci teknisnya.
                 $nama[$kunci] = mb_strtolower($kolom->label);
+
+                /*
+                 * Kolom master menyimpan salinan `{kode, nama}`, sehingga yang
+                 * diperiksa isinya, bukan nilainya sebagai satu kesatuan.
+                 * Galatnya tetap diberi label kolom supaya pengguna tidak
+                 * melihat "kode" muncul entah dari mana.
+                 */
+                if ($kolom->bertipeMaster()) {
+                    foreach (self::aturanIsiMaster($kolom) as $bagian => $aturanBagian) {
+                        $aturan["{$kunci}.{$bagian}"] = $aturanBagian;
+                        $nama["{$kunci}.{$bagian}"] = mb_strtolower($kolom->label);
+                    }
+                }
             }
         }
 
@@ -86,6 +100,8 @@ final class ValidasiIsianTemplate
             TemplateField::TIPE_MONTH => 'date_format:Y-m',
             TemplateField::TIPE_BOOLEAN => 'boolean',
             TemplateField::TIPE_SELECT => 'string',
+            // Nilai kolom master berupa salinan `{kode, nama}`, bukan skalar.
+            TemplateField::TIPE_MASTER => 'array',
             default => 'string',
         };
 
@@ -133,6 +149,34 @@ final class ValidasiIsianTemplate
         }
 
         return $aturan;
+    }
+
+    /**
+     * Aturan untuk isi kolom master.
+     *
+     * Kodenya wajib benar-benar ada pada daftarnya. Yang tersimpan memang
+     * salinan, bukan kunci asing — tetapi salinan pun tidak boleh dikarang
+     * klien: tanpa pemeriksaan ini siapa pun dapat mengirim nama supplier apa
+     * saja lewat API, dan laporan akan memuat nama yang tidak pernah ada.
+     *
+     * Baris nonaktif tetap diterima. Laporan yang sedang disunting boleh saja
+     * memuat baris yang baru dinonaktifkan kemarin; menolaknya berarti
+     * mengunci laporan yang isinya sudah benar sejak awal.
+     *
+     * @return array<string, list<mixed>>
+     */
+    private static function aturanIsiMaster(TemplateField $kolom): array
+    {
+        $wajib = $kolom->is_required ? 'required' : 'nullable';
+
+        return [
+            'kode' => [
+                $wajib, 'string', 'max:48',
+                Rule::exists('master_data', 'code')
+                    ->where('master_type_id', $kolom->master_type_id),
+            ],
+            'nama' => [$wajib, 'string', 'max:150'],
+        ];
     }
 
     /**

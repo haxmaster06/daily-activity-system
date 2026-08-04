@@ -27,32 +27,55 @@ interface ComboboxProps {
   opsi: OpsiCombobox[];
   nilai: OpsiCombobox | null;
   onUbah: (nilai: OpsiCombobox | null) => void;
+  /**
+   * Dipanggil tiap kali isian diketik.
+   *
+   * Penyaringan adalah tugas pemanggil, bukan komponen ini: daftar master
+   * dapat berisi ribuan baris dan tidak boleh dimuat seluruhnya ke peramban
+   * (non-fungsional §15.3). Pemanggil mengambil hasilnya dari server lalu
+   * mengirimkannya kembali lewat `opsi`.
+   */
+  onKetik?: (teks: string) => void;
+  /** Ditampilkan menggantikan "Tidak ada yang cocok" selagi hasil diambil. */
+  memuat?: boolean;
   placeholder?: string;
   galat?: string;
   bantuan?: string;
   wajib?: boolean;
   nonaktif?: boolean;
+  tanpaLabel?: boolean;
+  ukuran?: 'sm' | 'md';
 }
 
 /**
- * Pilihan dari master data dengan penyaringan ketik (standar interaksi §1.1).
+ * Pilihan dari daftar master dengan penyaringan ketik (standar §1.1).
  *
  * Memakai React Aria ComboBox: Radix tidak menyediakan combobox — `Select`
  * miliknya tidak punya penyaringan ketik.
  *
- * Nilainya selalu terikat master data. Mengetik hanya menyaring, tidak pernah
+ * Nilainya selalu terikat daftar master. Mengetik hanya menyaring, tidak pernah
  * membuat data baru — itu yang membedakannya dari input teks bebas.
+ *
+ * **Komponen ini tidak menyaring sendiri.** `opsi` ditampilkan apa adanya.
+ * Dengan `items` terkendali, React Aria memang menyerahkan penyaringan kepada
+ * pemanggil, dan itu justru yang dibutuhkan di sini: hasilnya datang dari
+ * server, dan menyaring ulang di peramban akan menyembunyikan baris yang baru
+ * saja dikirim server.
  */
 export function Combobox({
   label,
   opsi,
   nilai,
   onUbah,
+  onKetik,
+  memuat = false,
   placeholder,
   galat,
   bantuan,
   wajib = false,
   nonaktif = false,
+  tanpaLabel = false,
+  ukuran = 'md',
 }: ComboboxProps) {
   return (
     <AriaComboBox
@@ -61,15 +84,24 @@ export function Combobox({
       onSelectionChange={(kunci) =>
         onUbah(kunci === null ? null : (opsi.find((o) => o.id === kunci) ?? null))
       }
+      onInputChange={onKetik}
+      // Nilai yang sudah dipilih tetap terbaca walau tidak ada di `opsi` —
+      // daftar dari server hanya memuat hasil pencarian terakhir.
+      allowsEmptyCollection
       isDisabled={nonaktif}
       isRequired={wajib}
       isInvalid={Boolean(galat)}
       menuTrigger="focus"
       className="flex flex-col"
     >
-      <Label className="field-label">
+      {/*
+        Label dapat disembunyikan untuk pemakaian di dalam sel tabel, tempat
+        judul kolomnya sudah menjadi label. Tetap dirender bagi pembaca layar —
+        yang hilang hanya tampilannya.
+      */}
+      <Label className={tanpaLabel ? 'sr-only' : 'field-label'}>
         {label}
-        {wajib && (
+        {wajib && !tanpaLabel && (
           <span className="text-danger" aria-hidden="true">
             {' '}
             *
@@ -81,7 +113,8 @@ export function Combobox({
         <Input
           placeholder={placeholder}
           className={cn(
-            'field pr-8',
+            ukuran === 'sm' ? 'field field-sm' : 'field',
+            'pr-8',
             galat && 'border-danger focus:border-danger focus:ring-danger/30',
           )}
         />
@@ -114,7 +147,9 @@ export function Combobox({
         */}
         <ListBox
           renderEmptyState={() => (
-            <p className="px-2 py-3 text-center text-body text-ink-soft">Tidak ada yang cocok</p>
+            <p className="px-2 py-3 text-center text-body text-ink-soft">
+              {memuat ? 'Mencari...' : 'Tidak ada yang cocok'}
+            </p>
           )}
           className="max-h-64 overflow-y-auto overscroll-contain p-1 outline-none"
         >

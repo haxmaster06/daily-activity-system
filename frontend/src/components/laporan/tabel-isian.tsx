@@ -4,7 +4,7 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { IsianKolom } from '@/components/laporan/isian-kolom';
 import { cn } from '@/lib/cn';
-import { barisKosong, hitungPratinjau, type NilaiBaris } from '@/lib/laporan';
+import { barisKosong, hitungPratinjau, type NilaiBaris, type NilaiSel } from '@/lib/laporan';
 import type { KolomTemplate } from '@/lib/template';
 
 interface TabelIsianProps {
@@ -44,12 +44,42 @@ export function TabelIsian({
   const grup = susunGrup(kolom);
   const adaGrup = grup.some((g) => g.nama !== null);
 
-  function ubahSel(index: number, kunci: string, nilai: string | number | boolean | null) {
-    onUbah?.(baris.map((isi, i) => (i === index ? { ...isi, [kunci]: nilai } : isi)));
+  function ubahSel(index: number, kunci: string, nilai: NilaiSel) {
+    onUbah?.(
+      baris.map((isi, i) => {
+        if (i !== index) return isi;
+
+        const baru = { ...isi, [kunci]: nilai };
+
+        /*
+         * Mengganti kolom penyaring mengosongkan kolom yang disaringnya.
+         * Membiarkannya berarti meninggalkan pasangan yang mustahil — LOT
+         * milik supplier lain — yang baru ditolak server saat disimpan.
+         */
+        for (const anak of kolom) {
+          if (anak.master_induk_kunci === kunci) baru[anak.kunci] = null;
+        }
+
+        return baru;
+      }),
+    );
   }
 
   function galatSel(index: number, kunci: string): string | undefined {
     return galat[`${awalanGalat}.${index}.${kunci}`]?.[0];
+  }
+
+  /** Kode master pada kolom penyaring sebuah kolom, bila ada. */
+  function indukKode(isi: NilaiBaris, item: KolomTemplate): string | null {
+    if (!item.master_induk_kunci) return null;
+
+    const nilaiInduk = isi[item.master_induk_kunci];
+
+    if (nilaiInduk !== null && typeof nilaiInduk === 'object' && 'kode' in nilaiInduk) {
+      return nilaiInduk.kode;
+    }
+
+    return typeof nilaiInduk === 'string' && nilaiInduk !== '' ? nilaiInduk : null;
   }
 
   return (
@@ -127,6 +157,7 @@ export function TabelIsian({
                         galat={galatSel(index, item.kunci)}
                         idBaris={`b${index}`}
                         terkunci={terkunci}
+                        indukKode={indukKode(isi, item)}
                       />
 
                       {galatSel(index, item.kunci) && (

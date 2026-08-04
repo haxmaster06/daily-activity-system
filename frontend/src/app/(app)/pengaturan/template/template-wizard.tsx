@@ -11,7 +11,13 @@ import type { Departemen } from '@/lib/master-data';
 import type { OpsiPenyusunKolom, Template, TipeKolom } from '@/lib/template';
 import { LABEL_TIPE, TIPE_ANGKA } from '@/lib/template';
 import { buatTemplate, perbaruiTemplate, type KiriKolom } from './actions';
-import { KOLOM_KOSONG, kunciDariLabel, PenyusunKolom, type DraftKolom } from './penyusun-kolom';
+import {
+  KOLOM_KOSONG,
+  kunciDariLabel,
+  PenyusunKolom,
+  type DraftKolom,
+  type RingkasanJenisMaster,
+} from './penyusun-kolom';
 import { rumusSah } from './penyusun-rumus';
 
 interface TemplateWizardProps {
@@ -21,6 +27,7 @@ interface TemplateWizardProps {
   template: Template | null;
   departemen: Departemen[];
   opsi: OpsiPenyusunKolom;
+  jenisMaster: RingkasanJenisMaster[];
 }
 
 const bertipeAngka = (tipe: TipeKolom): boolean => TIPE_ANGKA.includes(tipe);
@@ -65,6 +72,7 @@ export function TemplateWizard({
   template,
   departemen,
   opsi,
+  jenisMaster,
 }: TemplateWizardProps) {
   const router = useRouter();
   const sedangUbah = template !== null;
@@ -100,6 +108,8 @@ export function TemplateWizard({
           lookup_source: k.sumber_master ?? '',
           computed_from: k.rumus ?? '',
           placeholder: k.placeholder ?? '',
+          master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
+          master_induk_key: k.master_induk_kunci ?? '',
           min_value: k.nilai_min === null ? '' : String(k.nilai_min),
           max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
           desimal: k.desimal === null ? '' : String(k.desimal),
@@ -191,6 +201,8 @@ export function TemplateWizard({
       min_value: bertipeAngka(k.type) ? angkaAtauNull(k.min_value) : null,
       max_value: bertipeAngka(k.type) ? angkaAtauNull(k.max_value) : null,
       desimal: k.type === 'decimal' ? angkaAtauNull(k.desimal) : null,
+      master_type_id: k.type === 'master' && k.master_type_id ? Number(k.master_type_id) : null,
+      master_induk_key: k.type === 'master' ? k.master_induk_key || null : null,
     }));
   }
 
@@ -323,6 +335,7 @@ export function TemplateWizard({
                 kolom={kolom}
                 onUbah={setKolom}
                 opsi={opsi}
+                jenisMaster={jenisMaster}
                 galatKolom={galatKolom}
               />
             ),

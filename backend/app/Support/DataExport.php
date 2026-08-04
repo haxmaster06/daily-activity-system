@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\DailyReport;
 use App\Models\ReportTemplate;
+use App\Models\TemplateField;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -212,6 +213,18 @@ final class DataExport
                 $nilai === null || $nilai === '' => '',
                 $field->type === 'boolean' => $nilai ? 'Ya' : 'Tidak',
                 $field->type === 'select' => self::labelPilihan($field->options, $nilai),
+                /*
+                 * Kolom master menyimpan salinan `{kode, nama}`. Tanpa cabang
+                 * ini nilainya mendarat sebagai array di Excel dan terbaca
+                 * sebagai "Array" atau kosong.
+                 *
+                 * Bentuk skalar tetap diterima: kolom yang dulunya `text` lalu
+                 * diubah menjadi `master` meninggalkan baris lama berisi
+                 * string biasa, dan laporan itu harus tetap terbaca selamanya.
+                 */
+                $field->type === TemplateField::TIPE_MASTER => is_array($nilai)
+                    ? (string) ($nilai['nama'] ?? $nilai['kode'] ?? '')
+                    : (string) $nilai,
                 default => $nilai,
             };
         }
