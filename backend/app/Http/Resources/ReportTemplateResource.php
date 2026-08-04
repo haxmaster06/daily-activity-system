@@ -22,6 +22,7 @@ class ReportTemplateResource extends JsonResource
             'nama' => $this->name,
             'keterangan' => $this->description,
             'aktif' => $this->is_active,
+            'bentuk_pengisian' => $this->bentuk_pengisian,
             'urutan' => $this->sort_order,
             'versi' => $this->version,
             'berlaku_umum' => $this->department_id === null,

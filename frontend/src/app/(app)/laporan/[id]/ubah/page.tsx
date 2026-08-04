@@ -57,6 +57,9 @@ export default async function SuntingLaporanPage({
       nama: item.template.nama,
       keterangan: null,
       aktif: true,
+      // Laporan tidak menyimpan bentuk pengisian; pengisi tetap dapat
+      // menukarnya sendiri saat menyunting.
+      bentuk_pengisian: 'grid',
       urutan: item.urutan,
       versi: 1,
       berlaku_umum: false,

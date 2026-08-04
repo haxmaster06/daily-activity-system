@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'department_id', 'code', 'name', 'description',
-    'sort_order', 'is_active', 'version', 'parent_id',
+    'sort_order', 'is_active', 'version', 'parent_id', 'bentuk_pengisian',
 ])]
 class ReportTemplate extends Model
 {

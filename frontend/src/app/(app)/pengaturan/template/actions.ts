@@ -37,6 +37,7 @@ export interface KiriTemplate {
   description: string | null;
   department_id: number | null;
   is_active: boolean;
+  bentuk_pengisian: string;
   fields: KiriKolom[];
 }
 

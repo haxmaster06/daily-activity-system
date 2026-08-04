@@ -47,6 +47,7 @@ interface Identitas {
   description: string;
   department_id: string;
   is_active: boolean;
+  bentuk_pengisian: string;
 }
 
 /** Radix Select tidak menerima string kosong sebagai nilai item. */
@@ -57,6 +58,7 @@ const IDENTITAS_KOSONG: Identitas = {
   description: '',
   department_id: '',
   is_active: true,
+  bentuk_pengisian: 'grid',
 };
 
 /**
@@ -94,6 +96,7 @@ export function TemplateWizard({
         description: template.keterangan ?? '',
         department_id: String(template.departemen?.id ?? ''),
         is_active: template.aktif,
+        bentuk_pengisian: template.bentuk_pengisian,
       });
       setKolom(
         (template.kolom ?? []).map((k) => ({
@@ -217,6 +220,7 @@ export function TemplateWizard({
       description: identitas.description.trim() || null,
       department_id: identitas.department_id ? Number(identitas.department_id) : null,
       is_active: identitas.is_active,
+      bentuk_pengisian: identitas.bentuk_pengisian,
       fields: keKiriman(),
     };
 
@@ -313,6 +317,18 @@ export function TemplateWizard({
                     className="field"
                   />
                 </div>
+
+                <Select
+                  id="bentuk-template"
+                  label="Bentuk pengisian bawaan"
+                  nilai={identitas.bentuk_pengisian}
+                  onUbah={(nilai) => setIdentitas({ ...identitas, bentuk_pengisian: nilai })}
+                  opsi={[
+                    { nilai: 'grid', label: 'Grid — tabel padat' },
+                    { nilai: 'baris', label: 'Per baris — satu baris satu form' },
+                  ]}
+                  bantuan="Hanya bawaan. Pengisi tetap dapat menukarnya, dan layar sempit selalu memakai bentuk per baris."
+                />
 
                 <label className="flex w-fit items-center gap-2 text-body text-ink-muted sm:col-span-2">
                   <input

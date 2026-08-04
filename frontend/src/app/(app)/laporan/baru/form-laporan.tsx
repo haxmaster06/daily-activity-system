@@ -310,6 +310,7 @@ export function FormLaporan({
 
                     <TabelIsian
                       kolom={item.template.kolom ?? []}
+                      bentukBawaan={item.template.bentuk_pengisian}
                       baris={item.baris}
                       onUbah={(baris) =>
                         setBagian(bagian.map((b, i) => (i === index ? { ...b, baris } : b)))

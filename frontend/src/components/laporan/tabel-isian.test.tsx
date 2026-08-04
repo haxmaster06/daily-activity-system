@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -147,5 +147,72 @@ describe('TabelIsian', () => {
 
     expect(screen.getAllByRole('row')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Hapus baris 1' })).toBeDisabled();
+  });
+});
+
+describe('TabelIsian — mode per baris', () => {
+  it('membuka satu baris sebagai form berisi seluruh kolom', async () => {
+    const pengguna = userEvent.setup();
+    render(<Terkendali />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'Buka baris 1 sebagai form' }));
+
+    const panel = await screen.findByRole('dialog');
+
+    expect(panel).toHaveTextContent('Baris 1 dari 1');
+    // Seluruh kolom hadir, bukan hanya yang muat di layar.
+    for (const label of ['No SPK', 'Qty', 'Catatan']) {
+      expect(within(panel).getByText(label, { exact: false })).toBeInTheDocument();
+    }
+  });
+
+  it('berpindah antar baris dari dalam panel', async () => {
+    const pengguna = userEvent.setup();
+    render(<Terkendali awal={[barisKosong(KOLOM), barisKosong(KOLOM)]} />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'Buka baris 1 sebagai form' }));
+    await screen.findByRole('dialog');
+
+    await pengguna.click(screen.getByRole('button', { name: 'Baris berikutnya' }));
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('Baris 2 dari 2');
+  });
+
+  it('menukar bentuk pengisian tanpa menghilangkan isian', async () => {
+    const pengguna = userEvent.setup();
+    render(<Terkendali awal={[{ no_spk: 'SPK-001', qty: 12, catatan: null }]} />);
+
+    await pengguna.click(screen.getByRole('radio', { name: 'Per Baris' }));
+
+    // Daftar ringkas menampilkan nilai yang sama.
+    expect(screen.getByText('SPK-001', { exact: false })).toBeInTheDocument();
+
+    await pengguna.click(screen.getByRole('radio', { name: 'Grid' }));
+
+    expect(screen.getByLabelText('No SPK')).toHaveValue('SPK-001');
+  });
+
+  it('menandai baris yang masih bermasalah pada daftar ringkas', async () => {
+    const pengguna = userEvent.setup();
+
+    function DenganGalat() {
+      const [baris, setBaris] = useState<NilaiBaris[]>([barisKosong(KOLOM)]);
+
+      return (
+        <TabelIsian
+          kolom={KOLOM}
+          baris={baris}
+          onUbah={setBaris}
+          awalanGalat="uji"
+          galat={{ 'uji.0.no_spk': ['No SPK wajib diisi.'] }}
+        />
+      );
+    }
+
+    render(<DenganGalat />);
+    await pengguna.click(screen.getByRole('radio', { name: 'Per Baris' }));
+
+    // Validasi tidak boleh tersembunyi di balik panel (§2).
+    expect(screen.getByLabelText('Baris ini masih bermasalah')).toBeInTheDocument();
   });
 });

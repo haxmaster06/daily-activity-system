@@ -60,6 +60,8 @@ export interface Template {
   nama: string;
   keterangan: string | null;
   aktif: boolean;
+  /** Bentuk pengisian bawaan: `grid` atau `baris`. */
+  bentuk_pengisian: string;
   urutan: number;
   versi: number;
   berlaku_umum: boolean;

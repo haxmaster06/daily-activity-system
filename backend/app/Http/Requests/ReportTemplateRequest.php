@@ -39,6 +39,7 @@ class ReportTemplateRequest extends FormRequest
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'sort_order' => ['sometimes', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['sometimes', 'boolean'],
+            'bentuk_pengisian' => ['sometimes', 'string', Rule::in(['grid', 'baris'])],
 
             'fields' => ['required', 'array', 'min:1', 'max:60'],
             'fields.*.key' => ['required', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],

@@ -1,9 +1,13 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Maximize2, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
 import { IsianKolom } from '@/components/laporan/isian-kolom';
+import { PanelBaris } from '@/components/laporan/panel-baris';
+import { ButtonGroup } from '@/components/ui/button-group';
 import { cn } from '@/lib/cn';
+import { useLebarLayar, LAYAR_SEMPIT } from '@/lib/use-lebar-layar';
 import { barisKosong, hitungPratinjau, type NilaiBaris, type NilaiSel } from '@/lib/laporan';
 import type { KolomTemplate } from '@/lib/template';
 
@@ -21,6 +25,8 @@ interface TabelIsianProps {
   /** Awalan kunci galat, mis. "sections.0.items". */
   awalanGalat?: string;
   terkunci?: boolean;
+  /** Bentuk pengisian bawaan template ini: `grid` atau `baris`. */
+  bentukBawaan?: string;
 }
 
 /** Lebar minimum sel per tipe — sebelumnya rata untuk semua kolom. */
@@ -72,9 +78,28 @@ export function TabelIsian({
   galat = {},
   awalanGalat = '',
   terkunci = false,
+  bentukBawaan = 'grid',
 }: TabelIsianProps) {
   const grup = susunGrup(kolom);
   const adaGrup = grup.some((g) => g.nama !== null);
+
+  const layarSempit = useLebarLayar(LAYAR_SEMPIT);
+  const [mode, setMode] = useState<'grid' | 'baris'>(
+    bentukBawaan === 'baris' ? 'baris' : 'grid',
+  );
+  const [barisTerbuka, setBarisTerbuka] = useState<number | null>(null);
+
+  /*
+   * Layar sempit selalu memakai form per baris: tabel padat tidak terbaca di
+   * sana, dan menggulir mendatar di layar kecil adalah persis keluhan yang
+   * hendak diselesaikan.
+   */
+  const modeEfektif = layarSempit ? 'baris' : mode;
+
+  /** Baris mana saja yang punya galat — dipakai menandai baris di daftar. */
+  function barisBermasalah(index: number): boolean {
+    return Object.keys(galat).some((kunci) => kunci.startsWith(`${awalanGalat}.${index}.`));
+  }
 
   function ubahSel(index: number, kunci: string, nilai: NilaiSel) {
     onUbah?.(
@@ -217,8 +242,106 @@ export function TabelIsian({
   /** Nomor urut sel dalam satu baris, dipakai penomoran fokus. */
   let nomorKolom = -1;
 
+  const panel = !terkunci && barisTerbuka !== null && (
+    <PanelBaris
+      terbuka
+      onTutup={() => setBarisTerbuka(null)}
+      kolom={kolom}
+      baris={baris}
+      index={barisTerbuka}
+      onPindah={setBarisTerbuka}
+      onUbah={(diubah) => onUbah?.(diubah)}
+      galat={galat}
+      awalanGalat={awalanGalat}
+    />
+  );
+
+  /*
+   * Mode per baris: daftar ringkas berisi beberapa kolom pertama, sisanya
+   * dibuka lewat panel. Tidak ada gulir mendatar sama sekali.
+   */
+  if (modeEfektif === 'baris' && !terkunci) {
+    const ringkas = kolom.slice(0, 2);
+
+    return (
+      <div className="overflow-hidden rounded-card border border-line">
+        {!layarSempit && (
+          <div className="flex items-center justify-end border-b border-line px-2 py-1.5">
+            <ButtonGroup
+              label="Bentuk pengisian"
+              nilai={mode}
+              onUbah={(nilai) => setMode(nilai === 'baris' ? 'baris' : 'grid')}
+              opsi={[
+                { nilai: 'grid', label: 'Grid' },
+                { nilai: 'baris', label: 'Per Baris' },
+              ]}
+            />
+          </div>
+        )}
+
+        <ul className="divide-y divide-line">
+          {baris.map((isi, index) => (
+            <li key={index}>
+              <button
+                type="button"
+                onClick={() => setBarisTerbuka(index)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-surface-muted"
+              >
+                <span className="w-6 shrink-0 text-caption text-ink-soft">{index + 1}</span>
+
+                <span className="min-w-0 flex-1">
+                  {ringkas.map((item) => (
+                    <span key={item.kunci} className="block text-body text-ink">
+                      <span className="text-ink-soft">{item.label}: </span>
+                      {ringkasNilai(isi[item.kunci])}
+                    </span>
+                  ))}
+                </span>
+
+                {/* Validasi tidak boleh tersembunyi di balik panel (§2). */}
+                {barisBermasalah(index) && (
+                  <span
+                    aria-label="Baris ini masih bermasalah"
+                    className="size-2 shrink-0 rounded-full bg-danger"
+                  />
+                )}
+
+                <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-ink-soft" />
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={() => onUbah?.([...baris, barisKosong(kolom)])}
+          className="flex w-full items-center justify-center gap-1.5 border-t border-line px-3 py-2 text-body text-ink-muted transition-colors duration-fast hover:bg-surface-muted hover:text-ink"
+        >
+          <Plus aria-hidden="true" className="size-4" />
+          Tambah Baris
+        </button>
+
+        {panel}
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-card border border-line">
+      {!terkunci && !layarSempit && (
+        <div className="flex items-center justify-end border-b border-line px-2 py-1.5">
+          <ButtonGroup
+            label="Bentuk pengisian"
+            nilai={mode}
+            onUbah={(nilai) => setMode(nilai === 'baris' ? 'baris' : 'grid')}
+            opsi={[
+              { nilai: 'grid', label: 'Grid' },
+              { nilai: 'baris', label: 'Per Baris' },
+            ]}
+          />
+        </div>
+      )}
+
       <div className="max-h-[26rem] overflow-auto">
         <table className="w-full min-w-max border-collapse text-table">
           {/*
@@ -341,7 +464,16 @@ export function TabelIsian({
                 )}
 
                 {!terkunci && (
-                  <td className="px-2 py-1.5">
+                  <td className="whitespace-nowrap px-2 py-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setBarisTerbuka(index)}
+                      aria-label={`Buka baris ${index + 1} sebagai form`}
+                      title="Buka seluruh kolom baris ini"
+                      className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-ink"
+                    >
+                      <Maximize2 aria-hidden="true" className="size-3.5" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => onUbah?.(baris.filter((_, i) => i !== index))}
@@ -371,8 +503,19 @@ export function TabelIsian({
           Tambah Baris
         </button>
       )}
+
+      {panel}
     </div>
   );
+}
+
+/** Ringkasan satu nilai untuk daftar baris pada mode per baris. */
+function ringkasNilai(isi: NilaiSel | undefined): string {
+  if (isi === null || isi === undefined || isi === '') return '—';
+  if (typeof isi === 'boolean') return isi ? 'Ya' : 'Tidak';
+  if (typeof isi === 'object' && 'nama' in isi) return isi.nama;
+
+  return String(isi);
 }
 
 /**
