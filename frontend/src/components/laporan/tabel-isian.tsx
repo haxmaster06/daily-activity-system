@@ -8,7 +8,13 @@ import { PanelBaris } from '@/components/laporan/panel-baris';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { cn } from '@/lib/cn';
 import { useLebarLayar, LAYAR_SEMPIT } from '@/lib/use-lebar-layar';
-import { barisKosong, hitungPratinjau, type NilaiBaris, type NilaiSel } from '@/lib/laporan';
+import {
+  barisKosong,
+  hitungPratinjau,
+  susunGrup,
+  type NilaiBaris,
+  type NilaiSel,
+} from '@/lib/laporan';
 import type { KolomTemplate } from '@/lib/template';
 
 interface TabelIsianProps {
@@ -292,7 +298,14 @@ export function TabelIsian({
                 <span className="min-w-0 flex-1">
                   {ringkas.map((item) => (
                     <span key={item.kunci} className="block text-body text-ink">
-                      <span className="text-ink-soft">{item.label}: </span>
+                      {/*
+                        Nama grup ikut disebut: label kolom dapat sama persis
+                        antar grup — "Isi" milik Pouch dan "Isi" milik Box —
+                        dan tanpa grupnya keduanya terbaca identik.
+                      */}
+                      <span className="text-ink-soft">
+                        {item.grup ? `${item.grup} · ${item.label}` : item.label}:{' '}
+                      </span>
                       {ringkasNilai(isi[item.kunci])}
                     </span>
                   ))}
@@ -516,28 +529,4 @@ function ringkasNilai(isi: NilaiSel | undefined): string {
   if (typeof isi === 'object' && 'nama' in isi) return isi.nama;
 
   return String(isi);
-}
-
-/**
- * Mengelompokkan kolom berurutan yang punya `grup` sama.
- *
- * Pengelompokan mengikuti urutan kolom, bukan mengumpulkan seluruh kolom
- * bergrup sama ke satu tempat — susunan kolom pada template sudah menentukan
- * bentuk tabelnya.
- */
-function susunGrup(kolom: KolomTemplate[]): { nama: string | null; kolom: KolomTemplate[] }[] {
-  const hasil: { nama: string | null; kolom: KolomTemplate[] }[] = [];
-
-  for (const item of kolom) {
-    const nama = item.grup ?? null;
-    const terakhir = hasil[hasil.length - 1];
-
-    if (terakhir && terakhir.nama === nama) {
-      terakhir.kolom.push(item);
-    } else {
-      hasil.push({ nama, kolom: [item] });
-    }
-  }
-
-  return hasil;
 }

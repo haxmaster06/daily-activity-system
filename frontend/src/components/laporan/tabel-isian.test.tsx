@@ -217,3 +217,35 @@ describe('TabelIsian — mode per baris', () => {
     expect(screen.getByLabelText('Baris ini masih bermasalah')).toBeInTheDocument();
   });
 });
+
+describe('TabelIsian — kolom bergrup', () => {
+  const BERGRUP: KolomTemplate[] = [
+    kolom('spk', 'No SPK'),
+    kolom('pouch_isi', 'Isi', 'integer', { grup: 'Pouch' }),
+    kolom('box_isi', 'Isi', 'integer', { grup: 'Box' }),
+  ];
+
+  function TerkendaliBergrup() {
+    const [baris, setBaris] = useState<NilaiBaris[]>([barisKosong(BERGRUP)]);
+
+    return (
+      <TabelIsian kolom={BERGRUP} baris={baris} onUbah={setBaris} awalanGalat="uji" />
+    );
+  }
+
+  /*
+   * Dua kolom berlabel "Isi" milik grup berbeda. Di mode grid nama grupnya ada
+   * pada header dua baris; di panel per baris ia harus dibawa serta, kalau
+   * tidak pengisi tidak punya cara tahu isian mana milik grup mana.
+   */
+  it('menampilkan nama grup pada panel per baris', async () => {
+    const pengguna = userEvent.setup();
+    render(<TerkendaliBergrup />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'Buka baris 1 sebagai form' }));
+    const panel = await screen.findByRole('dialog');
+
+    expect(within(panel).getByRole('heading', { name: 'Pouch' })).toBeInTheDocument();
+    expect(within(panel).getByRole('heading', { name: 'Box' })).toBeInTheDocument();
+  });
+});

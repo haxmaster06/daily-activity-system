@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { IsianKolom } from '@/components/laporan/isian-kolom';
 import { FieldGroup } from '@/components/ui/field';
 import { Modal } from '@/components/ui/modal';
-import { hitungPratinjau, type NilaiBaris, type NilaiSel } from '@/lib/laporan';
+import { hitungPratinjau, susunGrup, type NilaiBaris, type NilaiSel } from '@/lib/laporan';
 import type { KolomTemplate } from '@/lib/template';
 
 interface Props {
@@ -116,34 +116,60 @@ export function PanelBaris({
         </>
       }
     >
-      <FieldGroup kolom={2}>
-        {kolom.map((item) => (
-          <div key={item.kunci} className={item.tipe === 'textarea' ? 'sm:col-span-2' : undefined}>
-            <label htmlFor={`panel-${index}-${item.kunci}`} className="field-label">
-              {item.label}
-              {item.satuan && <span className="ml-1 font-normal text-ink-soft">({item.satuan})</span>}
-              {item.wajib && <span className="ml-0.5 text-danger">*</span>}
-            </label>
+      {/*
+        Kolom dikelompokkan seperti di mode grid.
 
-            <IsianKolom
-              kolom={item}
-              nilai={isi}
-              onUbah={ubahSel}
-              hasilHitungan={item.rumus ? hitungPratinjau(item.rumus, isi) : undefined}
-              galat={galatSel(item.kunci)}
-              idBaris={`panel-${index}`}
-              indukKode={indukKode(item)}
-            />
+        Tanpa ini, template seperti PROD_PROSES menampilkan "Isi", "Sisa", dan
+        "Total" berkali-kali — sekali untuk Pouch, sekali untuk Box, sekali
+        untuk Karton — dan pengisi tidak punya cara tahu isian mana milik
+        kelompok mana. Di mode grid nama kelompoknya ada pada header dua baris;
+        di sini ia harus dibawa serta.
+      */}
+      <div className="flex flex-col gap-4">
+        {susunGrup(kolom).map((g, gi) => (
+          <section key={`${g.nama ?? 'tanpa'}-${gi}`}>
+            {g.nama && (
+              <h3 className="mb-2 border-b border-line pb-1 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                {g.nama}
+              </h3>
+            )}
 
-            {item.bantuan && !galatSel(item.kunci) && (
-              <span className="mt-1 block text-caption text-ink-soft">{item.bantuan}</span>
-            )}
-            {galatSel(item.kunci) && (
-              <span className="field-error">{galatSel(item.kunci)}</span>
-            )}
-          </div>
+            <FieldGroup kolom={2}>
+              {g.kolom.map((item) => (
+                <div
+                  key={item.kunci}
+                  className={item.tipe === 'textarea' ? 'sm:col-span-2' : undefined}
+                >
+                  <label htmlFor={`panel-${index}-${item.kunci}`} className="field-label">
+                    {item.label}
+                    {item.satuan && (
+                      <span className="ml-1 font-normal text-ink-soft">({item.satuan})</span>
+                    )}
+                    {item.wajib && <span className="ml-0.5 text-danger">*</span>}
+                  </label>
+
+                  <IsianKolom
+                    kolom={item}
+                    nilai={isi}
+                    onUbah={ubahSel}
+                    hasilHitungan={item.rumus ? hitungPratinjau(item.rumus, isi) : undefined}
+                    galat={galatSel(item.kunci)}
+                    idBaris={`panel-${index}`}
+                    indukKode={indukKode(item)}
+                  />
+
+                  {item.bantuan && !galatSel(item.kunci) && (
+                    <span className="mt-1 block text-caption text-ink-soft">{item.bantuan}</span>
+                  )}
+                  {galatSel(item.kunci) && (
+                    <span className="field-error">{galatSel(item.kunci)}</span>
+                  )}
+                </div>
+              ))}
+            </FieldGroup>
+          </section>
         ))}
-      </FieldGroup>
+      </div>
     </Modal>
   );
 }

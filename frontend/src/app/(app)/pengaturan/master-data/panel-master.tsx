@@ -194,15 +194,14 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
               />
 
               <DataTable>
+                {/* `DataTableHead` sudah merender <tr>-nya sendiri. */}
                 <DataTableHead>
-                  <tr>
-                    <Th>Nama</Th>
-                    <Th>Kode</Th>
-                    {terpilih.induk && <Th>{terpilih.induk.nama}</Th>}
-                    <Th>Keterangan</Th>
-                    <Th>Status</Th>
-                    <Th className="w-10" />
-                  </tr>
+                  <Th>Nama</Th>
+                  <Th>Kode</Th>
+                  {terpilih.induk && <Th>{terpilih.induk.nama}</Th>}
+                  <Th>Keterangan</Th>
+                  <Th>Status</Th>
+                  <Th className="w-10" />
                 </DataTableHead>
 
                 <DataTableBody>

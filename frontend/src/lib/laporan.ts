@@ -176,3 +176,27 @@ export function hitungPratinjau(rumus: string, nilai: NilaiBaris): number | null
 
   return Math.round(tumpukan[0] * 1000) / 1000;
 }
+
+/**
+ * Mengelompokkan kolom berurutan yang punya `grup` sama.
+ *
+ * Pengelompokan mengikuti urutan kolom, bukan mengumpulkan seluruh kolom
+ * bergrup sama ke satu tempat — susunan kolom pada template sudah menentukan
+ * bentuk tabelnya.
+ */
+export function susunGrup(kolom: KolomTemplate[]): { nama: string | null; kolom: KolomTemplate[] }[] {
+  const hasil: { nama: string | null; kolom: KolomTemplate[] }[] = [];
+
+  for (const item of kolom) {
+    const nama = item.grup ?? null;
+    const terakhir = hasil[hasil.length - 1];
+
+    if (terakhir && terakhir.nama === nama) {
+      terakhir.kolom.push(item);
+    } else {
+      hasil.push({ nama, kolom: [item] });
+    }
+  }
+
+  return hasil;
+}
