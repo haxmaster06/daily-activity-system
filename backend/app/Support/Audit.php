@@ -24,6 +24,8 @@ final class Audit
 
     public const MODUL_LAPORAN = 'laporan';
 
+    public const MODUL_MASTER = 'master';
+
     public const AKSI_DIBUAT = 'dibuat';
 
     public const AKSI_DIPERBARUI = 'diperbarui';

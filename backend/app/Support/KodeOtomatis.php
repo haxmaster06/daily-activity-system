@@ -23,14 +23,16 @@ final class KodeOtomatis
      *
      * @param  Builder<covariant \Illuminate\Database\Eloquent\Model>  $query  Sumber pemeriksaan keunikan
      * @param  string  $kolom  Nama kolom kode pada tabel tersebut
+     * @param  bool  $hurufKecil  Untuk penanda yang muncul di alamat URL
      */
     public static function dariNama(
         string $nama,
         Builder $query,
         string $kolom = 'code',
         int $panjangMaksimal = 32,
+        bool $hurufKecil = false,
     ): string {
-        $dasar = self::normalkan($nama, $panjangMaksimal);
+        $dasar = self::normalkan($nama, $panjangMaksimal, $hurufKecil);
 
         if (! self::terpakai($query, $kolom, $dasar)) {
             return $dasar;
@@ -52,10 +54,18 @@ final class KodeOtomatis
     }
 
     /**
-     * Mengubah nama menjadi bentuk kode: huruf kapital, angka, dan garis bawah.
+     * Mengubah nama menjadi bentuk kode: huruf, angka, dan garis bawah.
+     *
+     * Huruf kapital untuk kode yang dibaca manusia di layar (departemen,
+     * template); huruf kecil untuk penanda yang muncul di alamat URL, mis.
+     * slug jenis daftar master. Keduanya dinormalkan dengan aturan yang sama,
+     * sehingga pemeriksaan keunikan tetap membandingkan bentuk yang setara.
      */
-    public static function normalkan(string $nama, int $panjangMaksimal = 32): string
-    {
+    public static function normalkan(
+        string $nama,
+        int $panjangMaksimal = 32,
+        bool $hurufKecil = false,
+    ): string {
         $kode = Str::of($nama)
             ->ascii()          // "Ekspor & Impor" -> "Ekspor & Impor"
             ->upper()
@@ -66,7 +76,9 @@ final class KodeOtomatis
             ->value();
 
         // Nama yang seluruhnya berupa tanda baca tetap harus menghasilkan kode.
-        return $kode === '' ? 'KODE_'.Str::upper(Str::random(6)) : $kode;
+        $kode = $kode === '' ? 'KODE_'.Str::upper(Str::random(6)) : $kode;
+
+        return $hurufKecil ? Str::lower($kode) : $kode;
     }
 
     /**

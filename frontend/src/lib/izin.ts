@@ -35,9 +35,13 @@ export function melihatOrangLain(jangkauan: Jangkauan): boolean {
 
 /** Salah satu halaman pengaturan dapat dibuka. */
 export function bolehBukaPengaturan(izin: readonly string[]): boolean {
-  return ['pengguna.lihat', 'role.lihat', 'departemen.kelola', 'template.kelola'].some(
-    (satu) => izin.includes(satu),
-  );
+  return [
+    'pengguna.lihat',
+    'role.lihat',
+    'departemen.kelola',
+    'template.kelola',
+    'master.kelola',
+  ].some((satu) => izin.includes(satu));
 }
 
 export function labelJangkauan(level: number): string {

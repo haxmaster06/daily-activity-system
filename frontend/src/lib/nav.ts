@@ -42,6 +42,7 @@ export const AKSES_HALAMAN: readonly MenuUtama[] = [
   { label: 'Manajemen Peran', href: '/pengaturan/role', izin: ['role.lihat'] },
   { label: 'Manajemen Departemen', href: '/pengaturan/departemen', izin: ['departemen.kelola'] },
   { label: 'Template Laporan', href: '/pengaturan/template', izin: ['template.kelola'] },
+  { label: 'Data Master', href: '/pengaturan/master-data', izin: ['master.kelola'] },
 ];
 
 function memenuhi(izinDimiliki: readonly string[], menu: MenuUtama): boolean {

@@ -46,6 +46,10 @@ final class KatalogIzin
 
     public const TEMPLATE_KELOLA = 'template.kelola';
 
+    public const MASTER_LIHAT = 'master.lihat';
+
+    public const MASTER_KELOLA = 'master.kelola';
+
     public const PENGGUNA_LIHAT = 'pengguna.lihat';
 
     public const PENGGUNA_KELOLA = 'pengguna.kelola';
@@ -90,6 +94,8 @@ final class KatalogIzin
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
             ['master', self::TEMPLATE_LIHAT, 'Melihat template', 'Membaca daftar template laporan.'],
             ['master', self::TEMPLATE_KELOLA, 'Mengelola template', 'Menambah, mengubah, dan menghapus template laporan.'],
+            ['master', self::MASTER_LIHAT, 'Melihat daftar master', 'Membaca daftar pilihan seperti supplier, produk, dan satuan.'],
+            ['master', self::MASTER_KELOLA, 'Mengelola daftar master', 'Menambah, mengubah, dan menghapus daftar pilihan beserta isinya.'],
 
             ['pengguna', self::PENGGUNA_LIHAT, 'Melihat daftar pengguna', 'Membuka daftar akun beserta perannya.'],
             ['pengguna', self::PENGGUNA_KELOLA, 'Menambah & mengubah pengguna', 'Membuat akun baru dan mengubah datanya, termasuk penetapan peran.'],
@@ -143,6 +149,9 @@ final class KatalogIzin
             self::EXPORT_LAPORAN,
             self::DEPARTEMEN_LIHAT,
             self::TEMPLATE_LIHAT,
+            // Diperlukan saat mengisi laporan: kolom yang mengambil pilihannya
+            // dari daftar master tidak dapat dibuka tanpa membaca daftarnya.
+            self::MASTER_LIHAT,
         ];
 
         $supervisor = [

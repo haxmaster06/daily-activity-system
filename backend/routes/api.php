@@ -7,6 +7,8 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\LampiranController;
+use App\Http\Controllers\MasterDataController;
+use App\Http\Controllers\MasterTypeController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\PengingatController;
@@ -78,6 +80,34 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('departemen.update');
     Route::delete('/departemen/{department}', [DepartmentController::class, 'destroy'])
         ->name('departemen.destroy');
+
+    /*
+     * Daftar master generik — Supplier, Produk, Satuan, dan apa pun yang
+     * ditambahkan administrator.
+     *
+     * `/master/jenis` harus mendahului `/master/{jenis}`, kalau tidak kata
+     * "jenis" ditangkap sebagai slug daftar dan permintaannya berakhir 404 —
+     * cacat yang sama sudah pernah terjadi pada `/role/matriks`.
+     *
+     * Slug dipakai sebagai pengikat rute, bukan id, supaya alamatnya terbaca
+     * dan tetap sah walau datanya dipindahkan antar lingkungan.
+     */
+    Route::get('/master/jenis', [MasterTypeController::class, 'index'])->name('master.jenis.index');
+    Route::post('/master/jenis', [MasterTypeController::class, 'store'])->name('master.jenis.store');
+    Route::put('/master/jenis/{jenis:slug}', [MasterTypeController::class, 'update'])
+        ->name('master.jenis.update');
+    Route::delete('/master/jenis/{jenis:slug}', [MasterTypeController::class, 'destroy'])
+        ->name('master.jenis.destroy');
+
+    // Juga harus mendahului `/master/{jenis}` karena polanya sama panjang.
+    Route::get('/master/{jenis:slug}/cari', [MasterDataController::class, 'cari'])
+        ->name('master.cari');
+    Route::get('/master/{jenis:slug}', [MasterDataController::class, 'index'])->name('master.index');
+    Route::post('/master/{jenis:slug}', [MasterDataController::class, 'store'])->name('master.store');
+    Route::put('/master/{jenis:slug}/{item}', [MasterDataController::class, 'update'])
+        ->name('master.update');
+    Route::delete('/master/{jenis:slug}/{item}', [MasterDataController::class, 'destroy'])
+        ->name('master.destroy');
 
     /*
      * Peran dan hak akses. Daftar peran memuat `{id, slug, nama}` seperti

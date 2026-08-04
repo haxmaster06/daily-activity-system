@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             IzinSeeder::class,
             IzinRoleSeeder::class,
             DepartmentSeeder::class,
+            MasterDataSeeder::class,
             ReportTemplateSeeder::class,
             AdministratorSeeder::class,
         ]);
