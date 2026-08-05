@@ -130,12 +130,26 @@ class DailyReport extends Model
     }
 
     /**
+     * Menyaring laporan pada rentang tanggal.
+     *
+     * Memakai perbandingan langsung, **bukan** `whereDate()`. `report_date`
+     * memang bertipe DATE, sehingga membungkusnya dengan `DATE()` tidak
+     * mengubah hasil — tetapi membuat MySQL tidak dapat memakai kolom itu untuk
+     * mempersempit pencarian. Terukur pada
+     * `daily_reports_department_id_report_date_index`:
+     *
+     *   DATE(report_date) >= ?   → type=ref    (hanya departemen yang dipakai)
+     *   report_date >= ?         → type=range  (departemen dan tanggal dipakai)
+     *
+     * Selisihnya belum terasa pada data pengembangan, dan akan terasa pada
+     * arsip laporan bertahun-tahun.
+     *
      * @param  Builder<DailyReport>  $query
      */
     public function scopeDalamRentang(Builder $query, ?string $dari, ?string $sampai): void
     {
-        $query->when($dari, fn ($sub) => $sub->whereDate('report_date', '>=', $dari))
-            ->when($sampai, fn ($sub) => $sub->whereDate('report_date', '<=', $sampai));
+        $query->when($dari, fn ($sub) => $sub->where('report_date', '>=', $dari))
+            ->when($sampai, fn ($sub) => $sub->where('report_date', '<=', $sampai));
     }
 
     /** Laporan yang masih draf boleh disunting pemiliknya. */

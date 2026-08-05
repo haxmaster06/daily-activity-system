@@ -51,7 +51,7 @@ class PengingatController extends Controller
 
         $sudahMelapor = DailyReport::query()
             ->where('user_id', $penerima->getKey())
-            ->whereDate('report_date', $tanggal)
+            ->where('report_date', $tanggal)
             ->exists();
 
         if ($sudahMelapor) {
@@ -68,7 +68,16 @@ class PengingatController extends Controller
          */
         $sudahDiingatkan = $penerima->notifications()
             ->where('type', PengingatLaporan::class)
-            ->whereDate('created_at', Carbon::today())
+            /*
+             * `created_at` bertipe TIMESTAMP, bukan DATE, sehingga di sini
+             * memang butuh rentang — bukan perbandingan satu nilai. Ditulis
+             * sebagai rentang, bukan `whereDate()`, supaya kolomnya tetap dapat
+             * dipakai index.
+             */
+            ->whereBetween('created_at', [
+                Carbon::today()->startOfDay(),
+                Carbon::today()->endOfDay(),
+            ])
             ->exists();
 
         if ($sudahDiingatkan) {

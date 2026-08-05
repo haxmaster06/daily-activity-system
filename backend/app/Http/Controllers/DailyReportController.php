@@ -77,7 +77,7 @@ class DailyReportController extends Controller
         // Satu pengguna satu laporan per tanggal. Diperiksa lebih dulu agar
         // pesannya jelas; unique index tetap menjadi penjaga terakhir.
         $sudahAda = DailyReport::where('user_id', $pengguna->id)
-            ->whereDate('report_date', $data['report_date'])
+            ->where('report_date', $data['report_date'])
             ->first();
 
         if ($sudahAda !== null) {

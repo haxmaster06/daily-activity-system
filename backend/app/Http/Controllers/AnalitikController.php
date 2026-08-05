@@ -246,7 +246,7 @@ class AnalitikController extends Controller
             ->visibleTo($pengguna)
             ->with(['department', 'penanggungJawab'])
             ->whereNotNull('target_selesai')
-            ->whereDate('target_selesai', '<', Carbon::today())
+            ->where('target_selesai', '<', Carbon::today()->toDateString())
             ->where('status', '!=', Tugas::STATUS_SELESAI)
             ->orderBy('target_selesai')
             ->limit(20)

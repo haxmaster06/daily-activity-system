@@ -32,7 +32,15 @@ class DashboardController extends Controller
 
         return ApiResponse::ok([
             'kartu' => [
-                'laporan_hari_ini' => $terlihat()->whereDate('report_date', $hariIni)->count(),
+                /*
+                 * Perbandingan langsung, bukan `whereDate()`. `report_date`
+                 * bertipe DATE, sehingga membungkusnya dengan `DATE()` tidak
+                 * mengubah hasil tetapi menghalangi MySQL memakai index —
+                 * terukur: `type=range` menjadi `type=ref`.
+                 */
+                'laporan_hari_ini' => $terlihat()
+                    ->where('report_date', $hariIni->toDateString())
+                    ->count(),
                 'laporan_bulan_ini' => $terlihat()
                     ->whereBetween('report_date', [$awalBulan, $hariIni])
                     ->count(),
@@ -62,7 +70,7 @@ class DashboardController extends Controller
     private function laporanSayaHariIni(User $pengguna, Carbon $hariIni): ?array
     {
         $laporan = DailyReport::where('user_id', $pengguna->getKey())
-            ->whereDate('report_date', $hariIni)
+            ->where('report_date', $hariIni->toDateString())
             ->first();
 
         if ($laporan === null) {
@@ -153,7 +161,10 @@ class DashboardController extends Controller
                 ! $jangkauan->korporat(),
                 fn ($query) => $query->whereIn('department_id', $jangkauan->departemenId),
             )
-            ->whereDoesntHave('laporan', fn ($query) => $query->whereDate('report_date', $hariIni))
+            ->whereDoesntHave(
+                'laporan',
+                fn ($query) => $query->where('report_date', $hariIni->toDateString()),
+            )
             ->orderBy('name')
             ->limit(20)
             ->get()

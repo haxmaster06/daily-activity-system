@@ -64,4 +64,39 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Backup Database
+    |--------------------------------------------------------------------------
+    |
+    | ADR-008 melarang `migrate:fresh` dan mewajibkan backup sebelum `migrate`
+    | di lingkungan mana pun selain database lokal sekali pakai. Larangan tanpa
+    | perintah backup yang benar-benar ada hanya menggeser tanggung jawab.
+    |
+    | Dijalankan `dams:backup`, dan diuji pulih `dams:uji-restore`. Backup yang
+    | tidak pernah diuji pulih bukanlah backup: dump yang terpotong atau
+    | kehilangan satu tabel baru ketahuan pada hari data aslinya sudah hilang.
+    |
+    | `folder` sebaiknya berada di luar folder aplikasi, dan disalin ke luar
+    | server utama. Backup yang tersimpan di server yang sama ikut hilang
+    | bersama servernya.
+    |
+    */
+
+    'backup' => [
+
+        'folder' => env('DAMS_BACKUP_FOLDER', storage_path('backup')),
+
+        /*
+         * Jalur mysqldump dan mysql. Di Windows dengan Laragon keduanya tidak
+         * ada di PATH, sehingga jalurnya perlu ditulis penuh.
+         */
+        'mysqldump' => env('DAMS_MYSQLDUMP', 'mysqldump'),
+        'mysql' => env('DAMS_MYSQL', 'mysql'),
+
+        // Jumlah backup terakhir yang dipertahankan penjadwal.
+        'simpan' => (int) env('DAMS_BACKUP_SIMPAN', 14),
+
+    ],
+
 ];
