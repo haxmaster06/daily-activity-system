@@ -40,15 +40,29 @@ class TugasRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $pengguna = $this->user();
             $departemenId = $this->integer('department_id');
-            $jangkauan = $this->user()->jangkauan();
+            $jangkauan = $pengguna->jangkauan();
+
+            /*
+             * Jangkauan Pribadi boleh membuat kartu di departemennya sendiri.
+             *
+             * `mencakupDepartemen()` selalu bernilai salah pada tingkat
+             * Pribadi — daftar departemennya memang kosong. Tanpa pengecualian
+             * ini, Staf tidak dapat membuat satu kartu pun, padahal memasukkan
+             * progres harian justru pekerjaan mereka dan izin `tugas.kelola`
+             * sudah menjadi bawaannya. Laporan harian memakai aturan yang
+             * sama: `department_id` disalin dari departemen penyusunnya.
+             */
+            $departemenSendiri = $pengguna->department_id !== null
+                && (int) $pengguna->department_id === $departemenId;
 
             /*
              * Membuat kartu di departemen lain sama saja menembus jangkauan
              * data lewat pintu belakang: kartunya tidak terlihat oleh
              * pembuatnya, tetapi terhitung pada Analytics departemen itu.
              */
-            if (! $jangkauan->korporat() && ! $jangkauan->mencakupDepartemen($departemenId)) {
+            if (! $jangkauan->korporat() && ! $departemenSendiri && ! $jangkauan->mencakupDepartemen($departemenId)) {
                 $validator->errors()->add(
                     'department_id',
                     'Departemen tersebut di luar jangkauan Anda.',

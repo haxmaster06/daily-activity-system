@@ -6,10 +6,22 @@ use App\Models\Tugas;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
-/** Staf pada sebuah departemen, berjangkauan Departemen. */
-function stafDepartemen(Department $departemen): User
+/** Pengawas sebuah departemen — jangkauan Departemen, melihat seisi timnya. */
+function pengawasDepartemen(Department $departemen): User
 {
     return User::factory()->supervisor()->create(['department_id' => $departemen->id]);
+}
+
+/**
+ * Staf biasa — jangkauan **Pribadi**.
+ *
+ * Berbeda tajam dari pengawas: daftar departemennya kosong, sehingga
+ * `mencakupDepartemen()` selalu bernilai salah. Aturan apa pun yang hanya diuji
+ * memakai pengawas akan lolos meski Staf terkunci sama sekali.
+ */
+function stafDepartemen(Department $departemen): User
+{
+    return User::factory()->staff()->create(['department_id' => $departemen->id]);
 }
 
 it('menolak papan progres tanpa izin', function (): void {
@@ -23,7 +35,7 @@ it('menolak papan progres tanpa izin', function (): void {
 
 it('mengelompokkan kartu ke tiga kolom', function (): void {
     $departemen = Department::factory()->create();
-    $pengguna = stafDepartemen($departemen);
+    $pengguna = pengawasDepartemen($departemen);
 
     Tugas::factory()->create(['department_id' => $departemen->id]);
     Tugas::factory()->dalamProses()->create(['department_id' => $departemen->id]);
@@ -48,7 +60,7 @@ it('tidak menampilkan tugas departemen lain', function (): void {
     $milik = Department::factory()->create();
     $lain = Department::factory()->create();
 
-    $pengguna = stafDepartemen($milik);
+    $pengguna = pengawasDepartemen($milik);
 
     Tugas::factory()->create(['department_id' => $milik->id, 'title' => 'Milik sendiri']);
     Tugas::factory()->create(['department_id' => $lain->id, 'title' => 'Milik orang lain']);
@@ -67,7 +79,7 @@ it('menolak membuat tugas di departemen di luar jangkauan', function (): void {
     $milik = Department::factory()->create();
     $lain = Department::factory()->create();
 
-    Sanctum::actingAs(stafDepartemen($milik));
+    Sanctum::actingAs(pengawasDepartemen($milik));
 
     $this->postJson('/api/tugas', [
         'title' => 'Menyusup',
@@ -75,6 +87,66 @@ it('menolak membuat tugas di departemen di luar jangkauan', function (): void {
     ])
         ->assertStatus(422)
         ->assertJsonPath('errors.department_id.0', 'Departemen tersebut di luar jangkauan Anda.');
+});
+
+/*
+ * Staf berjangkauan Pribadi, sehingga `mencakupDepartemen()` selalu salah
+ * baginya. Tanpa pengecualian "departemennya sendiri" di TugasRequest, ia
+ * tertolak membuat kartu apa pun — padahal memasukkan progres harian justru
+ * pekerjaannya, dan `tugas.kelola` sudah menjadi izin bawaannya.
+ */
+it('membolehkan staf membuat kartu di departemennya sendiri', function (): void {
+    $departemen = Department::factory()->create();
+
+    Sanctum::actingAs(stafDepartemen($departemen));
+
+    $this->postJson('/api/tugas', [
+        'title' => 'Menimbang bahan masuk',
+        'department_id' => $departemen->id,
+    ])->assertCreated();
+
+    expect(Tugas::where('title', 'Menimbang bahan masuk')->exists())->toBeTrue();
+});
+
+it('menolak staf membuat kartu di departemen lain', function (): void {
+    $milik = Department::factory()->create();
+    $lain = Department::factory()->create();
+
+    Sanctum::actingAs(stafDepartemen($milik));
+
+    $this->postJson('/api/tugas', [
+        'title' => 'Menyusup',
+        'department_id' => $lain->id,
+    ])->assertStatus(422);
+});
+
+/*
+ * Jangkauan Pribadi tidak berarti "hanya yang saya buat". Kartu yang
+ * ditanggung seseorang adalah pekerjaannya, siapa pun yang menuliskannya —
+ * kalau tidak, kartu yang dibuatkan atasan tidak akan pernah terlihat olehnya.
+ */
+it('menampilkan kartu yang ditanggung staf meski dibuat orang lain', function (): void {
+    $departemen = Department::factory()->create();
+    $staf = stafDepartemen($departemen);
+
+    Tugas::factory()->create([
+        'department_id' => $departemen->id,
+        'penanggung_jawab_id' => $staf->id,
+        'title' => 'Ditugaskan kepada saya',
+    ]);
+    Tugas::factory()->create([
+        'department_id' => $departemen->id,
+        'title' => 'Pekerjaan rekan',
+    ]);
+
+    Sanctum::actingAs($staf);
+
+    $judul = collect($this->getJson('/api/tugas')->assertOk()->json('data'))
+        ->flatMap(fn ($kolom) => collect($kolom['kartu'])->pluck('judul'))
+        ->all();
+
+    expect($judul)->toContain('Ditugaskan kepada saya')
+        ->and($judul)->not->toContain('Pekerjaan rekan');
 });
 
 it('menaruh kartu baru di puncak kolomnya', function (): void {
@@ -99,7 +171,7 @@ it('memindahkan kartu antar kolom', function (): void {
     $departemen = Department::factory()->create();
     $tugas = Tugas::factory()->create(['department_id' => $departemen->id]);
 
-    Sanctum::actingAs(stafDepartemen($departemen));
+    Sanctum::actingAs(pengawasDepartemen($departemen));
 
     $this->patchJson("/api/tugas/{$tugas->id}/geser", [
         'status' => 'selesai',
@@ -113,7 +185,7 @@ it('menolak memindahkan kartu di luar jangkauan', function (): void {
     $lain = Department::factory()->create();
     $tugas = Tugas::factory()->create(['department_id' => $lain->id]);
 
-    Sanctum::actingAs(stafDepartemen(Department::factory()->create()));
+    Sanctum::actingAs(pengawasDepartemen(Department::factory()->create()));
 
     $this->patchJson("/api/tugas/{$tugas->id}/geser", [
         'status' => 'selesai',
@@ -125,7 +197,7 @@ it('menolak kolom yang tidak dikenal', function (): void {
     $departemen = Department::factory()->create();
     $tugas = Tugas::factory()->create(['department_id' => $departemen->id]);
 
-    Sanctum::actingAs(stafDepartemen($departemen));
+    Sanctum::actingAs(pengawasDepartemen($departemen));
 
     $this->patchJson("/api/tugas/{$tugas->id}/geser", [
         'status' => 'entah_apa',
@@ -187,7 +259,7 @@ it('mempertahankan tautan setelah laporannya disunting', function (): void {
 
 it('menghapus tugas tanpa menyentuh laporannya', function (): void {
     $departemen = Department::factory()->create();
-    $pengguna = stafDepartemen($departemen);
+    $pengguna = pengawasDepartemen($departemen);
 
     $laporan = DailyReport::factory()->create([
         'user_id' => $pengguna->id,

@@ -170,6 +170,9 @@ react-aria-components      perilaku dialog, date picker, combobox
                            navigation-menu, toggle-group, dialog,
                            popover, tooltip, label, checkbox,
                            separator, slot, tabs
+@dnd-kit/core              tarik-lepas papan progres (§9.1)
+@dnd-kit/sortable          penyusunan ulang kartu di dalam kolom
+@dnd-kit/utilities         penolong transform CSS untuk @dnd-kit
 motion                     animasi dan AnimatePresence
 cmdk                       command palette
 class-variance-authority   varian komponen
@@ -202,6 +205,65 @@ ditulis di dokumen ini, seperti yang dilakukan untuk `cmdk` di §4.
 Yang **tidak** menjadi alasan sah: "lebih cepat", "sudah biasa dipakai", atau
 "komponennya lebih cantik". Menambah library UI berarti menambah satu lagi
 sumber gaya yang harus dijaga konsisten seumur project.
+
+### 9.1 `@dnd-kit` — tarik-lepas papan progres
+
+Dipakai di `src/app/(app)/progress/`. Ini satu-satunya kasus sejauh ini yang
+lolos §9 meskipun **React Aria menyediakan penggantinya**, jadi alasannya
+ditulis panjang.
+
+| Pertanyaan §9 | Jawaban |
+|---|---|
+| Radix punya? | Tidak. Radix tidak punya primitif tarik-lepas sama sekali. |
+| React Aria punya? | **Ya** — `useDragAndDrop`, lengkap dengan pengoperasian papan ketik. |
+| Cukup ditulis sendiri? | Tidak. Tarik-lepas menyentuh pointer capture, auto-scroll, sensor sentuh, dan pengumuman pembaca layar. |
+
+Rencana awal memang memakai React Aria. Yang membatalkannya ditemukan saat
+pemasangan: **React Aria tidak memiliki locale `id-ID`.**
+
+```
+node_modules/react-aria/dist/private/intl/dnd/   → 34 locale, tanpa id-ID
+```
+
+Akibatnya nyata, bukan teoretis. Seluruh petunjuk tarik-lepas React Aria
+diucapkan lewat wilayah `aria-live` miliknya sendiri, dan tanpa kamus Indonesia
+ia jatuh ke Inggris:
+
+```
+"dragDescriptionKeyboard": "Press Enter to start dragging."
+"dragStartedKeyboard":     "Started dragging. Press Tab to navigate to a drop
+                            target, then press Enter to drop..."
+"dropComplete":            "Drop complete."
+```
+
+Kalimat itulah satu-satunya penjelasan yang diterima pengguna pembaca layar —
+justru pengguna yang paling bergantung padanya. CLAUDE.md mewajibkan seluruh
+teks yang dilihat, atau didengar, pengguna memakai Bahasa Indonesia. React Aria
+tidak menyediakan API publik untuk menyuntikkan kamus locale sendiri ke paket
+internalnya.
+
+`@dnd-kit` menyerahkan seluruh kalimatnya kepada pemanggil lewat
+`accessibility={{ announcements, screenReaderInstructions }}`. Teksnya ada di
+`papan-kanban.tsx` dan berbahasa Indonesia seluruhnya, dijaga oleh test
+`papan-kanban.test.tsx`.
+
+**Jangan mengganti ini kembali ke React Aria** sebelum `id-ID` benar-benar ada
+di paket `react-aria`. Penggantiannya akan lulus seluruh test tampilan dan
+diam-diam mengembalikan petunjuk berbahasa Inggris.
+
+Catatan yang lebih luas, dan belum ditindaklanjuti: ketiadaan `id-ID` juga
+berlaku bagi seluruh komponen React Aria lain yang sudah dipakai — teks bantuan
+internal ComboBox, DatePicker, dan Modal tetap berbahasa Inggris bagi pembaca
+layar. Perlu diaudit tersendiri.
+
+#### Yang tetap disediakan meski memakai library tarik-lepas
+
+Tiap kartu punya menu **"Pindahkan ke <kolom>"**. Bukan pelengkap, dan bukan
+karena tarik-lepasnya kurang: menyeret dengan papan ketik menuntut pengguna
+menahan model posisi di kepalanya, sedangkan menu menyebut kolom tujuannya
+dengan kata dan cukup satu penekanan. Jalur itu juga yang membuat perpindahan
+kartu dapat diuji tanpa tata letak — jsdom tidak punya ukuran elemen, sehingga
+sensor papan ketik `@dnd-kit` tidak dapat menghitung arah di dalam test.
 
 ---
 
