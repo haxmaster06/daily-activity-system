@@ -28,7 +28,23 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    // `dvh`, bukan `vh`: di ponsel `100vh` menghitung bilah alamat yang
+    // menghilang saat digulir, sehingga halaman lebih tinggi daripada layarnya.
+    <div className="min-h-dvh bg-background">
+      {/*
+        Persinggahan pertama bagi pengguna papan ketik. Tanpa ini, mencapai isi
+        halaman menuntut menelusuri seluruh navigasi lebih dulu — tiap kali
+        halaman berganti.
+
+        Tersembunyi sampai difokus; `sr-only` dilepas oleh `focus:not-sr-only`.
+      */}
+      <a
+        href="#isi-utama"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-input focus:bg-surface focus:px-3 focus:py-2 focus:text-body focus:text-ink focus:shadow-modal"
+      >
+        Lewati ke isi halaman
+      </a>
+
       <AppHeader
         pengguna={{
           id: pengguna.id,
@@ -41,7 +57,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         }}
       />
       {/* pb-20 di layar sempit memberi ruang untuk Dock yang menempel di bawah. */}
-      <main className="mx-auto max-w-container px-4 pb-20 pt-4 md:pb-4 lg:px-8">
+      <main
+        id="isi-utama"
+        tabIndex={-1}
+        className="mx-auto max-w-container px-4 pb-20 pt-4 outline-none md:pb-4 lg:px-8"
+      >
         <PageTransition>{children}</PageTransition>
       </main>
     </div>

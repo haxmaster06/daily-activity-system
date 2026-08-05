@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronRight, Maximize2, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { IsianKolom } from '@/components/laporan/isian-kolom';
 import { PanelBaris } from '@/components/laporan/panel-baris';
@@ -51,6 +51,9 @@ const LEBAR: Partial<Record<KolomTemplate['tipe'], string>> = {
 const LEBAR_NOMOR = 40;
 const LEBAR_BEKU = 160;
 
+/** Berapa lama tombol Batalkan tetap tersedia setelah baris dihapus. */
+const JEDA_BATAL_HAPUS = 8000;
+
 /** Paling banyak dua kolom beku — lebih dari itu memakan lebar yang diselamatkan. */
 const MAKSIMAL_BEKU = 2;
 
@@ -94,6 +97,44 @@ export function TabelIsian({
     bentukBawaan === 'baris' ? 'baris' : 'grid',
   );
   const [barisTerbuka, setBarisTerbuka] = useState<number | null>(null);
+
+  /*
+   * Baris yang baru dihapus, ditahan sebentar supaya dapat dikembalikan.
+   *
+   * Menghapus baris berisi belasan sel yang baru diketik tidak boleh menjadi
+   * satu klik tanpa jalan kembali. Dialog konfirmasi ditolak di sini: yang
+   * dihapus sering memang baris kosong, dan menanyakannya tiap kali akan
+   * memperlambat justru pemakaian yang paling sering.
+   */
+  const [terhapus, setTerhapus] = useState<{ index: number; isi: NilaiBaris } | null>(null);
+  const pewaktuBatal = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function hapusBaris(index: number) {
+    if (pewaktuBatal.current) clearTimeout(pewaktuBatal.current);
+
+    setTerhapus({ index, isi: baris[index] });
+    onUbah?.(baris.filter((_, i) => i !== index));
+
+    pewaktuBatal.current = setTimeout(() => setTerhapus(null), JEDA_BATAL_HAPUS);
+  }
+
+  function kembalikanBaris() {
+    if (!terhapus) return;
+
+    if (pewaktuBatal.current) clearTimeout(pewaktuBatal.current);
+
+    // Disisipkan kembali di posisi semula, bukan ditempel di akhir — urutan
+    // baris pada laporan punya arti bagi pengisinya.
+    const pulih = [...baris];
+    pulih.splice(Math.min(terhapus.index, pulih.length), 0, terhapus.isi);
+
+    onUbah?.(pulih);
+    setTerhapus(null);
+  }
+
+  useEffect(() => () => {
+    if (pewaktuBatal.current) clearTimeout(pewaktuBatal.current);
+  }, []);
 
   /*
    * Layar sempit selalu memakai form per baris: tabel padat tidak terbaca di
@@ -325,6 +366,26 @@ export function TabelIsian({
           ))}
         </ul>
 
+      {/*
+        Pemberitahuan yang dapat dibatalkan, bukan dialog konfirmasi. Baris yang
+        dihapus sering memang kosong; menanyakannya tiap kali memperlambat
+        pemakaian yang paling sering, sedangkan yang benar-benar keliru tetap
+        punya jalan kembali.
+      */}
+      {terhapus && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-2 border-t border-line bg-surface-muted px-3 py-2"
+        >
+          <span className="text-body text-ink-muted">
+            Baris {terhapus.index + 1} dihapus.
+          </span>
+          <button type="button" onClick={kembalikanBaris} className="btn-ghost btn-sm">
+            Batalkan
+          </button>
+        </div>
+      )}
+
         <button
           type="button"
           onClick={() => onUbah?.([...baris, barisKosong(kolom)])}
@@ -447,6 +508,10 @@ export function TabelIsian({
                     <td
                       key={item.kunci}
                       data-sel={`${awalanGalat}-${index}-${nomor}`}
+                      // Dipakai form untuk memindahkan fokus ke isian
+                      // bermasalah pertama setelah server menolak kiriman.
+                      // Bentuknya sama persis dengan kunci galat Laravel.
+                      data-galat-kunci={`${awalanGalat}.${index}.${item.kunci}`}
                       onKeyDown={(e) => tombolSel(e, index, nomor)}
                       style={beku}
                       className={cn(
@@ -489,7 +554,7 @@ export function TabelIsian({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onUbah?.(baris.filter((_, i) => i !== index))}
+                      onClick={() => hapusBaris(index)}
                       disabled={baris.length === 1}
                       aria-label={`Hapus baris ${index + 1}`}
                       title="Hapus baris"
@@ -505,6 +570,26 @@ export function TabelIsian({
           </tbody>
         </table>
       </div>
+
+    {/*
+        Pemberitahuan yang dapat dibatalkan, bukan dialog konfirmasi. Baris yang
+        dihapus sering memang kosong; menanyakannya tiap kali memperlambat
+        pemakaian yang paling sering, sedangkan yang benar-benar keliru tetap
+        punya jalan kembali.
+      */}
+      {terhapus && (
+        <div
+          role="status"
+          className="flex items-center justify-between gap-2 border-t border-line bg-surface-muted px-3 py-2"
+        >
+          <span className="text-body text-ink-muted">
+            Baris {terhapus.index + 1} dihapus.
+          </span>
+          <button type="button" onClick={kembalikanBaris} className="btn-ghost btn-sm">
+            Batalkan
+          </button>
+        </div>
+      )}
 
       {!terkunci && (
         <button

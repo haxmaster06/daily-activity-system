@@ -215,7 +215,7 @@ export function PenyusunRumus({ id, nilai, onUbah, rujukan, galat }: Props) {
             type="button"
             onClick={hapusTerakhir}
             aria-label="Hapus bagian terakhir"
-            className="btn-ghost ml-auto size-6 shrink-0 p-0"
+            className="btn-ghost ml-auto size-7 shrink-0 p-0"
           >
             <Delete aria-hidden="true" className="size-3.5" />
           </button>

@@ -12,7 +12,7 @@ export const metadata = { title: 'Halaman Tidak Ditemukan — DAMS' };
  */
 export default function TidakDitemukan() {
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       <HalamanGalat
         judul="Halaman tidak ditemukan"
         pesan="Alamat yang Anda buka tidak ada, atau isinya sudah dipindahkan."

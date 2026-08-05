@@ -20,7 +20,7 @@ export default function GalatUmum({
   }, [error]);
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-dvh bg-background">
       <HalamanGalat
         judul="Terjadi gangguan"
         pesan="Halaman ini tidak dapat ditampilkan saat ini. Coba muat ulang; bila masih sama, sampaikan kode di bawah kepada pengelola sistem."

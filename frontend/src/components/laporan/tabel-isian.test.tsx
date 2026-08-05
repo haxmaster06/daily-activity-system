@@ -249,3 +249,50 @@ describe('TabelIsian — kolom bergrup', () => {
     expect(within(panel).getByRole('heading', { name: 'Box' })).toBeInTheDocument();
   });
 });
+
+describe('TabelIsian — batalkan penghapusan', () => {
+  /*
+   * Baris dapat memuat belasan sel yang baru diketik. Menghapusnya tidak boleh
+   * menjadi satu klik tanpa jalan kembali.
+   */
+  it('mengembalikan baris beserta isinya', async () => {
+    const pengguna = userEvent.setup();
+    render(
+      <Terkendali
+        awal={[
+          { no_spk: 'SPK-001', qty: 10, catatan: null },
+          { no_spk: 'SPK-002', qty: 20, catatan: null },
+        ]}
+      />,
+    );
+
+    await pengguna.click(screen.getByRole('button', { name: 'Hapus baris 2' }));
+
+    expect(screen.getAllByRole('row')).toHaveLength(2); // header + satu baris
+
+    await pengguna.click(screen.getByRole('button', { name: 'Batalkan' }));
+
+    expect(screen.getAllByRole('row')).toHaveLength(3);
+    expect(screen.getAllByLabelText('No SPK')[1]).toHaveValue('SPK-002');
+  });
+
+  it('mengembalikan baris ke posisi semula, bukan ke akhir', async () => {
+    const pengguna = userEvent.setup();
+    render(
+      <Terkendali
+        awal={[
+          { no_spk: 'A', qty: null, catatan: null },
+          { no_spk: 'B', qty: null, catatan: null },
+          { no_spk: 'C', qty: null, catatan: null },
+        ]}
+      />,
+    );
+
+    await pengguna.click(screen.getByRole('button', { name: 'Hapus baris 2' }));
+    await pengguna.click(screen.getByRole('button', { name: 'Batalkan' }));
+
+    // Urutan baris pada laporan punya arti bagi pengisinya.
+    const isian = screen.getAllByLabelText('No SPK');
+    expect(isian.map((i) => (i as HTMLInputElement).value)).toEqual(['A', 'B', 'C']);
+  });
+});

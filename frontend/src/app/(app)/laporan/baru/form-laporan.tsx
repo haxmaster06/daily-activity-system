@@ -9,7 +9,14 @@ import { Alert } from '@/components/ui/alert';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Wizard } from '@/components/ui/wizard';
 import { cn } from '@/lib/cn';
-import { formatTanggal } from '@/lib/format';
+import {
+  bacaDraf,
+  drafBerisi,
+  hapusDraf,
+  simpanDraf,
+  type IsiDraf,
+} from '@/lib/draf-laporan';
+import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import { barisKosong, type NilaiBaris } from '@/lib/laporan';
 import type { Template } from '@/lib/template';
 import { perbaruiLaporan, simpanLaporanBaru, type KiriBagian } from '../actions';
@@ -37,6 +44,39 @@ interface FormLaporanProps {
  */
 function templateUtama(daftar: Template[]): Template | undefined {
   return daftar.find((satu) => !satu.berlaku_umum) ?? daftar[0];
+}
+
+/** Jeda setelah ketikan berhenti sebelum draf ditulis. */
+const JEDA_SIMPAN_DRAF = 800;
+
+/**
+ * Memindahkan fokus ke isian bermasalah pertama.
+ *
+ * Tanpa ini pengguna mendapat daftar galat lalu harus mencari sendiri sel mana
+ * yang dimaksud — pada tabel berkolom belasan, itu pencarian yang sesungguhnya.
+ *
+ * Kunci galat Laravel (`sections.0.items.2.qty`) dicocokkan dengan atribut
+ * `data-galat-kunci` pada selnya. Diurutkan supaya "pertama" berarti paling
+ * atas menurut nomor baris, bukan urutan acak dari objek galat.
+ */
+function fokuskanGalatPertama(galat: Record<string, string[]>): void {
+  const kunci = Object.keys(galat)
+    .filter((satu) => satu.startsWith('sections.'))
+    .sort();
+
+  for (const satu of kunci) {
+    const sel = document.querySelector<HTMLElement>(`[data-galat-kunci="${satu}"]`);
+    const isian = sel?.querySelector<HTMLElement>('input, textarea, [role="combobox"], button');
+
+    if (isian) {
+      isian.focus();
+      if (isian instanceof HTMLInputElement || isian instanceof HTMLTextAreaElement) {
+        isian.select();
+      }
+
+      return;
+    }
+  }
 }
 
 /**
@@ -71,6 +111,87 @@ export function FormLaporan({
    * memindahkan pengguna ke sana.
    */
   const [nonceGalat, setNonceGalat] = useState(0);
+
+  /** Draf tersimpan yang ditemukan saat halaman dibuka, sebelum diputuskan. */
+  const [drafTertunda, setDrafTertunda] = useState<IsiDraf | null>(null);
+
+  /*
+   * Draf hanya dibaca sekali, saat halaman dibuka. Membacanya ulang setiap
+   * render akan menawarkan pemulihan lagi setelah pengguna menolaknya.
+   */
+  useEffect(() => {
+    const draf = bacaDraf(laporanId);
+
+    if (draf && drafBerisi(draf)) setDrafTertunda(draf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /*
+   * Draf ditulis setelah ketikan berhenti sejenak, bukan pada tiap ketikan:
+   * mengisi satu sel dapat memicu puluhan render, dan menulis ke localStorage
+   * sebanyak itu membebani tanpa menambah perlindungan apa pun.
+   */
+  useEffect(() => {
+    if (drafTertunda !== null) return;
+
+    const jeda = setTimeout(() => {
+      const isi = {
+        tanggal,
+        bagian: bagian.map((b) => ({ templateId: b.template.id, baris: b.baris })),
+      };
+
+      if (drafBerisi(isi)) simpanDraf(laporanId, isi);
+    }, JEDA_SIMPAN_DRAF);
+
+    return () => clearTimeout(jeda);
+  }, [tanggal, bagian, laporanId, drafTertunda]);
+
+  /*
+   * Jaring terakhir bila tab ditutup sebelum jeda di atas sempat menulis.
+   * Peramban modern hanya menampilkan pesan bawaannya sendiri — teks kustom
+   * diabaikan — jadi yang penting di sini menahan penutupannya, bukan pesannya.
+   */
+  useEffect(() => {
+    function saatTutup(peristiwa: BeforeUnloadEvent) {
+      const isi = {
+        tanggal,
+        bagian: bagian.map((b) => ({ templateId: b.template.id, baris: b.baris })),
+      };
+
+      if (!drafBerisi(isi)) return;
+
+      simpanDraf(laporanId, isi);
+      peristiwa.preventDefault();
+    }
+
+    window.addEventListener('beforeunload', saatTutup);
+
+    return () => window.removeEventListener('beforeunload', saatTutup);
+  }, [tanggal, bagian, laporanId]);
+
+  /** Memulihkan draf yang ditawarkan ke dalam form. */
+  function pulihkanDraf() {
+    if (!drafTertunda) return;
+
+    setTanggal(drafTertunda.tanggal);
+    setBagian(
+      drafTertunda.bagian
+        .map((satu) => {
+          const template = templateTersedia.find((t) => t.id === satu.templateId);
+
+          // Template yang sudah dihapus atau dicabut aksesnya dilewati — bukan
+          // digagalkan, supaya sisa drafnya tetap dapat dipulihkan.
+          return template ? { template, baris: satu.baris } : null;
+        })
+        .filter((satu): satu is BagianTerisi => satu !== null),
+    );
+    setDrafTertunda(null);
+  }
+
+  function buangDraf() {
+    hapusDraf(laporanId);
+    setDrafTertunda(null);
+  }
 
   /*
    * Lembar utama terpasang sendiri pada laporan baru, sehingga pengguna
@@ -152,10 +273,18 @@ export function FormLaporan({
       const adaGalatKolom = Object.keys(hasil.errors ?? {}).some((k) =>
         k.startsWith('sections.'),
       );
-      if (adaGalatKolom) setNonceGalat((n) => n + 1);
+      if (adaGalatKolom) {
+        setNonceGalat((n) => n + 1);
+        // Setelah wizard berpindah langkah, barulah selnya ada untuk difokus.
+        requestAnimationFrame(() => fokuskanGalatPertama(hasil.errors ?? {}));
+      }
 
       return;
     }
+
+    // Laporan sudah tersimpan di server; drafnya tidak berguna lagi, dan
+    // membiarkannya berarti menyimpan isi laporan di peramban tanpa alasan.
+    hapusDraf(laporanId);
 
     const tujuan = sedangUbah ? laporanId : (hasil as { id?: number }).id;
     router.push(tujuan ? `/laporan/${tujuan}` : '/laporan');
@@ -167,6 +296,31 @@ export function FormLaporan({
   return (
     <>
       {galat && <Alert jenis="galat" pesan={galat} className="mb-3" />}
+
+      {/*
+        Draf ditawarkan, tidak dipulihkan sendiri. Isian yang tiba-tiba terisi
+        membingungkan, dan pengisi mungkin memang hendak mulai dari kosong.
+      */}
+      {drafTertunda && (
+        <div
+          role="status"
+          className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-input border border-line bg-surface-muted px-3 py-2"
+        >
+          <p className="text-body text-ink">
+            Ada isian yang belum sempat dikirim, tersimpan{' '}
+            {formatTanggalWaktu(drafTertunda.disimpanPada)}.
+          </p>
+
+          <span className="flex shrink-0 items-center gap-2">
+            <button type="button" onClick={buangDraf} className="btn-ghost btn-sm">
+              Buang
+            </button>
+            <button type="button" onClick={pulihkanDraf} className="btn-primary btn-sm">
+              Lanjutkan Isian
+            </button>
+          </span>
+        </div>
+      )}
 
       <Wizard
         lompatKe={{ langkah: 1, nonce: nonceGalat }}

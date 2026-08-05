@@ -472,3 +472,106 @@ adalah jaring pengaman terakhir, bukan jawaban pertama.
 * [ ] `prefers-reduced-motion` dihormati
 * [ ] Halaman terbatas memanggil `wajibAkses()`
 * [ ] Tidak ada komponen MUI
+* [ ] Isian panjang terlindungi draf (§12)
+* [ ] Skip link tersedia di kerangka halaman (§12.3)
+
+---
+
+# BAGIAN 12 — PERLINDUNGAN ISIAN
+
+Mengisi laporan harian dapat memakan puluhan sel. Kehilangan ketikan karena tab
+tertutup, koneksi putus, atau sesi berakhir adalah kerugian nyata — bukan
+ketidaknyamanan.
+
+## 12.1 Draf otomatis
+
+* Form yang menahan lebih dari satu layar isian **wajib** menyimpan draf
+* Draf ditulis setelah ketikan berhenti sejenak, bukan pada tiap ketikan
+* Disimpan di peramban pengisi sendiri (`localStorage`), tidak pernah dikirim
+  ke mana pun selain API DAMS
+* **Dihapus begitu datanya tersimpan di server.** Draf memuat isi laporan —
+  nama supplier, nomor LOT, angka produksi — dan tidak boleh menumpuk di
+  peramban tanpa alasan
+* Draf yang lebih tua dari tujuh hari dibuang saat dibaca
+
+Modulnya `frontend/src/lib/draf-laporan.ts`.
+
+## 12.2 Draf ditawarkan, tidak dipulihkan sendiri
+
+Membuka halaman lalu mendapati isian sudah terisi membingungkan, dan pengisi
+mungkin memang hendak mulai dari kosong. Draf muncul sebagai tawaran dengan dua
+pilihan: **Lanjutkan Isian** dan **Buang**.
+
+## 12.3 Skip link
+
+Kerangka halaman menyediakan tautan "Lewati ke isi halaman" sebagai persinggahan
+pertama papan ketik. Tanpa itu, mencapai isi menuntut menelusuri seluruh
+navigasi lebih dulu — tiap kali halaman berganti.
+
+## 12.4 Tindakan merusak yang ringan
+
+Penghapusan yang sering dilakukan dan sering benar — menghapus baris tabel
+isian — memakai **pemberitahuan yang dapat dibatalkan**, bukan dialog
+konfirmasi. Dialog pada tindakan sesering itu memperlambat pemakaian yang paling
+umum, sedangkan yang benar-benar keliru tetap punya jalan kembali.
+
+Baris dikembalikan ke posisi semula, bukan ditempel di akhir.
+
+Dialog konfirmasi tetap wajib untuk penghapusan yang tidak dapat dipulihkan:
+pengguna, departemen, template, dan daftar master.
+
+## 12.5 Galat mengarahkan, bukan sekadar memberi tahu
+
+Setelah server menolak kiriman, fokus **wajib** berpindah ke isian bermasalah
+pertama. Pada tabel berkolom belasan, daftar galat tanpa arah berarti pengguna
+mencari sendiri sel mana yang dimaksud.
+
+Sel isian membawa `data-galat-kunci` yang bentuknya sama persis dengan kunci
+galat Laravel (`sections.0.items.2.qty`), sehingga pemetaannya tidak perlu
+ditebak.
+
+---
+
+# BAGIAN 13 — SKALA Z-INDEX
+
+Ditulis supaya lapisan baru tidak dikarang sendiri tiap kali dibutuhkan.
+
+| Nilai | Untuk |
+|---|---|
+| `z-0` | Dasar |
+| `z-10` | Sel beku pada tabel isian, badan tabel yang menempel |
+| `z-20` | Header tabel yang menempel |
+| `z-30` | Header tabel yang sekaligus beku — harus di atas keduanya |
+| `z-40` | Kerangka aplikasi: header, dock, latar modal |
+| `z-50` | Overlay tertinggi: modal, popover, skip link saat difokus |
+
+Tabel isian memakai tiga lapisan sekaligus karena menempel ke dua arah. Kalau
+urutannya keliru, sel beku menutupi headernya sendiri.
+
+---
+
+# BAGIAN 14 — HUBUNGAN DENGAN PANDUAN LUAR
+
+Panduan desain dari luar — UI/UX Pro Max dan sejenisnya — **tidak berada dalam
+urutan kewenangan** di awal dokumen ini. Berguna sebagai daftar periksa, tidak
+pernah menang atas standar di sini.
+
+## 14.1 Yang ditolak, beserta alasannya
+
+Ditulis supaya penolakannya tercatat sebagai keputusan, bukan kelalaian.
+
+| Saran luar | Alasan ditolak |
+|---|---|
+| Bottom navigation, tab bar iOS, top app bar Android | DAMS memakai Horizontal Top Navigation Bar; sidebar permanen dan bottom nav dilarang (§9) |
+| Rancang light dan dark bersamaan | DAMS light mode saja (§9) |
+| Sidebar pada layar ≥1024px | Bertentangan dengan Top Nav yang wajib |
+| Pilih ulang gaya, palet, dan pasangan font | Token DAMS sudah tetap di `frontend/tailwind.config.ts` |
+| Haptic, safe area, gesture sistem | Aplikasi web internal, bukan app native |
+| Badan teks minimal 16px | DAMS menetapkan body 12–14px dan tabel 11–13px: ini alat kerja berkepadatan tinggi, bukan halaman bacaan |
+| Target sentuh 44px menyeluruh | §6.3 sengaja memakai ikon aksi 28px di dalam baris tabel |
+
+## 14.2 Yang diadopsi
+
+Draf otomatis, fokus ke isian bermasalah, skip link, satuan `dvh`, pembatalan
+penghapusan, dan skala z-index yang tercatat. Seluruhnya menjadi §12 dan §13 di
+atas.

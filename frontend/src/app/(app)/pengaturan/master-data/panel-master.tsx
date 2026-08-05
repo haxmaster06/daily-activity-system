@@ -138,7 +138,7 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
                             type="button"
                             onClick={() => setDialogJenis({ terbuka: true, ubah: satu })}
                             aria-label={`Ubah daftar ${satu.nama}`}
-                            className="btn-ghost size-6 p-0"
+                            className="btn-ghost size-7 p-0"
                           >
                             <Pencil aria-hidden="true" className="size-3" />
                           </button>
@@ -146,7 +146,7 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
                             type="button"
                             onClick={() => setKonfirmasiJenis(satu)}
                             aria-label={`Hapus daftar ${satu.nama}`}
-                            className="btn-ghost size-6 p-0 text-danger"
+                            className="btn-ghost size-7 p-0 text-danger"
                           >
                             <Trash2 aria-hidden="true" className="size-3" />
                           </button>

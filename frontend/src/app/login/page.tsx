@@ -17,7 +17,7 @@ export default async function LoginPage({
   const tujuan = lanjut?.startsWith('/') && !lanjut.startsWith('//') ? lanjut : '/dashboard';
 
   return (
-    <main className="flex min-h-screen flex-col md:flex-row">
+    <main className="flex min-h-dvh flex-col md:flex-row">
       {/* Panel identitas */}
       <section className="relative hidden bg-primary-text px-8 py-12 text-white md:flex md:w-1/2 md:flex-col md:items-center md:justify-center">
         <DamsMark className="size-20 text-white" />
