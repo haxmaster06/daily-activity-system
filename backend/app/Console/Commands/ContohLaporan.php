@@ -268,8 +268,8 @@ class ContohLaporan extends Command
     private function nilaiContoh(TemplateField $kolom, Carbon $tanggal, int $nomor): mixed
     {
         return match ($kolom->type) {
-            TemplateField::TIPE_INTEGER => $this->angkaBulat($kolom),
-            TemplateField::TIPE_DECIMAL => round(random_int(8000, 200000) / 100, 2),
+            TemplateField::TIPE_INTEGER => (int) $this->angka($kolom, true),
+            TemplateField::TIPE_DECIMAL => $this->angka($kolom, false),
             TemplateField::TIPE_DATE => $tanggal->copy()->addDays(random_int(0, 10))->toDateString(),
             TemplateField::TIPE_MONTH => $tanggal->format('Y-m'),
             TemplateField::TIPE_TIME => sprintf('%02d:%02d', random_int(6, 20), [0, 15, 30, 45][random_int(0, 3)]),
@@ -282,22 +282,54 @@ class ContohLaporan extends Command
                 ->values()
                 ->all(),
             TemplateField::TIPE_MASTER => $this->nilaiMaster($kolom),
-            TemplateField::TIPE_TEXTAREA => 'Catatan contoh: proses berjalan sesuai rencana, '
-                .'tidak ada kendala berarti pada baris ke-'.($nomor + 1).'.',
+            TemplateField::TIPE_TEXTAREA => $this->catatanContoh($kolom, $nomor),
             default => $this->teksContoh($kolom, $nomor),
         };
     }
 
-    private function angkaBulat(TemplateField $kolom): int
+    /**
+     * Angka yang masuk akal menurut satuan dan batas kolomnya.
+     *
+     * ⚠️ Satuannya wajib dibaca. Tanpa itu, kolom "Kadar Air Produk" bersatuan
+     * persen terisi 1.691 — dan seluruh ringkasan Analytics yang membacanya ikut
+     * menjadi omong kosong yang terlihat rapi. Cacat itu benar-benar muncul pada
+     * pembangkit versi pertama.
+     *
+     * Batas `min_value` dan `max_value` pada template ikut dihormati; itu memang
+     * aturan yang dipakai layar pengisian, dan data contoh tidak boleh
+     * melanggarnya.
+     */
+    private function angka(TemplateField $kolom, bool $bulat): float
     {
         $satuan = mb_strtolower((string) $kolom->unit);
+        $label = mb_strtolower($kolom->label);
 
-        return match (true) {
-            str_contains($satuan, 'pouch') => random_int(500, 90000),
-            str_contains($satuan, 'box') => random_int(50, 3000),
-            str_contains($satuan, '%') => random_int(60, 100),
-            default => random_int(1, 500),
+        [$bawah, $atas] = match (true) {
+            str_contains($satuan, '%'),
+            str_contains($label, 'persen'),
+            str_contains($label, 'kadar'),
+            str_contains($label, 'kelembapan') => [1.0, 100.0],
+
+            str_contains($satuan, 'pouch') => [500.0, 90000.0],
+            str_contains($satuan, 'box') => [50.0, 3000.0],
+            str_contains($satuan, 'kg') => [50.0, 2500.0],
+
+            // Kolom angka tanpa satuan biasanya penanda — nomor LOT, urutan.
+            $satuan === '' => [1.0, 500.0],
+
+            default => [1.0, 1000.0],
         };
+
+        $bawah = max($bawah, (float) ($kolom->min_value ?? $bawah));
+        $atas = min($atas, (float) ($kolom->max_value ?? $atas));
+
+        if ($atas < $bawah) {
+            $atas = $bawah;
+        }
+
+        $nilai = $bawah + (random_int(0, 10000) / 10000) * ($atas - $bawah);
+
+        return $bulat ? (float) (int) round($nilai) : round($nilai, $kolom->desimal ?? 2);
     }
 
     /**
@@ -313,33 +345,183 @@ class ContohLaporan extends Command
         return $baris?->untukLaporan();
     }
 
-    private function teksContoh(TemplateField $kolom, int $nomor): string
+    /**
+     * Kosakata isian teks, dikenali dari label kolomnya.
+     *
+     * ⚠️ **Bagian ini yang menentukan data contohnya berguna atau tidak.**
+     *
+     * Mengisi seluruh kolom teks dengan "Contoh <label> 1" memang cepat, tetapi
+     * menghasilkan layar yang tidak dapat dipakai menilai apa pun: kartu
+     * Document Control dan kartu Produksi terbaca sama persis, dan ringkasan
+     * "untuk siapa" berisi kalimat yang tidak pernah ditulis siapa pun.
+     *
+     * Kuncinya dicocokkan dari **label**, bukan dari departemennya: satu kolom
+     * bernama "Supplier" berarti hal yang sama di Purchasing, QA, maupun
+     * Warehouse, dan template baru langsung ikut terlayani tanpa menyunting
+     * berkas ini.
+     *
+     * Urutannya penting — yang paling khusus lebih dulu. "Nomor Dokumen" harus
+     * tertangkap sebagai dokumen sebelum kata "nomor" menangkapnya sebagai kode
+     * biasa.
+     *
+     * Seluruh isinya buatan. Nama perusahaan, nomor SPK, dan nomor dokumen di
+     * sini tidak merujuk apa pun yang nyata (CLAUDE.md).
+     *
+     * @return list<string>|null Daftar pilihan, atau null bila labelnya tak dikenal.
+     */
+    private function kosakata(string $label): ?array
     {
-        $label = mb_strtolower($kolom->label);
-
         return match (true) {
+            // Identitas pihak luar — jawaban atas "untuk siapa".
             str_contains($label, 'perusahaan'),
             str_contains($label, 'buyer'),
             str_contains($label, 'pembeli'),
             str_contains($label, 'customer'),
-            str_contains($label, 'supplier') => self::PERUSAHAAN[$nomor % count(self::PERUSAHAAN)],
+            str_contains($label, 'supplier') => self::PERUSAHAAN,
+
+            // Document Control.
+            str_contains($label, 'jenis dokumen') => [
+                'SOP', 'Instruksi Kerja', 'Formulir', 'Manual Mutu', 'Rekaman',
+            ],
+            str_contains($label, 'nomor dokumen') => [
+                'DOC-QA-014', 'DOC-PRD-027', 'DOC-HRD-006', 'DOC-WH-031',
+            ],
+            str_contains($label, 'status dokumen') => [
+                'Draf', 'Menunggu Persetujuan', 'Disetujui', 'Terbit', 'Ditarik',
+            ],
+            str_contains($label, 'revisi') => ['00', '01', '02', '03'],
+            str_contains($label, 'klausul') => ['7.5.3', '8.5.1', '9.2', '4.4.1'],
+            str_contains($label, 'referensi') => [
+                'ISO 22000:2018', 'ISO 9001:2015', 'HACCP Plan', 'GMP Internal',
+            ],
+
+            // HRD.
+            str_contains($label, 'training'), str_contains($label, 'mcu') => [
+                'Pelatihan HACCP Dasar', 'MCU Tahunan', 'Pelatihan K3',
+                'Refreshment GMP', 'Pelatihan Penanganan Alergen',
+            ],
+            str_contains($label, 'program') => [
+                'Pelatihan Internal', 'Sertifikasi Eksternal', 'Pemeriksaan Kesehatan',
+            ],
+            str_contains($label, 'perkembangan') => [
+                'Materi sedang disiapkan', 'Menunggu jadwal peserta',
+                'Sudah terlaksana', 'Menunggu sertifikat',
+            ],
+            str_contains($label, 'estimasi') => [
+                'Minggu ke-1 bulan depan', 'Minggu ke-2 bulan ini',
+                'Akhir bulan berjalan', 'Awal triwulan berikutnya',
+            ],
+
+            // IT.
+            str_contains($label, 'fitur') => [
+                'Laporan Harian', 'Papan Progres', 'Import Data',
+                'Executive Analytics', 'Manajemen Peran',
+            ],
+            str_contains($label, 'modul') => [
+                'Pelaporan', 'Master Data', 'Otorisasi', 'Pelaporan Eksekutif',
+            ],
+            str_contains($label, 'fase') => [
+                'Analisis', 'Pengembangan', 'Pengujian', 'Serah Terima',
+            ],
+
+            // QC dan QA.
+            str_contains($label, 'benda asing') => [
+                'Tidak ditemukan', 'Serat halus', 'Partikel logam', 'Serpihan plastik',
+            ],
+            str_contains($label, 'gluten') => ['Negatif', 'Positif lemah', 'Tidak terdeteksi'],
+            str_contains($label, 'sulvit'), str_contains($label, 'refinasi') => [
+                'Sesuai standar', 'Di bawah ambang', 'Perlu uji ulang',
+            ],
+
+            // Gudang dan pengiriman.
+            str_contains($label, 'nama barang'), str_contains($label, 'produk') => [
+                'Tepung Contoh 25 kg', 'Bubuk Uji 300 g', 'Granul Percobaan 1 kg',
+                'Serbuk Simulasi 500 g',
+            ],
+            str_contains($label, 'tujuan') => [
+                'Surabaya', 'Jakarta', 'Semarang', 'Makassar', 'Medan',
+            ],
+            str_contains($label, 'diskripsi'), str_contains($label, 'deskripsi') => [
+                'Kemasan pouch 300 g, karton 25 kg',
+                'Kemasan karung 25 kg, palet standar',
+                'Kemasan pouch 500 g, isi 20 per karton',
+            ],
+
+            // Kegiatan harian.
+            str_contains($label, 'aktivitas'), str_contains($label, 'kegiatan') => [
+                'Pemeriksaan kelengkapan berkas',
+                'Penyusunan laporan harian',
+                'Koordinasi dengan bagian terkait',
+                'Penataan ulang area kerja',
+                'Tindak lanjut temuan sebelumnya',
+            ],
+            str_contains($label, 'target') => [
+                'Selesai pekan ini', 'Selesai akhir bulan',
+                'Menunggu bagian lain', 'Sesuai jadwal',
+            ],
+            str_contains($label, 'kendala') => [
+                'Tidak ada kendala', 'Menunggu bahan dari gudang',
+                'Perlu konfirmasi atasan',
+            ],
+
+            default => null,
+        };
+    }
+
+    /**
+     * Catatan panjang.
+     *
+     * Dipisahkan dari `teksContoh` karena bentuknya kalimat, bukan penanda —
+     * dan kalimat yang sama berulang di seluruh laporan membuat tampilan baca
+     * terlihat seperti data yang rusak.
+     */
+    private function catatanContoh(TemplateField $kolom, int $nomor): string
+    {
+        $pilihan = $this->kosakata(mb_strtolower($kolom->label)) ?? [
+            'Berjalan sesuai rencana, tidak ada kendala berarti.',
+            'Perlu ditindaklanjuti bagian terkait pada hari berikutnya.',
+            'Sudah dikoordinasikan dengan penanggung jawab area.',
+            'Menunggu kelengkapan dari bagian lain sebelum dilanjutkan.',
+            'Selesai lebih cepat dari perkiraan.',
+        ];
+
+        return $pilihan[$nomor % count($pilihan)];
+    }
+
+    private function teksContoh(TemplateField $kolom, int $nomor): string
+    {
+        $label = mb_strtolower($kolom->label);
+
+        $pilihan = $this->kosakata($label);
+
+        if ($pilihan !== null) {
+            return $pilihan[$nomor % count($pilihan)];
+        }
+
+        /*
+         * Kolom penanda: nomornya memang harus berbeda tiap baris, sehingga
+         * diacak alih-alih diambil dari daftar.
+         */
+        return match (true) {
             str_contains($label, 'spk') => 'SPK-CONTOH-'.str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
             str_contains($label, 'po') => 'PO-CONTOH-'.random_int(10000, 99999),
             str_contains($label, 'lot') => 'LOT-'.random_int(1000, 9999),
             str_contains($label, 'item'), str_contains($label, 'kode') => 'ITM-'.random_int(100, 999),
+            str_contains($label, 'qty'), str_contains($label, 'jumlah') => random_int(50, 900).' kg',
             default => 'Contoh '.$kolom->label.' '.($nomor + 1),
         };
     }
 
+    /**
+     * Kartu progres, judulnya mengikuti pekerjaan departemennya.
+     *
+     * Lima judul yang sama di delapan belas departemen membuat papan progres
+     * terbaca seperti data yang belum diisi — dan halaman Analytics yang
+     * membacanya ikut kehilangan artinya.
+     */
     private function buatTugas(Department $departemen, User $pengguna): int
     {
-        $judul = [
-            'Menyiapkan bahan baku harian',
-            'Memeriksa kelengkapan dokumen',
-            'Menindaklanjuti temuan pemeriksaan',
-            'Menyusun jadwal pengiriman',
-            'Merapikan arsip bulan berjalan',
-        ];
+        $judul = $this->judulTugas($departemen->name);
 
         $dibuat = 0;
 
@@ -380,6 +562,77 @@ class ContohLaporan extends Command
      * Bertumpu sepenuhnya pada pengguna bertanda: laporan, kartu progres, dan
      * akunnya sendiri. Data milik orang sungguhan tidak pernah tersentuh.
      */
+    /**
+     * @return list<string>
+     */
+    private function judulTugas(string $departemen): array
+    {
+        $nama = mb_strtolower($departemen);
+
+        return match (true) {
+            str_contains($nama, 'produksi') => [
+                'Menyiapkan bahan baku untuk LOT berjalan',
+                'Menyelesaikan sisa WIP tahap ayak',
+                'Menyusun rencana produksi pekan depan',
+            ],
+            str_contains($nama, 'qc'), str_contains($nama, 'qa') => [
+                'Menuntaskan pemeriksaan LOT tertunda',
+                'Menindaklanjuti temuan benda asing',
+                'Memperbarui rekaman hasil uji bahan baku',
+            ],
+            str_contains($nama, 'warehouse'), str_contains($nama, 'gudang') => [
+                'Merapikan penataan finish good',
+                'Mencocokkan stok packaging material',
+                'Menyiapkan barang untuk pengiriman',
+            ],
+            str_contains($nama, 'ex/im'), str_contains($nama, 'exim') => [
+                'Melengkapi dokumen ekspor pengiriman berjalan',
+                'Mengoordinasikan jadwal EMKL',
+                'Menyiapkan pengajuan sertifikat asal barang',
+            ],
+            str_contains($nama, 'purchasing') => [
+                'Menindaklanjuti PO yang belum dikirim',
+                'Meminta penawaran supplier baru',
+                'Memeriksa kesesuaian invoice pembelian',
+            ],
+            str_contains($nama, 'hrd') => [
+                'Menyusun jadwal pelatihan bulan depan',
+                'Menindaklanjuti hasil MCU karyawan',
+                'Merapikan arsip data kepegawaian',
+            ],
+            str_contains($nama, 'document') => [
+                'Menerbitkan revisi SOP terbaru',
+                'Menarik dokumen kedaluwarsa dari area kerja',
+                'Menyusun daftar induk dokumen',
+            ],
+            str_contains($nama, 'it') => [
+                'Menyelesaikan pengujian modul pelaporan',
+                'Memperbaiki temuan pada papan progres',
+                'Menyiapkan pemasangan di server',
+            ],
+            str_contains($nama, 'finance'), str_contains($nama, 'keuangan') => [
+                'Menutup pembukuan bulan berjalan',
+                'Menindaklanjuti tagihan jatuh tempo',
+                'Merapikan bukti pengeluaran kas',
+            ],
+            str_contains($nama, 'marketing'), str_contains($nama, 'media') => [
+                'Menyiapkan materi promosi bulan depan',
+                'Menindaklanjuti permintaan penawaran',
+                'Menyusun laporan jangkauan konten',
+            ],
+            str_contains($nama, 'maintenance'), str_contains($nama, 'mtn') => [
+                'Menuntaskan perawatan berkala mesin',
+                'Menindaklanjuti laporan kerusakan',
+                'Menyiapkan suku cadang cadangan',
+            ],
+            default => [
+                'Menuntaskan pekerjaan tertunda pekan lalu',
+                'Menyusun laporan berkala bagian',
+                'Berkoordinasi dengan bagian terkait',
+            ],
+        };
+    }
+
     private function bersihkan(): int
     {
         $pengguna = User::where('email', 'like', self::AWALAN_EMAIL.'%'.self::DOMAIN)->get();

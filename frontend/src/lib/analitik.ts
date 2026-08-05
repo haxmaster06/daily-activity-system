@@ -68,48 +68,6 @@ export interface DataRingkasan {
 
 /* ---------------------------------------------------------------- Kepatuhan */
 
-export interface BarisKepatuhanDepartemen {
-  departemen_id: number;
-  departemen: string;
-  anggota: number;
-  laporan: number;
-  seharusnya: number;
-  persen: number;
-}
-
-export interface SelPetaPanas {
-  tanggal: string;
-  melapor: number;
-  persen: number;
-}
-
-export interface BarisPetaPanas {
-  departemen_id: number;
-  departemen: string;
-  anggota: number;
-  sel: SelPetaPanas[];
-}
-
-export interface BarisKepatuhanOrang {
-  id: number;
-  nama: string;
-  departemen: string;
-  laporan: number;
-  seharusnya: number;
-  persen: number;
-  terakhir: string | null;
-  bolong_beruntun: number;
-}
-
-export interface DataKepatuhan {
-  rentang: RentangAnalitik;
-  per_hari: BarisKepatuhanHarian[];
-  per_departemen: BarisKepatuhanDepartemen[];
-  peta_panas: { tanggal: string[]; baris: BarisPetaPanas[] };
-  per_orang: BarisKepatuhanOrang[];
-  jam_kirim: { jam: number; jumlah: number }[];
-}
-
 /* ------------------------------------------------------------ Produktivitas */
 
 export interface Metrik {
@@ -228,22 +186,6 @@ export function selisihMembaik(kartu: KartuKpi, selisih: number): boolean {
   return kartu.arah_baik === 'naik' ? selisih >= 0 : selisih <= 0;
 }
 
-/**
- * Warna latar satu sel peta panas.
- *
- * Bertingkat, bukan gradasi mulus: mata jauh lebih cepat membedakan lima
- * tingkat daripada seratus. Nilai nol dibedakan tegas dari "sedikit" — itu
- * perbedaan yang paling ingin ditemukan pembacanya.
- */
-export function warnaPetaPanas(persen: number, anggota: number): string {
-  if (anggota === 0) return 'bg-surface-muted';
-  if (persen === 0) return 'bg-danger-subtle';
-  if (persen < 40) return 'bg-accent-subtle';
-  if (persen < 70) return 'bg-secondary-subtle';
-  if (persen < 100) return 'bg-secondary/40';
-
-  return 'bg-secondary/70';
-}
 
 /* --------------------------------------------------------------- Departemen */
 

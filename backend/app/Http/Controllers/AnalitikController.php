@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Support\Analitik\AngkaDepartemen;
-use App\Support\Analitik\AngkaKepatuhan;
 use App\Support\Analitik\AngkaProduktivitas;
 use App\Support\Analitik\AngkaProgres;
 use App\Support\Analitik\AngkaRingkasan;
@@ -75,16 +74,6 @@ class AnalitikController extends Controller
         return ApiResponse::ok([
             'rentang' => $saring->ringkas(),
             ...AngkaRingkasan::susun($saring),
-        ]);
-    }
-
-    public function kepatuhan(Request $request): JsonResponse
-    {
-        $saring = PenyaringAnalitik::dariPermintaan($request);
-
-        return ApiResponse::ok([
-            'rentang' => $saring->ringkas(),
-            ...AngkaKepatuhan::susun($saring),
         ]);
     }
 

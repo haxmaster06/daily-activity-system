@@ -174,10 +174,16 @@ satu halaman pada satu waktu.
 | Metode | Alamat | Isi |
 |---|---|---|
 | GET | `/analitik/opsi` | Departemen yang boleh dibaca, dan metrik yang tersedia |
+| GET | `/analitik/departemen` | Keadaan tiap departemen, diringkas dari kolom templatenya sendiri |
 | GET | `/analitik/ringkasan` | Kartu angka berpembanding, tren, dan kalimat "perlu perhatian" |
-| GET | `/analitik/kepatuhan` | Peta panas departemen × hari, per orang, jam pengiriman |
 | GET | `/analitik/produktivitas` | Angka bersatuan dari isi laporan: kg, box, pouch |
 | GET | `/analitik/progres` | Kartu papan progres, beban, telat, umur kartu |
+
+> **`/analitik/kepatuhan` pernah ada dan dihapus.** Isinya mengukur orang, bukan
+> pekerjaan, dan tabel per orangnya mengulang `GET /api/monitoring` yang sudah
+> menyajikan jumlah laporan beserta hari tanpa laporan pada penyaringan yang
+> sama. Dua tempat untuk satu pertanyaan hanya membuat keduanya lambat laun
+> berbeda.
 
 Penyaring yang diterima semuanya: `dari`, `sampai`, `departemen_id[]`, dan
 `metrik` (khusus produktivitas). Rentang bawaan 30 hari terakhir; rentang

@@ -3,7 +3,6 @@ import 'server-only';
 import { panggilApi } from '@/lib/api';
 import type {
   DataDepartemen,
-  DataKepatuhan,
   DataProduktivitas,
   DataProgres,
   DataRingkasan,
@@ -62,10 +61,6 @@ export function ambilOpsiAnalitik(): Promise<OpsiAnalitik> {
 
 export function ambilRingkasan(query: URLSearchParams): Promise<DataRingkasan> {
   return ambil<DataRingkasan>('ringkasan', query);
-}
-
-export function ambilKepatuhan(query: URLSearchParams): Promise<DataKepatuhan> {
-  return ambil<DataKepatuhan>('kepatuhan', query);
 }
 
 export function ambilProduktivitas(query: URLSearchParams): Promise<DataProduktivitas> {

@@ -20,7 +20,6 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import {
   WARNA,
   type BarisBeban,
-  type BarisKepatuhanDepartemen,
   type BarisKepatuhanHarian,
   type BarisSebaranStatus,
   type BarisStatusDepartemen,
@@ -151,107 +150,6 @@ export function GrafikTrenKepatuhan({ data }: { data: BarisKepatuhanHarian[] }) 
   };
 
   return <Line aria-hidden="true" data={konfigurasi} options={opsi} />;
-}
-
-/* --------------------------------------------------- kepatuhan per departemen */
-
-export function GrafikKepatuhanDepartemen({
-  data,
-  onPilih,
-}: {
-  data: BarisKepatuhanDepartemen[];
-  onPilih?: (departemen: string) => void;
-}) {
-  const gerak = gerakDikurangi();
-
-  const konfigurasi = useMemo(
-    () => ({
-      labels: data.map((satu) => satu.departemen),
-      datasets: [
-        {
-          label: 'Kepatuhan (%)',
-          data: data.map((satu) => satu.persen),
-          // Merah untuk yang di bawah separuh: itu ambang yang membuat seorang
-          // eksekutif berhenti membaca dan mulai bertanya.
-          backgroundColor: data.map((satu) =>
-            satu.persen < 50 ? WARNA.danger : satu.persen < 80 ? WARNA.dalam_proses : WARNA.selesai,
-          ),
-        },
-      ],
-    }),
-    [data],
-  );
-
-  const opsi: ChartOptions<'bar'> = {
-    ...dasar(gerak),
-    indexAxis: 'y',
-    plugins: {
-      ...dasar(gerak).plugins,
-      legend: { display: false },
-      tooltip: {
-        ...dasar(gerak).plugins.tooltip,
-        callbacks: {
-          label: (butir) => {
-            const baris = data[butir.dataIndex];
-
-            return baris === undefined
-              ? ''
-              : `${baris.laporan} dari ${baris.seharusnya} laporan (${baris.persen}%), ${baris.anggota} anggota`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: 100,
-        ticks: { color: WARNA.teks, font: { size: 11 }, callback: (n) => `${n}%` },
-        grid: { color: WARNA.garisBantu },
-      },
-      y: { ticks: { color: WARNA.teks, font: { size: 11 } } },
-    },
-    onClick: (_peristiwa, elemen: ActiveElement[]) => {
-      const pertama = elemen[0];
-      if (pertama && data[pertama.index]) onPilih?.(data[pertama.index].departemen);
-    },
-  };
-
-  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
-}
-
-/* ------------------------------------------------------------------ jam kirim */
-
-export function GrafikJamKirim({ data }: { data: { jam: number; jumlah: number }[] }) {
-  const gerak = gerakDikurangi();
-
-  const konfigurasi = useMemo(
-    () => ({
-      labels: data.map((satu) => `${String(satu.jam).padStart(2, '0')}.00`),
-      datasets: [
-        {
-          label: 'Laporan dikirim',
-          data: data.map((satu) => satu.jumlah),
-          // Di luar jam kerja diberi warna lain: kepatuhan seratus persen yang
-          // seluruhnya dikirim tengah malam bukan kabar baik.
-          backgroundColor: data.map((satu) =>
-            satu.jam >= 7 && satu.jam <= 18 ? WARNA.primary : WARNA.belum_mulai,
-          ),
-        },
-      ],
-    }),
-    [data],
-  );
-
-  const opsi: ChartOptions<'bar'> = {
-    ...dasar(gerak),
-    plugins: { ...dasar(gerak).plugins, legend: { display: false } },
-    scales: {
-      x: { ticks: { color: WARNA.teks, font: { size: 10 }, maxTicksLimit: 12 } },
-      y: SUMBU_JUMLAH,
-    },
-  };
-
-  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
 
 /* -------------------------------------------------------------- produktivitas */

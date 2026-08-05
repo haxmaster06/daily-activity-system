@@ -144,13 +144,13 @@ describe('penjagaan akses', function (): void {
         Sanctum::actingAs(User::factory()->staff()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertForbidden();
-    })->with(['opsi', 'ringkasan', 'kepatuhan', 'produktivitas', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'progres']);
 
     it('membuka tiap halaman bagi pemegang izinnya', function (string $jalur): void {
         Sanctum::actingAs(User::factory()->administrator()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertOk();
-    })->with(['opsi', 'ringkasan', 'kepatuhan', 'produktivitas', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'progres']);
 });
 
 describe('penyaring departemen tidak boleh memperluas jangkauan', function (): void {
@@ -173,21 +173,6 @@ describe('penyaring departemen tidak boleh memperluas jangkauan', function (): v
         // terbaca tetap hanya departemennya sendiri.
         expect($data['rentang']['departemen_id'])->toBe([])
             ->and(collect($data['status_per_departemen'])->pluck('departemen'))
-            ->not->toContain($lain->name);
-    });
-
-    it('membuang departemen di luar jangkauan pada kepatuhan', function (): void {
-        ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
-
-        Sanctum::actingAs($pengawas);
-
-        $data = $this->getJson("/api/analitik/kepatuhan?departemen_id[]={$lain->id}")
-            ->assertOk()
-            ->json('data');
-
-        expect(collect($data['per_orang'])->pluck('nama'))
-            ->not->toContain('Staf Quality Control')
-            ->and(collect($data['per_departemen'])->pluck('departemen'))
             ->not->toContain($lain->name);
     });
 
@@ -273,19 +258,6 @@ describe('jangkauan data pada tiap angka', function (): void {
         expect($data['data']['ringkasan']['total'])->toEqual(100)
             ->and(collect($data['data']['per_orang'])->pluck('nama'))
             ->not->toContain('Staf Quality Control');
-    });
-
-    it('tidak membocorkan orang departemen lain pada kepatuhan', function (): void {
-        ['pengawas' => $pengawas] = siapkanAnalitik();
-
-        Sanctum::actingAs($pengawas);
-
-        $data = $this->getJson('/api/analitik/kepatuhan')->assertOk()->json('data');
-
-        $nama = collect($data['per_orang'])->pluck('nama');
-
-        expect($nama)->toContain('Pengawas Produksi')
-            ->and($nama)->not->toContain('Staf Quality Control');
     });
 
     it('menampilkan seluruh departemen bagi pemegang jangkauan Korporat', function (): void {
@@ -434,23 +406,6 @@ describe('ringkasan eksekutif', function (): void {
 
         expect($sorotan)->not->toBeEmpty()
             ->and($sorotan->first())->toHaveKeys(['jenis', 'teks']);
-    });
-});
-
-describe('peta panas kepatuhan', function (): void {
-    it('memuat satu sel untuk tiap pasangan departemen dan hari', function (): void {
-        Sanctum::actingAs(User::factory()->administrator()->create());
-        siapkanAnalitik();
-
-        $peta = $this->getJson('/api/analitik/kepatuhan?dari=2026-08-01&sampai=2026-08-05')
-            ->assertOk()
-            ->json('data.peta_panas');
-
-        expect($peta['tanggal'])->toHaveCount(5);
-
-        foreach ($peta['baris'] as $baris) {
-            expect($baris['sel'])->toHaveCount(5);
-        }
     });
 });
 

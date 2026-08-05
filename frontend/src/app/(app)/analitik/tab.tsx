@@ -2,22 +2,25 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { BarChart3, Building2, CalendarCheck, LayoutDashboard, Scale } from 'lucide-react';
+import { BarChart3, Building2, LayoutDashboard, Scale } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 
 /*
  * Departemen didahulukan, dan itu bukan urusan selera.
  *
- * Yang dicari pembaca halaman ini biasanya "Produksi sedang mengerjakan apa,
- * untuk pembeli mana" — bukan seberapa rajin timnya mengisi laporan. Tab
- * kepatuhan dan produktivitas mengukur orang; itu pertanyaan yang berbeda, dan
- * jarang menjadi yang pertama.
+ * Yang dicari pembaca halaman ini adalah "Produksi sedang mengerjakan apa,
+ * untuk pembeli mana" — bukan seberapa rajin timnya mengisi laporan.
+ *
+ * Tab Kepatuhan pernah ada di sini dan **dihapus** karena dua alasan sekaligus:
+ * ia mengukur orang alih-alih pekerjaan, dan tabel per orangnya mengulang
+ * halaman Monitoring yang sudah menyajikan jumlah laporan beserta hari tanpa
+ * laporan, tersaring rentang dan departemen yang sama. Dua tempat untuk satu
+ * pertanyaan hanya membuat keduanya lambat laun berbeda.
  */
 const TAB = [
   { href: '/analitik', label: 'Departemen', Ikon: Building2 },
   { href: '/analitik/ringkasan', label: 'Ringkasan', Ikon: LayoutDashboard },
-  { href: '/analitik/kepatuhan', label: 'Kepatuhan', Ikon: CalendarCheck },
   { href: '/analitik/produktivitas', label: 'Produktivitas', Ikon: Scale },
   { href: '/analitik/progres', label: 'Progres', Ikon: BarChart3 },
 ] as const;
