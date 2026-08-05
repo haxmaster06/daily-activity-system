@@ -173,6 +173,8 @@ react-aria-components      perilaku dialog, date picker, combobox
 @dnd-kit/core              tarik-lepas papan progres (§9.1)
 @dnd-kit/sortable          penyusunan ulang kartu di dalam kolom
 @dnd-kit/utilities         penolong transform CSS untuk @dnd-kit
+chart.js                   grafik Executive Analytics (§9.2)
+react-chartjs-2            pembungkus React untuk chart.js
 motion                     animasi dan AnimatePresence
 cmdk                       command palette
 class-variance-authority   varian komponen
@@ -256,6 +258,50 @@ berlaku bagi seluruh komponen React Aria lain yang sudah dipakai — teks bantua
 internal ComboBox, DatePicker, dan Modal tetap berbahasa Inggris bagi pembaca
 layar. Perlu diaudit tersendiri.
 
+### 9.2 `chart.js` — grafik Executive Analytics
+
+Dipakai di `src/app/(app)/analitik/`.
+
+| Pertanyaan §9 | Jawaban |
+|---|---|
+| Radix punya? | Tidak. Radix tidak menyediakan grafik. |
+| React Aria punya? | Tidak. React Aria tidak menyediakan grafik. |
+| Cukup ditulis sendiri? | Tidak. Menulis sendiri berarti menulis ulang sumbu, legenda, tooltip, tumpukan, dan responsivitas — dan semuanya harus benar sebelum satu angka pun terbaca. |
+
+#### Konsekuensi yang wajib ditangani, bukan dicatat lalu dilupakan
+
+Chart.js menggambar ke `<canvas>`. **Seluruh grafik hanya satu elemen DOM**:
+tidak ada satu pun titik data yang dapat difokus papan ketik, dan pembaca layar
+tidak menemukan apa pun di dalamnya selain kotak kosong.
+
+`docs/standar-ui-ux.md` §1 menempatkan aksesibilitas sebagai syarat kelulusan.
+Karena itu berlaku aturan berikut, dan aturan ini mengikat setiap grafik yang
+ditambahkan kemudian:
+
+1. **Tiap grafik wajib disertai tabel berisi angka yang sama.** Bukan
+   pelengkap — itu satu-satunya jalan isi grafik sampai ke pembacanya.
+2. **Tabelnya tidak boleh dilipat.** Rencana semula membolehkannya asalkan
+   tetap ada di DOM. Itu keliru: isi yang dilipat berakhir `display: none` dan
+   lenyap dari pohon aksesibilitas, persis hal yang hendak dihindari. Tabelnya
+   selalu tampil, berdampingan dengan grafiknya pada layar lebar.
+3. **Kanvasnya diberi `aria-hidden`.** Angkanya sudah dibacakan tabel;
+   membiarkan kanvas ikut terbaca hanya menyisipkan simpul kosong.
+4. **Apa pun yang dapat diklik pada grafik wajib punya jalan kedua di
+   tabelnya.** Kanvas tidak dapat difokus papan ketik sama sekali, sehingga
+   "klik batang untuk melihat rincian" berarti rincian itu tertutup bagi
+   pengguna papan ketik. Di `/analitik`, nama departemen pada tabel adalah
+   tombol yang membuka rincian yang sama.
+
+Keempatnya dijaga `papan-analitik.test.tsx`, yang menolak panel bergrafik tanpa
+tabel dan menyebut grafik mana yang melanggarnya.
+
+Warna grafik ditulis sebagai nilai hex di `lib/analitik.ts`, bukan kelas
+Tailwind — kanvas tidak pernah membaca CSS. Nilainya wajib sama dengan
+`tailwind.config.ts`: status yang berbeda warna antara badge dan grafik membuat
+pembacanya mengira keduanya hal yang berlainan.
+
+---
+
 #### Yang tetap disediakan meski memakai library tarik-lepas
 
 Tiap kartu punya menu **"Pindahkan ke <kolom>"**. Bukan pelengkap, dan bukan
@@ -278,3 +324,5 @@ sensor papan ketik `@dnd-kit` tidak dapat menghitung arah di dalam test.
 * [ ] Komponen React Bits sudah disesuaikan token DAMS, bukan salinan mentah
 * [ ] Animasi memakai nilai dari `lib/gerak.ts`
 * [ ] Dependensi baru punya alasan tertulis di §9
+* [ ] Grafik baru disertai tabel angka yang tidak dilipat, kanvasnya
+      `aria-hidden`, dan tiap interaksinya punya jalan kedua di tabel (§9.2)

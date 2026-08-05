@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AnalitikController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
@@ -92,6 +93,17 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::put('/tugas/{tugas}', [TugasController::class, 'update'])->name('tugas.update');
     Route::patch('/tugas/{tugas}/geser', [TugasController::class, 'geser'])->name('tugas.geser');
     Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->name('tugas.destroy');
+
+    /*
+     * Executive Analytics. Seluruh angkanya dikirim sekaligus — yang membukanya
+     * membaca satu halaman, bukan menunggu enam permintaan.
+     *
+     * Izinnya terpisah dari monitoring: yang dibaca di sini melintasi seluruh
+     * jangkauan pemegangnya sekaligus, bukan satu tim.
+     */
+    Route::get('/analitik', AnalitikController::class)
+        ->middleware('izin:analitik.lihat')
+        ->name('analitik');
 
     /*
      * Daftar master generik — Supplier, Produk, Satuan, dan apa pun yang

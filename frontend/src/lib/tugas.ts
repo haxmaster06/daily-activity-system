@@ -40,8 +40,11 @@ export interface KolomPapan {
  * hanya dibedakan warna.
  */
 export const RAGAM_PRIORITAS: Record<Prioritas, string> = {
-  rendah: 'bg-surface-muted text-ink-muted',
-  sedang: 'bg-warning-subtle text-warning-text',
+  rendah: 'bg-surface-sunken text-ink-muted',
+  // Memakai ramp `accent`, bukan "warning" — token itu tidak ada pada
+  // tailwind.config.ts, dan kelas yang tidak dikenal Tailwind hilang tanpa
+  // suara: badge-nya tetap terender, hanya tanpa warna sama sekali.
+  sedang: 'bg-accent-subtle text-accent-text',
   tinggi: 'bg-danger-subtle text-danger-text',
 };
 

@@ -25,6 +25,7 @@ export const MENU_UTAMA: readonly MenuUtama[] = [
   { label: 'Laporan Saya', href: '/laporan', izin: ['laporan.lihat'] },
   { label: 'Progres', href: '/progress', izin: ['tugas.lihat'] },
   { label: 'Monitoring', href: '/monitoring', izin: ['monitoring.lihat'] },
+  { label: 'Analytics', href: '/analitik', izin: ['analitik.lihat'] },
   { label: 'Export', href: '/export', izin: ['export.laporan'] },
   {
     label: 'Pengaturan',
