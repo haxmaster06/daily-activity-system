@@ -13,6 +13,10 @@ Dokumen acuan yang wajib dibaca sebelum mengubah apa pun:
 | `docs/standar-ui-ux.md` | **Standar UI/UX mengikat** — input, tab, wizard, animasi, navigasi, tabel, form. Menang atas standarisasi bila bertentangan |
 | `docs/standar-library-ui.md` | Library tiap komponen: Radix, React Aria, shadcn, React Bits |
 | `docs/template-departemen.md` | Skema kolom template laporan per departemen |
+| `docs/adr/README.md` | Keputusan arsitektur yang mengikat, ADR-001..008 |
+| `docs/api.md` | 70 endpoint, envelope, dua lapis penjagaan, format data |
+| `docs/panduan-pengguna.md` | Panduan pemakaian untuk karyawan |
+| `docs/tinjauan-index.md` | Hasil EXPLAIN dan alasan tiap index |
 | `.agents/Standarization/non-fungsional-requirement.md` | Security, performance, testing, deployment |
 | `Klien_Data/Requirement1.docx` | Kolom tabel per departemen (sumber kebenaran template) — **tidak ada di repo**, lihat catatan di bawah |
 | `mockup/UI UX Mockup/` | Mockup yang sudah disetujui — implementasi wajib mengikuti |
