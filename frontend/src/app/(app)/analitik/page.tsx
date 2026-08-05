@@ -1,16 +1,14 @@
-import { ambilKeadaanDepartemen, queryAnalitik } from '@/lib/analitik-server';
+import {
+  ambilKeadaanDepartemen,
+  queryAnalitik,
+  type FilterAnalitik,
+} from '@/lib/analitik-server';
 import { PapanDepartemen } from './departemen/papan-departemen';
-
-interface Params {
-  dari?: string;
-  sampai?: string;
-  departemen?: string;
-}
 
 export default async function DepartemenPage({
   searchParams,
 }: {
-  searchParams: Promise<Params>;
+  searchParams: Promise<FilterAnalitik>;
 }) {
   const filter = await searchParams;
   const data = await ambilKeadaanDepartemen(queryAnalitik(filter));

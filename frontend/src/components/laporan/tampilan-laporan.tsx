@@ -20,9 +20,22 @@ import type { KolomTemplate } from '@/lib/template';
  * belasan, judulnya jauh di atas, dan nilainya harus dicocokkan sambil menggulir
  * mendatar.
  *
+ * ## Label di atas nilai, bukan di sebelahnya
+ *
+ * Bentuk label-kiri/nilai-kanan menyisakan sisa lebar kolom bagi nilainya. Pada
+ * kisi tiga kolom, label "Tanggal Mulai Produksi" menghabiskan hampir seluruh
+ * sel, dan "5 Agustus 2026" — tiga kata pendek — pecah menjadi tiga baris.
+ * Menumpuknya memberi nilai itu **seluruh** lebar selnya.
+ *
+ * ## Lebar sel mengikuti isinya
+ *
+ * Nilai panjang memesan dua sel, teks bebas memesan satu baris penuh. Tanpa itu
+ * seluruh sel harus selebar isi terpanjang, dan laporan yang isinya pendek-
+ * pendek berubah menjadi ladang kosong.
+ *
  * ## Kepadatan adalah tujuannya, bukan efek samping
  *
- * Skala hurufnya sengaja kecil: label 11px, nilai 13px. Satu baris laporan
+ * Skala hurufnya sengaja kecil: label 10px, nilai 13px. Satu baris laporan
  * Proses Harian per LOT punya dua puluh tujuh kolom — pada skala yang lebih
  * besar, satu baris saja sudah melebihi tinggi layar dan pembacanya kehilangan
  * kemampuan membandingkan antar baris, yaitu satu-satunya alasan ia membuka
@@ -55,13 +68,14 @@ function BagianTampilan({ bagian }: { bagian: BagianLaporan }) {
 
   return (
     <section>
-      <h3 className="sticky top-0 z-10 -mx-0.5 flex items-baseline gap-2 bg-surface/95 py-1 backdrop-blur">
+      <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-surface/95 py-1 backdrop-blur">
         <span className="font-heading text-body-lg font-semibold text-ink">
           {bagian.template.nama}
         </span>
         <span className="text-caption font-normal text-ink-soft">
           {formatAngka(bagian.baris.length)} baris
         </span>
+        <span aria-hidden className="h-px flex-1 bg-line" />
       </h3>
 
       <div className="mt-1 flex flex-col gap-1.5">
@@ -100,10 +114,17 @@ function KartuBaris({
   }
 
   return (
-    <article className="overflow-hidden rounded-card border border-line">
-      <header className="flex items-center justify-between gap-2 border-b border-line bg-surface-muted/70 px-2.5 py-1">
-        <span className="text-caption font-semibold text-ink-muted">Baris {nomor}</span>
-        {status && <StatusBadge status={status} />}
+    <article className="laporan-wadah overflow-hidden rounded-card border border-line bg-surface">
+      <header className="flex items-center gap-2 border-b border-line bg-surface-muted/60 px-2.5 py-1">
+        <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-control bg-primary-subtle px-1 text-meta font-semibold tabular-nums text-primary-text">
+          {nomor}
+        </span>
+        <span className="text-caption text-ink-soft">{formatAngka(terisi.length)} isian</span>
+        {status && (
+          <span className="ml-auto">
+            <StatusBadge status={status} />
+          </span>
+        )}
       </header>
 
       {terisi.length === 0 ? (
@@ -111,54 +132,22 @@ function KartuBaris({
       ) : (
         <div className="divide-y divide-line/60">
           {[...grup.entries()].map(([namaGrup, isiGrup]) => (
-            <div key={namaGrup || 'tanpa-grup'} className="px-2.5 py-1.5">
+            <div key={namaGrup || 'tanpa-grup'} className="px-2.5 py-2">
               {namaGrup && (
                 /*
                  * Nama grup ikut ditampilkan: pada template dengan kolom
                  * berulang — QTY Masuk pada tahap Oven dan pada tahap Ayak —
                  * labelnya sama persis dan hanya grupnya yang membedakan.
                  */
-                <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-primary-text">
+                <p className="mb-1.5 flex items-center gap-2 text-meta font-semibold uppercase tracking-wide text-primary-text">
                   {namaGrup}
+                  <span aria-hidden className="h-px flex-1 bg-primary-subtle" />
                 </p>
               )}
 
-              <dl
-                className={cn(
-                  'grid gap-x-4 gap-y-0.5',
-                  // Rapat pada layar lebar, satu kolom pada layar sempit —
-                  // label dan nilainya harus tetap bersebelahan.
-                  'sm:grid-cols-2 xl:grid-cols-3',
-                )}
-              >
+              <dl className="laporan-kisi">
                 {isiGrup.map((satu) => (
-                  <div
-                    key={satu.kunci}
-                    className={cn(
-                      'flex items-baseline justify-between gap-2 py-0.5',
-                      // Teks panjang memakai satu baris penuh; memaksanya ke
-                      // sepertiga lebar membuatnya terpotong-potong.
-                      satu.tipe === 'textarea' && 'sm:col-span-2 xl:col-span-3',
-                    )}
-                  >
-                    <dt className="shrink-0 text-caption leading-5 text-ink-soft">
-                      {satu.label}
-                      {satu.satuan && <span className="ml-0.5">({satu.satuan})</span>}
-                    </dt>
-                    <dd
-                      className={cn(
-                        'min-w-0 text-right text-body leading-5 text-ink',
-                        // Angka disejajarkan supaya mudah dibandingkan antar baris.
-                        (satu.tipe === 'integer' || satu.tipe === 'decimal') &&
-                          'font-medium tabular-nums',
-                        // `truncate` dilarang untuk isi bermakna (standar §23.2):
-                        // teks panjang turun baris, bukan dipotong.
-                        satu.tipe === 'textarea' && 'whitespace-pre-line text-left',
-                      )}
-                    >
-                      {tampilkan(baris[satu.kunci], satu)}
-                    </dd>
-                  </div>
+                  <Isian key={satu.kunci} kolom={satu} nilai={baris[satu.kunci]} />
                 ))}
               </dl>
             </div>
@@ -167,6 +156,128 @@ function KartuBaris({
       )}
     </article>
   );
+}
+
+/** Satu pasangan label–nilai, selebar isinya. */
+function Isian({ kolom, nilai }: { kolom: KolomTemplate; nilai: NilaiSel | undefined }) {
+  const teks = tampilkan(nilai, kolom);
+  const lebar = lebarSel(kolom, teks);
+
+  return (
+    <div
+      className={cn(
+        'min-w-0',
+        lebar === 2 && 'laporan-luas',
+        lebar === 3 && 'laporan-penuh',
+      )}
+    >
+      <dt className="text-meta uppercase leading-4 tracking-wide text-ink-soft">
+        {kolom.label}
+        {kolom.satuan && <span className="ml-0.5 normal-case">({kolom.satuan})</span>}
+      </dt>
+      <dd className="min-w-0">
+        <NilaiTampil kolom={kolom} nilai={nilai} teks={teks} />
+      </dd>
+    </div>
+  );
+}
+
+/**
+ * Nilai dengan penekanan yang sesuai jenisnya.
+ *
+ * Angka dicetak tebal dan disejajarkan `tabular-nums` supaya dapat dibandingkan
+ * antar baris; tanggal ditahan agar tidak pernah patah di tengah — patahnya
+ * justru pada bagian yang paling sering dicari mata.
+ */
+function NilaiTampil({
+  kolom,
+  nilai,
+  teks,
+}: {
+  kolom: KolomTemplate;
+  nilai: NilaiSel | undefined;
+  teks: string;
+}) {
+  if (!berisi(nilai)) {
+    return <span className="text-body leading-5 text-ink-soft">—</span>;
+  }
+
+  if (kolom.tipe === 'textarea') {
+    return (
+      <span className="mt-0.5 block whitespace-pre-line break-words rounded-input bg-surface-muted/60 px-2 py-1 text-body leading-5 text-ink">
+        {teks}
+      </span>
+    );
+  }
+
+  if (kolom.tipe === 'integer' || kolom.tipe === 'decimal') {
+    return (
+      <span className="text-body font-semibold leading-5 tabular-nums text-ink">{teks}</span>
+    );
+  }
+
+  if (kolom.tipe === 'date' || kolom.tipe === 'month') {
+    // Nilainya pendek dan bermakna sebagai satu kesatuan; membiarkannya patah
+    // menghasilkan "5 / Agustus / 2026" pada tiga baris terpisah.
+    return <span className="block text-body leading-5 text-ink">{teks}</span>;
+  }
+
+  if (kolom.tipe === 'multiselect') {
+    const daftar = teks.split(', ').filter(Boolean);
+
+    return (
+      <span className="mt-0.5 flex flex-wrap gap-1">
+        {daftar.map((satu) => (
+          <span
+            key={satu}
+            className="rounded-control bg-surface-muted px-1.5 py-px text-caption leading-4 text-ink-muted"
+          >
+            {satu}
+          </span>
+        ))}
+      </span>
+    );
+  }
+
+  if (kolom.tipe === 'boolean') {
+    return (
+      <span className="flex items-center gap-1 text-body leading-5 text-ink">
+        <span
+          aria-hidden
+          className={cn(
+            'h-1.5 w-1.5 rounded-full',
+            teks === 'Ya' ? 'bg-secondary' : 'bg-ink-soft',
+          )}
+        />
+        {teks}
+      </span>
+    );
+  }
+
+  // `truncate` dilarang untuk isi bermakna (standar §23.2): teks panjang turun
+  // baris, tidak pernah dipotong.
+  return <span className="block break-words text-body leading-5 text-ink">{teks}</span>;
+}
+
+/**
+ * Berapa sel yang pantas dipakai satu isian.
+ *
+ * Diperkirakan dari panjang teksnya, bukan dari tipe kolomnya saja: kolom
+ * bertipe teks bisa berisi "OK" maupun nama perusahaan tiga kata, dan keduanya
+ * tidak layak mendapat lebar yang sama. Labelnya ikut dihitung — label 10px
+ * kira-kira tiga perempat lebar nilai 13px — sebab label panjang pada nilai
+ * pendek tetap membutuhkan tempat.
+ */
+function lebarSel(kolom: KolomTemplate, teks: string): 1 | 2 | 3 {
+  if (kolom.tipe === 'textarea') return 3;
+
+  const panjangLabel = kolom.label.length + (kolom.satuan?.length ?? 0);
+  const panjang = Math.max(teks.length, panjangLabel * 0.75);
+
+  if (panjang > 40) return 3;
+  if (panjang > 18) return 2;
+
+  return 1;
 }
 
 function berisi(nilai: NilaiSel | undefined): boolean {
@@ -232,7 +343,13 @@ function tampilkan(nilai: NilaiSel | undefined, kolom: KolomTemplate): string {
   }
 }
 
-/** Kepala laporan: tanggal, penyusun, dan departemennya. */
+/**
+ * Kepala laporan: tanggal, penyusun, dan departemennya.
+ *
+ * Berbentuk keping sebaris, bukan tiga kartu bertumpuk. Ketiganya isian pendek;
+ * memberi masing-masing satu kartu selebar sepertiga layar membuat "5 Agustus
+ * 2026" menempati tiga baris dan mendorong isi laporannya turun.
+ */
 export function KepalaLaporan({ laporan }: { laporan: Laporan }) {
   const keterangan = [
     ['Penyusun', laporan.penyusun?.nama ?? '—'],
@@ -241,16 +358,19 @@ export function KepalaLaporan({ laporan }: { laporan: Laporan }) {
   ] as const;
 
   return (
-    <dl className="grid grid-cols-3 gap-1.5">
+    <dl className="flex flex-wrap items-center gap-1.5">
       {keterangan.map(([label, nilai]) => (
-        <div key={label} className="rounded-input bg-surface-muted px-2 py-1">
-          <dt className="text-meta uppercase tracking-wide text-ink-soft">{label}</dt>
+        <div
+          key={label}
+          className="flex min-w-0 items-baseline gap-1.5 rounded-input border border-line bg-surface-muted/60 px-2 py-0.5"
+        >
+          <dt className="shrink-0 text-meta uppercase tracking-wide text-ink-soft">{label}</dt>
           {/*
             Tanpa `truncate`: nama penyusun adalah isi bermakna, dan memotongnya
             menjadi "Muhammad Ibra…" menghilangkan justru bagian yang dicari
             pembacanya (standar §23.2). Nama panjang turun baris.
           */}
-          <dd className="mt-0.5 text-body leading-5 text-ink">{nilai}</dd>
+          <dd className="min-w-0 break-words text-body leading-5 text-ink">{nilai}</dd>
         </div>
       ))}
     </dl>

@@ -332,6 +332,35 @@ Patokan yang mudah diperiksa: perkecil jendela sampai kolomnya sesempit
 mungkin. Tidak boleh ada teks yang keluar dari kotaknya, dan tinggi barisnya
 tidak boleh berubah.
 
+## 6.6 Isi yang muat di modal maupun halaman memakai container query
+
+Komponen yang dipakai **di dua lebar berbeda** — sebuah tampilan yang muncul di
+dalam modal sempit dan juga di halaman penuh — menyusun kisinya dari lebar
+**wadahnya**, bukan lebar layar.
+
+Breakpoint layar (`sm:`, `lg:`, `xl:`) menjawab pertanyaan yang salah di sini:
+layarnya memang 1440px, tetapi modalnya 620px. Hasilnya kisi empat kolom selebar
+tujuh rem, dan nilai sependek "5 Agustus 2026" pecah menjadi tiga baris.
+
+Pola yang dipakai — `.laporan-wadah` dan `.laporan-kisi` di `globals.css`:
+
+```css
+.laporan-wadah { container-type: inline-size; }
+.laporan-kisi  { display: grid; grid-template-columns: 1fr; }
+
+@container (min-width: 24rem) { .laporan-kisi { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+```
+
+⚠️ **Sel lebar tidak boleh melebihi jumlah kolom yang ada.** `grid-column: span 2`
+pada kisi satu kolom membuat kolom implisit, dan halamannya menggulir mendatar —
+dilarang (§6.2). Karena itu kelas `span` diumumkan di dalam `@container` yang
+sama dengan kolomnya, tidak pernah di luar.
+
+Lebar sel mengikuti panjang isinya, bukan tipe kolomnya saja: kolom teks bisa
+berisi "OK" maupun nama perusahaan tiga kata, dan keduanya tidak layak mendapat
+lebar yang sama. Perkiraannya ikut menghitung panjang labelnya — label yang
+panjang pada nilai yang pendek tetap butuh tempat.
+
 ---
 
 # BAGIAN 7 — FORM

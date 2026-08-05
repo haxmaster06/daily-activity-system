@@ -14,7 +14,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 import type { DataProgres } from '@/lib/analitik';
 import { formatAngka, formatTanggalRingkas } from '@/lib/format';
-import { TautanDepartemen } from '../dapat-disaring';
+import { TautanDepartemen, TautanPengguna, TautanStatus } from '../dapat-disaring';
 import { GrafikBeban, GrafikSebaranStatus, GrafikStatusDepartemen } from '../grafik';
 import { usePenyaring } from '../use-penyaring';
 import { PanelGrafik } from '../panel-grafik';
@@ -132,7 +132,14 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                 {data.sebaran_status_baris.map((satu) => (
                   <tr key={satu.status} className="border-b border-line last:border-0">
                     <Td>
-                      <StatusBadge status={satu.status} />
+                      {/*
+                        Badge status ikut menyaring. Statusnya sama persis dengan
+                        status kartu progres, sehingga satu klik menyempitkan
+                        kedua sumber sekaligus.
+                      */}
+                      <TautanStatus status={satu.status} label={satu.label}>
+                        <StatusBadge status={satu.status} />
+                      </TautanStatus>
                     </Td>
                     <Td align="right">{formatAngka(satu.jumlah)}</Td>
                     <Td align="right">{formatAngka(satu.persen)}%</Td>
@@ -161,7 +168,17 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                 )}
                 {data.beban_penanggung_jawab.map((satu) => (
                   <tr key={satu.nama} className="border-b border-line last:border-0">
-                    <Td>{satu.nama}</Td>
+                    <Td>
+                      {/*
+                        Kartu tanpa penanggung jawab tidak dapat disaring —
+                        ketiadaan orang bukan sebuah pilihan orang.
+                      */}
+                      {satu.id === null ? (
+                        satu.nama
+                      ) : (
+                        <TautanPengguna id={satu.id} nama={satu.nama} />
+                      )}
+                    </Td>
                     <Td align="right">{formatAngka(satu.berjalan)}</Td>
                     <Td align="right">{formatAngka(satu.selesai)}</Td>
                     <Td align="right" className={satu.telat > 0 ? 'text-danger-text' : undefined}>
@@ -204,9 +221,20 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                   <tr key={satu.id} className="border-b border-line last:border-0">
                     <Td>{satu.judul}</Td>
                     <Td>{satu.departemen}</Td>
-                    <Td>{satu.penanggung_jawab}</Td>
                     <Td>
-                      <StatusBadge status={satu.status} label={satu.label_status} />
+                      {satu.penanggung_jawab_id === null ? (
+                        satu.penanggung_jawab
+                      ) : (
+                        <TautanPengguna
+                          id={satu.penanggung_jawab_id}
+                          nama={satu.penanggung_jawab}
+                        />
+                      )}
+                    </Td>
+                    <Td>
+                      <TautanStatus status={satu.status} label={satu.label_status}>
+                        <StatusBadge status={satu.status} label={satu.label_status} />
+                      </TautanStatus>
                     </Td>
                     <Td>{formatTanggalRingkas(satu.target_selesai)}</Td>
                     <Td align="right" className="font-medium text-danger-text">
@@ -246,9 +274,20 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                   <tr key={satu.id} className="border-b border-line last:border-0">
                     <Td>{satu.judul}</Td>
                     <Td>{satu.departemen}</Td>
-                    <Td>{satu.penanggung_jawab}</Td>
                     <Td>
-                      <StatusBadge status={satu.status} label={satu.label_status} />
+                      {satu.penanggung_jawab_id === null ? (
+                        satu.penanggung_jawab
+                      ) : (
+                        <TautanPengguna
+                          id={satu.penanggung_jawab_id}
+                          nama={satu.penanggung_jawab}
+                        />
+                      )}
+                    </Td>
+                    <Td>
+                      <TautanStatus status={satu.status} label={satu.label_status}>
+                        <StatusBadge status={satu.status} label={satu.label_status} />
+                      </TautanStatus>
                     </Td>
                     <Td align="right">{formatAngka(satu.umur_hari)} hari</Td>
                   </tr>

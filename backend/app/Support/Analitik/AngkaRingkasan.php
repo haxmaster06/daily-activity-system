@@ -133,6 +133,12 @@ final class AngkaRingkasan
                 $saring->departemenId !== [],
                 fn ($query) => $query->whereIn('department_id', $saring->departemenId),
             )
+            // Penyebutnya menyempit bersama pembilangnya — alasannya sama persis
+            // dengan yang dicatat pada `AngkaKepatuhan::anggotaWajibLapor()`.
+            ->when(
+                $saring->penggunaId !== [],
+                fn ($query) => $query->whereIn('id', $saring->penggunaId),
+            )
             ->count();
 
         if ($wajib === 0) {
@@ -143,7 +149,7 @@ final class AngkaRingkasan
             ->visibleTo($saring->pengguna)
             ->whereBetween('report_date', [$dari, $sampai]);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         $laporan = $query->get(['user_id', 'report_date']);
 
@@ -175,7 +181,7 @@ final class AngkaRingkasan
                 ->visibleTo($saring->pengguna)
                 ->whereBetween('report_date', [$dari, $sampai]);
 
-            $saring->batasiDepartemen($query);
+            $saring->batasiLaporan($query);
 
             return $query->count();
         };
@@ -196,7 +202,7 @@ final class AngkaRingkasan
             ->where('status', DailyReport::STATUS_DIKIRIM)
             ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         return $query->count();
     }

@@ -57,6 +57,20 @@ final class AngkaKepatuhan
                 $saring->departemenId !== [],
                 fn ($query) => $query->whereIn('department_id', $saring->departemenId),
             )
+            /*
+             * Penyaring orang ikut mempersempit penyebutnya, bukan hanya
+             * pembilangnya. Tanpa ini, menyaring ke satu orang membandingkan
+             * laporan satu orang terhadap kewajiban seluruh tim, dan
+             * kepatuhannya terbaca beberapa persen padahal ia mengisi tiap hari.
+             *
+             * Penyaring status dan template sengaja tidak ikut: keduanya
+             * mempersempit *laporan mana yang dihitung*, bukan siapa yang wajib
+             * mengisi, dan itu memang pertanyaan yang berbeda.
+             */
+            ->when(
+                $saring->penggunaId !== [],
+                fn ($query) => $query->whereIn('id', $saring->penggunaId),
+            )
             ->orderBy('name')
             ->get(['id', 'name', 'department_id']);
     }
@@ -72,7 +86,7 @@ final class AngkaKepatuhan
             ->visibleTo($saring->pengguna)
             ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         return $query
             ->get(['user_id', 'department_id', 'report_date', 'status'])
@@ -273,7 +287,7 @@ final class AngkaKepatuhan
             ->whereBetween('report_date', [$saring->dari, $saring->sampai])
             ->whereNotNull('submitted_at');
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         $jumlah = $query
             ->selectRaw('HOUR(submitted_at) AS jam, COUNT(*) AS jumlah')

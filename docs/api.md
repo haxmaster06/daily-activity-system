@@ -173,7 +173,7 @@ satu halaman pada satu waktu.
 
 | Metode | Alamat | Isi |
 |---|---|---|
-| GET | `/analitik/opsi` | Departemen yang boleh dibaca, dan metrik yang tersedia |
+| GET | `/analitik/opsi` | Seluruh nilai yang dapat dijadikan penyaring, dan metrik yang tersedia |
 | GET | `/analitik/departemen` | Keadaan tiap departemen, diringkas dari kolom templatenya sendiri |
 | GET | `/analitik/ringkasan` | Kartu angka berpembanding, tren, dan kalimat "perlu perhatian" |
 | GET | `/analitik/produktivitas` | Angka bersatuan dari isi laporan: kg, box, pouch |
@@ -185,9 +185,40 @@ satu halaman pada satu waktu.
 > sama. Dua tempat untuk satu pertanyaan hanya membuat keduanya lambat laun
 > berbeda.
 
-Penyaring yang diterima semuanya: `dari`, `sampai`, `departemen_id[]`, dan
-`metrik` (khusus produktivitas). Rentang bawaan 30 hari terakhir; rentang
-terpanjang 366 hari, dan permintaan yang lebih panjang dipotong, bukan ditolak.
+#### Penyaring
+
+Seluruh endpoint di atas menerima penyaring yang sama.
+
+| Parameter | Isi |
+|---|---|
+| `dari`, `sampai` | Rentang tanggal. Bawaan 30 hari terakhir, terpanjang 366 hari. Rentang yang lebih panjang **dipotong**, bukan ditolak. Rentang terbalik diperbaiki |
+| `departemen_id[]` | Departemen. Di luar jangkauan dibuang diam-diam |
+| `status[]` | `belum_mulai` / `dalam_proses` / `selesai`. Berlaku pada baris laporan **dan** kartu progres sekaligus — keduanya memakai kosakata yang sama persis |
+| `pengguna_id[]` | Penyusun laporan, sekaligus penanggung jawab kartu |
+| `template_id[]` | Template laporan |
+| `nilai[]` | Isi kolom laporan, berbentuk `kunci:nilai` — misalnya `pembeli:BUY_ALFA` |
+| `metrik` | Khusus `/analitik/produktivitas` |
+
+Beberapa penyaring berlaku bersama, bukan saling menimpa. Status dan `nilai[]`
+diperiksa pada **satu baris yang sama**: laporan yang barisnya A berisi pembeli
+itu dan barisnya B berstatus selesai tidak ikut lolos, sebab tidak ada satu pun
+baris yang memenuhi keduanya.
+
+Dua hal yang sengaja tidak simetris:
+
+* **Nilai yang tidak dikenal dibuang, bukan diteruskan.** Status karangan yang
+  lolos ke `whereIn` menghasilkan halaman kosong yang terlihat seperti "tidak ada
+  datanya", padahal permintaannya yang salah — dan pengguna akan mempercayai
+  halaman itu.
+* **Penyaring `pengguna_id[]` ikut mempersempit penyebut kepatuhan.** Tanpa itu,
+  menyaring ke satu orang membandingkan laporan satu orang terhadap kewajiban
+  seluruh tim. Penyaring status dan template tidak ikut: keduanya mempersempit
+  laporan mana yang dihitung, bukan siapa yang wajib mengisi.
+
+⚠️ Kunci pada `nilai[]` ikut menyusun jalur JSON pada query, dan jalur itu tidak
+dapat di-bind sebagai parameter. Kunci yang bukan pengenal biasa
+(`[A-Za-z0-9_]{1,64}`) dibuang di `PenyaringAnalitik::pasanganNilai()` sebelum
+menyentuh query apa pun; nilainya tetap di-bind seperti biasa.
 
 **Dua jalur kebocoran, bukan satu.** Selain query yang lupa `visibleTo()`,
 penyaring `departemen_id` dikirim pengguna sendiri. Terjemahannya dipusatkan di

@@ -123,7 +123,31 @@ tanpa perlu membuka tabel yang bentuknya berbeda tiap departemen.
 
 Tiap grafik **disertai tabel berisi angka yang sama**. Bila Anda mencari angka
 persisnya, baca tabelnya — grafiknya untuk melihat bentuk, tabelnya untuk
-membaca angka. Klik nama departemen pada tabel untuk membuka rinciannya.
+membaca angka.
+
+### Menyaring dengan menekan apa yang Anda lihat
+
+Hampir semua yang tampil di halaman ini dapat ditekan untuk menyaring seluruh
+halaman: nama departemen, badge status, nama orang, dan nilai pada ringkasan
+departemen — nama pembeli, nama supplier, tahapan proses.
+
+Menekan hal yang sama sekali lagi melepaskan penyaringnya. Penyaring yang sedang
+berlaku selalu terlihat pada bilah di atas, dan tombol **Bersihkan** membatalkan
+semuanya sekaligus.
+
+Penyaring juga dapat dipilih sendiri lewat bilah itu: rentang tanggal,
+departemen, status, orang, dan template. Beberapa penyaring berlaku bersamaan —
+misalnya Produksi **dan** status Selesai.
+
+Penyaringan tersimpan di alamat halaman, sehingga dapat **dibagikan lewat
+tautan**, bertahan saat halaman dimuat ulang, dan ikut terbawa saat Anda
+berpindah tab.
+
+### Membaca satu laporan
+
+Pada tab **Departemen**, daftar **Laporan terbaru** membuka isi laporan harian
+apa adanya — sama seperti yang diisi penyusunnya, hanya disusun agar mudah
+dibaca. Kolom yang tidak diisi tidak ditampilkan.
 
 Yang Anda lihat di sini **hanya sejauh jangkauan Anda**. Direktur satu
 departemen melihat departemennya saja.

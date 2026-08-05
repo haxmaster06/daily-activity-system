@@ -54,7 +54,7 @@ final class AngkaDepartemen
             );
 
         $laporan = self::laporanTerlihat($saring);
-        $baris = self::barisLaporan($laporan);
+        $baris = self::barisLaporan($saring, $laporan);
         $kolom = self::kolomTemplate($baris);
 
         return [
@@ -75,7 +75,7 @@ final class AngkaDepartemen
             ->with(['user:id,name'])
             ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         return $query->orderByDesc('report_date')->orderByDesc('id')->get();
     }
@@ -89,20 +89,30 @@ final class AngkaDepartemen
      * @param  Collection<int, DailyReport>  $laporan
      * @return Collection<int, object>
      */
-    private static function barisLaporan(Collection $laporan): Collection
+    private static function barisLaporan(PenyaringAnalitik $saring, Collection $laporan): Collection
     {
         if ($laporan->isEmpty()) {
             return collect();
         }
 
-        return DailyReportItem::query()
+        $query = DailyReportItem::query()
             ->join(
                 'daily_report_sections as s',
                 's.id',
                 '=',
                 'daily_report_items.daily_report_section_id',
             )
-            ->whereIn('s.daily_report_id', $laporan->pluck('id'))
+            ->whereIn('s.daily_report_id', $laporan->pluck('id'));
+
+        /*
+         * Barisnya ikut disaring, bukan hanya laporannya. Laporan yang lolos
+         * penyaring "pembeli X" biasanya juga memuat baris untuk pembeli lain;
+         * meringkas seluruh barisnya menjadikan sorotan pembeli X memuat tonase
+         * yang bukan miliknya.
+         */
+        $saring->batasiBaris($query, 'daily_report_items.');
+
+        return $query
             ->get([
                 'daily_report_items.data',
                 'daily_report_items.progress_status',
@@ -160,6 +170,7 @@ final class AngkaDepartemen
             'jumlah_baris' => $barisnya->count(),
             'terakhir' => $terakhir === null ? null : [
                 'tanggal' => $terakhir->report_date->toDateString(),
+                'penyusun_id' => $terakhir->user_id,
                 'penyusun' => $terakhir->user?->name ?? '—',
             ],
             'status_baris' => self::sebaranStatus($barisnya),
@@ -169,6 +180,7 @@ final class AngkaDepartemen
                 ->map(fn (DailyReport $satu) => [
                     'id' => $satu->id,
                     'tanggal' => $satu->report_date->toDateString(),
+                    'penyusun_id' => $satu->user_id,
                     'penyusun' => $satu->user?->name ?? '—',
                     'status' => $satu->status,
                     'label_status' => DailyReport::LABEL_STATUS[$satu->status] ?? $satu->status,
@@ -334,12 +346,17 @@ final class AngkaDepartemen
 
         return [
             'jenis' => 'teks',
+            'kunci' => $kolom->key,
             'label' => self::labelPenuh($kolom),
             'jumlah_berbeda' => $jumlah->count(),
             'nilai' => $jumlah->count() > self::BATAS_NILAI
                 ? []
                 : $jumlah
-                    ->map(fn (int $n, string $teks) => ['teks' => $teks, 'jumlah' => $n])
+                    ->map(fn (int $n, string $teks) => [
+                        'teks' => $teks,
+                        'jumlah' => $n,
+                        'saring' => $teks,
+                    ])
                     ->values()
                     ->all(),
         ];
@@ -362,6 +379,7 @@ final class AngkaDepartemen
 
         return [
             'jenis' => 'angka',
+            'kunci' => $kolom->key,
             'label' => self::labelPenuh($kolom),
             'satuan' => $kolom->unit,
             'total' => round($angka->sum(), 2),
@@ -381,19 +399,32 @@ final class AngkaDepartemen
      */
     private static function sorotanMaster(TemplateField $kolom, Collection $nilai): array
     {
-        $nama = $nilai
-            ->map(fn ($satu) => is_array($satu) ? ($satu['nama'] ?? null) : (string) $satu)
-            ->filter()
-            ->countBy()
-            ->sortDesc();
+        /*
+         * Namanya yang dibaca, kodenya yang dipakai menyaring. Menyaring dengan
+         * nama berarti dua master bernama sama — dan itu terjadi — terhitung
+         * sebagai satu; kodenyalah yang unik.
+         */
+        $pasangan = $nilai
+            ->map(fn ($satu) => is_array($satu)
+                ? ['nama' => $satu['nama'] ?? null, 'kode' => $satu['kode'] ?? ($satu['nama'] ?? null)]
+                : ['nama' => (string) $satu, 'kode' => (string) $satu])
+            ->filter(fn (array $satu) => ($satu['nama'] ?? '') !== '');
+
+        $nama = $pasangan->countBy('nama')->sortDesc();
+        $kode = $pasangan->keyBy('nama')->map(fn (array $satu) => $satu['kode']);
 
         return [
             'jenis' => 'master',
+            'kunci' => $kolom->key,
             'label' => self::labelPenuh($kolom),
             'jumlah_berbeda' => $nama->count(),
             'nilai' => $nama
                 ->take(self::BATAS_NILAI)
-                ->map(fn (int $jumlah, string $teks) => ['teks' => $teks, 'jumlah' => $jumlah])
+                ->map(fn (int $jumlah, string $teks) => [
+                    'teks' => $teks,
+                    'jumlah' => $jumlah,
+                    'saring' => $kode[$teks] ?? $teks,
+                ])
                 ->values()
                 ->all(),
         ];
@@ -407,8 +438,11 @@ final class AngkaDepartemen
     {
         $label = collect($kolom->options ?? [])->pluck('label', 'nilai');
 
+        // Dihitung menurut nilai simpanannya, bukan labelnya: label yang sama
+        // pada dua pilihan berbeda akan menyatukan keduanya, dan penyaringnya
+        // membutuhkan nilai simpanan itu juga.
         $jumlah = $nilai
-            ->map(fn ($satu) => $label[$satu] ?? (is_scalar($satu) ? (string) $satu : null))
+            ->map(fn ($satu) => is_scalar($satu) ? (string) $satu : null)
             ->filter()
             ->countBy()
             ->sortDesc();
@@ -419,11 +453,16 @@ final class AngkaDepartemen
 
         return [
             'jenis' => 'pilihan',
+            'kunci' => $kolom->key,
             'label' => self::labelPenuh($kolom),
             'jumlah_berbeda' => $jumlah->count(),
             'nilai' => $jumlah
                 ->take(self::BATAS_NILAI)
-                ->map(fn (int $n, string $teks) => ['teks' => $teks, 'jumlah' => $n])
+                ->map(fn (int $n, string $mentah) => [
+                    'teks' => $label[$mentah] ?? $mentah,
+                    'jumlah' => $n,
+                    'saring' => $mentah,
+                ])
                 ->values()
                 ->all(),
         ];

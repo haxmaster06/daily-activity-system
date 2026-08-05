@@ -31,11 +31,12 @@ export default async function AnalitikLayout({ children }: { children: ReactNode
       <TabAnalitik />
 
       {/*
-        Departemen yang ditawarkan sudah dibatasi jangkauan di server. Backend
-        tetap membuang departemen di luar jangkauan bila diminta lewat URL —
-        daftar ini kenyamanan, bukan penjagaan.
+        Pilihan yang ditawarkan sudah dibatasi jangkauan di server — termasuk
+        daftar namanya, yang merupakan jalur kebocoran tersendiri. Backend tetap
+        membuang departemen di luar jangkauan bila diminta lewat URL; daftar ini
+        kenyamanan, bukan penjagaan.
       */}
-      <PenyaringAnalitik departemen={opsi.departemen} batasHari={opsi.batas_hari} />
+      <PenyaringAnalitik opsi={opsi} />
 
       <div className="mt-3">{children}</div>
     </>

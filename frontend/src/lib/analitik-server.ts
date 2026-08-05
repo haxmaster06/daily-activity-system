@@ -23,26 +23,61 @@ import type {
  * Penyaringnya hidup di URL supaya dapat dibagikan dan bertahan saat halaman
  * dimuat ulang — dan supaya berpindah antar tab tidak menghapusnya.
  */
-export function queryAnalitik(filter: {
+export interface FilterAnalitik {
   dari?: string;
   sampai?: string;
-  departemen?: string | string[];
   metrik?: string;
-}): URLSearchParams {
+  departemen?: string | string[];
+  status?: string | string[];
+  pengguna?: string | string[];
+  template?: string | string[];
+  /** Isi kolom laporan, tiap butir berbentuk `kunci:nilai`. */
+  nilai?: string | string[];
+}
+
+/**
+ * Kunci di URL dan kunci di API sengaja berbeda.
+ *
+ * URL dibaca manusia dan ikut dibagikan lewat tautan: `?departemen=3,7` jauh
+ * lebih pendek dan lebih mudah disunting tangan daripada
+ * `?departemen_id[]=3&departemen_id[]=7`. Terjemahannya dikerjakan sekali di
+ * sini, bukan di tiap halaman.
+ */
+const KUNCI_API: Record<string, string> = {
+  departemen: 'departemen_id[]',
+  status: 'status[]',
+  pengguna: 'pengguna_id[]',
+  template: 'template_id[]',
+};
+
+function daftar(nilai: string | string[] | undefined): string[] {
+  if (Array.isArray(nilai)) return nilai.filter(Boolean);
+
+  return nilai ? nilai.split(',').filter(Boolean) : [];
+}
+
+export function queryAnalitik(filter: FilterAnalitik): URLSearchParams {
   const query = new URLSearchParams();
 
   if (filter.dari) query.set('dari', filter.dari);
   if (filter.sampai) query.set('sampai', filter.sampai);
   if (filter.metrik) query.set('metrik', filter.metrik);
 
-  const departemen = Array.isArray(filter.departemen)
-    ? filter.departemen
-    : filter.departemen
-      ? filter.departemen.split(',')
-      : [];
+  for (const [kunciUrl, kunciApi] of Object.entries(KUNCI_API)) {
+    for (const satu of daftar(filter[kunciUrl as keyof FilterAnalitik])) {
+      query.append(kunciApi, satu);
+    }
+  }
 
-  for (const satu of departemen.filter(Boolean)) {
-    query.append('departemen_id[]', satu);
+  /*
+   * Penyaring isi kolom tidak pernah dipisah koma. Nilainya adalah isi laporan
+   * yang sebenarnya — "PT Sumber Rejeki, Tbk" — dan memisahnya di koma
+   * memecah satu nama menjadi dua penyaring yang keduanya tidak cocok apa pun.
+   */
+  const nilai = Array.isArray(filter.nilai) ? filter.nilai : filter.nilai ? [filter.nilai] : [];
+
+  for (const satu of nilai.filter(Boolean)) {
+    query.append('nilai[]', satu);
   }
 
   return query;

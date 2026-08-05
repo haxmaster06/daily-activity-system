@@ -120,7 +120,7 @@ final class AngkaProduktivitas
             ->visibleTo($saring->pengguna)
             ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-        $saring->batasiDepartemen($terlihat);
+        $saring->batasiLaporan($terlihat);
 
         /*
          * Nama kunci disisipkan ke dalam SQL, sehingga harus dibatasi bentuknya.
@@ -268,7 +268,7 @@ final class AngkaProduktivitas
             ->visibleTo($saring->pengguna)
             ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiLaporan($query);
 
         return $query->getQuery();
     }

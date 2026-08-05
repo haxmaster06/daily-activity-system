@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { TautanDepartemen } from './dapat-disaring';
+import { TautanNilai, TautanDepartemen, TautanStatus } from './dapat-disaring';
 
 const push = vi.fn();
 let params = new URLSearchParams();
@@ -87,6 +87,62 @@ describe('menyaring dari mana pun departemen disebut', () => {
     expect(alamat).toContain('dari=2026-08-01');
     expect(alamat).toContain('sampai=2026-08-05');
     expect(alamat).toContain('departemen=5');
+  });
+});
+
+/**
+ * Penyaringan bukan hanya departemen. Status, orang, template, tanggal, dan isi
+ * kolom laporan semuanya dapat ditekan, dan semuanya memakai perilaku yang sama.
+ */
+describe('penyaring selain departemen', () => {
+  function renderTautan(anak: React.ReactNode, query = '') {
+    params = new URLSearchParams(query);
+
+    return render(<TooltipProvider>{anak}</TooltipProvider>);
+  }
+
+  it('menyaring menurut status saat badge ditekan', async () => {
+    const pengguna = userEvent.setup();
+    renderTautan(<TautanStatus status="selesai" label="Selesai" />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'Saring hanya Selesai' }));
+
+    expect(push).toHaveBeenCalledWith('/analitik?status=selesai');
+  });
+
+  /*
+   * Kolom master menyimpan salinan `{kode, nama}`: namanya yang dibaca, kodenya
+   * yang menyaring. Mengirim namanya membuat dua master bernama sama terhitung
+   * sebagai satu.
+   */
+  it('mengirim kode master, bukan namanya yang terbaca', async () => {
+    const pengguna = userEvent.setup();
+    renderTautan(<TautanNilai kunci="pembeli" saring="BUY_ALFA" teks="PT Pembeli Alfa" />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'Saring hanya PT Pembeli Alfa' }));
+
+    expect(push).toHaveBeenCalledWith('/analitik?nilai=pembeli%3ABUY_ALFA');
+  });
+
+  /*
+   * Dua nilai pada kolom yang sama tidak pernah muncul bersamaan pada satu
+   * baris; menumpuknya selalu menghasilkan halaman kosong. Kolom berbeda tetap
+   * dapat aktif bersamaan.
+   */
+  it('mengganti nilai pada kolom yang sama, dan menambah pada kolom lain', async () => {
+    const pengguna = userEvent.setup();
+    renderTautan(
+      <TautanNilai kunci="pembeli" saring="BUY_BETA" teks="PT Pembeli Beta" />,
+      'nilai=pembeli%3ABUY_ALFA&nilai=tahap%3Aoven',
+    );
+
+    await pengguna.click(screen.getByRole('button', { name: 'Saring hanya PT Pembeli Beta' }));
+
+    const alamat = push.mock.calls[0][0] as string;
+
+    expect(alamat).toContain('nilai=tahap%3Aoven');
+    expect(alamat).toContain('nilai=pembeli%3ABUY_BETA');
+    expect(alamat).not.toContain('BUY_ALFA');
   });
 });
 

@@ -44,7 +44,7 @@ final class AngkaProgres
             ->visibleTo($saring->pengguna)
             ->with(['department:id,name', 'penanggungJawab:id,name']);
 
-        $saring->batasiDepartemen($query);
+        $saring->batasiTugas($query);
 
         return $query->get();
     }
@@ -103,7 +103,7 @@ final class AngkaProgres
                 $query->visibleTo($saring->pengguna)
                     ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
 
-                $saring->batasiDepartemen($query);
+                $saring->batasiLaporan($query);
             })
             ->selectRaw('progress_status, COUNT(*) as jumlah')
             ->groupBy('progress_status')
@@ -134,6 +134,7 @@ final class AngkaProgres
                 // Kartu tanpa penanggung jawab dikumpulkan tersendiri, tidak
                 // dibuang — pekerjaan tanpa penanggung jawab justru yang paling
                 // perlu terlihat.
+                'id' => $kartu->first()->penanggung_jawab_id,
                 'nama' => $kartu->first()->penanggungJawab?->name ?? 'Belum ditentukan',
                 'berjalan' => $kartu->where('status', '!=', Tugas::STATUS_SELESAI)->count(),
                 'selesai' => $kartu->where('status', Tugas::STATUS_SELESAI)->count(),
@@ -161,6 +162,7 @@ final class AngkaProgres
                 'status' => $satu->status,
                 'label_status' => Tugas::STATUS[$satu->status] ?? $satu->status,
                 'departemen' => $satu->department?->name ?? '—',
+                'penanggung_jawab_id' => $satu->penanggung_jawab_id,
                 'penanggung_jawab' => $satu->penanggungJawab?->name ?? 'Belum ditentukan',
                 'target_selesai' => $satu->target_selesai?->toDateString(),
                 'telat_hari' => $satu->target_selesai === null
@@ -193,6 +195,7 @@ final class AngkaProgres
                 'status' => $satu->status,
                 'label_status' => Tugas::STATUS[$satu->status] ?? $satu->status,
                 'departemen' => $satu->department?->name ?? '—',
+                'penanggung_jawab_id' => $satu->penanggung_jawab_id,
                 'penanggung_jawab' => $satu->penanggungJawab?->name ?? 'Belum ditentukan',
                 'umur_hari' => (int) $satu->created_at?->diffInDays(Carbon::now()),
             ])

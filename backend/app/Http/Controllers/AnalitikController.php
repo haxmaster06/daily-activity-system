@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DailyReportItem;
+use App\Models\ReportTemplate;
+use App\Models\User;
 use App\Support\Analitik\AngkaDepartemen;
 use App\Support\Analitik\AngkaProduktivitas;
 use App\Support\Analitik\AngkaProgres;
@@ -30,18 +33,52 @@ use Illuminate\Http\Request;
 class AnalitikController extends Controller
 {
     /**
-     * Pilihan penyaring: departemen yang boleh dibaca dan metrik yang tersedia.
+     * Seluruh nilai yang dapat dijadikan penyaring.
      *
      * Dipisah dari angkanya supaya layar dapat menyusun penyaringnya lebih dulu
      * tanpa menunggu hitungan apa pun selesai.
+     *
+     * Daftarnya **tidak** ikut menyempit saat departemen sedang tersaring. Kalau
+     * ikut menyempit, orang yang sudah terpilih lenyap dari daftar begitu
+     * departemen lain dipilih, dan keping penyaringnya kehilangan nama —
+     * tersaring oleh sesuatu yang tidak lagi dapat dibaca.
      */
     public function opsi(Request $request): JsonResponse
     {
         $saring = PenyaringAnalitik::dariPermintaan($request);
+        $departemen = $saring->departemenTerjangkau();
 
         return ApiResponse::ok([
-            'departemen' => $saring->departemenTerjangkau()
+            'departemen' => $departemen
                 ->map(fn ($satu) => ['id' => $satu->id, 'nama' => $satu->name])
+                ->values(),
+            'pengguna' => $saring->penggunaTerjangkau()
+                ->map(fn (User $satu) => [
+                    'id' => $satu->id,
+                    'nama' => $satu->name,
+                    'departemen' => $satu->department?->name ?? '—',
+                ])
+                ->values(),
+            'template' => ReportTemplate::query()
+                ->aktif()
+                ->where(function ($query) use ($departemen): void {
+                    // Template lintas departemen (`department_id` kosong) berlaku
+                    // bagi semua orang, termasuk pemegang jangkauan satu
+                    // departemen.
+                    $query->whereNull('department_id')
+                        ->orWhereIn('department_id', $departemen->pluck('id'));
+                })
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'department_id'])
+                ->map(fn (ReportTemplate $satu) => [
+                    'id' => $satu->id,
+                    'nama' => $satu->name,
+                    'departemen_id' => $satu->department_id,
+                ])
+                ->values(),
+            'status' => collect(DailyReportItem::LABEL_STATUS)
+                ->map(fn (string $label, string $nilai) => ['nilai' => $nilai, 'label' => $label])
                 ->values(),
             'metrik' => AngkaProduktivitas::metrikTersedia(),
             'batas_hari' => PenyaringAnalitik::BATAS_HARI,

@@ -152,6 +152,40 @@ describe('grup kolom', () => {
   });
 });
 
+/*
+ * Keluhan yang memicu bentuk ini: "5 Agustus 2026" pecah menjadi tiga baris,
+ * dan nama perusahaan tiga kata menjadi tiga baris pula. Penyebabnya sel yang
+ * lebarnya seragam sepertiga kisi. Lebar sel kini mengikuti panjang isinya, dan
+ * itulah yang dijaga di sini — tata letak tidak dapat diukur di jsdom, tetapi
+ * keputusan lebarnya dapat.
+ */
+describe('lebar sel mengikuti panjang isinya', () => {
+  function sel(label: string) {
+    return screen.getByText(label).closest('div');
+  }
+
+  it('memberi dua sel pada nilai yang panjang', () => {
+    render(<TampilanLaporan laporan={LAPORAN} />);
+
+    // "PT Contoh Nusantara" — tidak muat pada satu sel selebar sepertiga kisi.
+    expect(sel('Nama Perusahaan')).toHaveClass('laporan-luas');
+  });
+
+  it('membiarkan nilai pendek pada satu sel', () => {
+    render(<TampilanLaporan laporan={LAPORAN} />);
+
+    // "1 Agustus 2026" muat utuh; melebarkannya hanya menyisakan ruang kosong.
+    expect(sel('Tanggal Mulai')).not.toHaveClass('laporan-luas');
+    expect(sel('Tanggal Mulai')).not.toHaveClass('laporan-penuh');
+  });
+
+  it('memberi satu baris penuh pada teks bebas', () => {
+    render(<TampilanLaporan laporan={LAPORAN} />);
+
+    expect(sel('Keterangan')).toHaveClass('laporan-penuh');
+  });
+});
+
 describe('laporan tanpa isi', () => {
   it('menjelaskan keadaannya, bukan menampilkan halaman kosong', () => {
     render(<TampilanLaporan laporan={{ ...LAPORAN, bagian: [] }} />);

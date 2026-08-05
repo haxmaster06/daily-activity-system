@@ -27,7 +27,16 @@ vi.mock('../grafik', () => ({
 }));
 
 const CONTOH: DataRingkasan = {
-  rentang: { dari: '2026-07-07', sampai: '2026-08-05', hari: 30, departemen_id: [] },
+  rentang: {
+    dari: '2026-07-07',
+    sampai: '2026-08-05',
+    hari: 30,
+    departemen_id: [],
+    status: [],
+    pengguna_id: [],
+    template_id: [],
+    nilai: [],
+  },
   kartu: [
     {
       kunci: 'kepatuhan',

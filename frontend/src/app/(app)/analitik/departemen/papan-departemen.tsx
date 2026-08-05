@@ -18,7 +18,7 @@ import { cn } from '@/lib/cn';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
 import type { Laporan } from '@/lib/laporan';
 import { RAGAM_STATUS, type StatusLaporan } from '@/lib/laporan';
-import { TautanDepartemen } from '../dapat-disaring';
+import { TautanDepartemen, TautanNilai } from '../dapat-disaring';
 import { ambilLaporanUntukTampilan } from './actions';
 
 /**
@@ -98,7 +98,7 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
         onTutup={() => setTerbuka(false)}
         judul={laporan ? `Laporan ${formatTanggal(laporan.tanggal)}` : 'Laporan'}
         keterangan={laporan?.departemen?.nama}
-        lebar="lebar"
+        lebar="sangat-lebar"
       >
         {memuat && <p className="py-6 text-center text-body-lg text-ink-muted">Memuat laporan...</p>}
 
@@ -172,7 +172,9 @@ function KartuDepartemen({
               >
                 <span className="flex min-w-0 items-center gap-2">
                   <FileText aria-hidden="true" className="size-3.5 shrink-0 text-ink-soft" />
-                  <span className="text-ink">{formatTanggalRingkas(satu.tanggal)}</span>
+                  <span className="whitespace-nowrap text-ink">
+                    {formatTanggalRingkas(satu.tanggal)}
+                  </span>
                   <span className="min-w-0 text-ink-muted">{satu.penyusun}</span>
                 </span>
 
@@ -220,22 +222,32 @@ function BarisSorotan({ sorotan }: { sorotan: SorotanDepartemen }) {
         )}
       </p>
 
+      {/*
+        Tiap nilai menyaring seluruh halaman. Inilah tautan yang paling sering
+        ditekan di sini: pertanyaan yang muncul setelah melihat nama pembeli
+        pada ringkasan hampir selalu "tampilkan semua yang untuk pembeli ini".
+      */}
       <ul className="mt-1 flex flex-wrap gap-1">
         {sorotan.nilai.map((satu) => (
           <li key={satu.teks}>
-            <span
+            <TautanNilai
+              kunci={sorotan.kunci}
+              saring={satu.saring}
+              teks={satu.teks}
               className={cn(
-                'inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-caption',
+                'px-1.5 py-0.5 text-caption no-underline hover:no-underline',
                 sorotan.jenis === 'pilihan'
                   ? 'bg-accent-subtle text-accent-text'
                   : 'bg-primary-subtle text-primary-text',
               )}
             >
-              {satu.teks}
-              {satu.jumlah > 1 && (
-                <span className="text-ink-soft">×{formatAngka(satu.jumlah)}</span>
-              )}
-            </span>
+              <span className="inline-flex items-center gap-1">
+                {satu.teks}
+                {satu.jumlah > 1 && (
+                  <span className="text-ink-soft">×{formatAngka(satu.jumlah)}</span>
+                )}
+              </span>
+            </TautanNilai>
           </li>
         ))}
       </ul>

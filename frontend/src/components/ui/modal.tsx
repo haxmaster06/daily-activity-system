@@ -21,7 +21,7 @@ interface ModalProps {
    * wizard, yang tombol Lanjut dan Kembali-nya menyatu dengan langkahnya.
    */
   aksi?: ReactNode;
-  lebar?: 'sedang' | 'lebar';
+  lebar?: 'sedang' | 'lebar' | 'sangat-lebar';
 }
 
 /**
@@ -93,7 +93,17 @@ export function Modal({
           'flex max-h-[85vh] w-full flex-col overflow-hidden rounded-modal bg-surface shadow-modal',
           'data-[entering]:animate-modal-masuk',
           'data-[exiting]:animate-modal-keluar',
-          lebar === 'lebar' ? 'sm:max-w-2xl' : 'sm:max-w-md',
+          /*
+           * 'sangat-lebar' dipakai pembaca laporan harian. Satu baris laporan
+           * Proses Harian per LOT punya dua puluh tujuh kolom; pada 42rem
+           * kolomnya tinggal dua, dan pembacanya kehilangan kemampuan
+           * membandingkan antar baris — satu-satunya alasan ia membukanya.
+           */
+          lebar === 'sangat-lebar'
+            ? 'sm:max-w-5xl'
+            : lebar === 'lebar'
+              ? 'sm:max-w-2xl'
+              : 'sm:max-w-md',
         )}
       >
         <Dialog className="flex min-h-0 flex-1 flex-col outline-none">

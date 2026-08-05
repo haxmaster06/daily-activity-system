@@ -1,16 +1,14 @@
-import { ambilProgres, queryAnalitik } from '@/lib/analitik-server';
+import {
+  ambilProgres,
+  queryAnalitik,
+  type FilterAnalitik,
+} from '@/lib/analitik-server';
 import { PapanProgres } from './papan-progres';
-
-interface Params {
-  dari?: string;
-  sampai?: string;
-  departemen?: string;
-}
 
 export default async function ProgresPage({
   searchParams,
 }: {
-  searchParams: Promise<Params>;
+  searchParams: Promise<FilterAnalitik>;
 }) {
   const filter = await searchParams;
   const data = await ambilProgres(queryAnalitik(filter));

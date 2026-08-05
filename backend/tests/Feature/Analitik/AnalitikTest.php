@@ -528,3 +528,301 @@ describe('keadaan departemen', function (): void {
         expect($data->where('jumlah_laporan', 0))->not->toBeEmpty();
     });
 });
+
+/**
+ * Penyaringan bukan hanya departemen.
+ *
+ * Tiap parameter yang tampil di layar dapat dijadikan penyaring: status, orang,
+ * template, dan rentang tanggal. Yang diuji di sini dua hal yang paling mudah
+ * salah — bahwa tiap penyaring benar-benar **mempersempit**, dan bahwa beberapa
+ * penyaring sekaligus tidak saling meniadakan. Penyaring yang diam-diam
+ * diabaikan tidak menimbulkan galat apa pun; halamannya tampak wajar, hanya
+ * menjawab pertanyaan yang berbeda dari yang ditanyakan.
+ */
+describe('penyaring selain departemen', function (): void {
+    it('mempersempit menurut status baris laporan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'template' => $template] = siapkanAnalitik();
+
+        $rekan = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($rekan, $milik, $template, 'belum_mulai', 40);
+
+        Sanctum::actingAs($pengawas);
+
+        $tanpa = collect($this->getJson('/api/analitik/progres')->assertOk()
+            ->json('data.sebaran_status_baris'));
+
+        expect($tanpa->firstWhere('status', 'selesai')['jumlah'])->toBe(1)
+            ->and($tanpa->firstWhere('status', 'belum_mulai')['jumlah'])->toBe(1);
+
+        $tersaring = collect($this->getJson('/api/analitik/progres?status[]=selesai')->assertOk()
+            ->json('data.sebaran_status_baris'));
+
+        expect($tersaring->firstWhere('status', 'selesai')['jumlah'])->toBe(1)
+            ->and($tersaring->firstWhere('status', 'belum_mulai')['jumlah'])->toBe(0);
+    });
+
+    it('mempersempit menurut penyusun laporan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'template' => $template] = siapkanAnalitik();
+
+        $rekan = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($rekan, $milik, $template, 'dalam_proses', 40);
+
+        Sanctum::actingAs($pengawas);
+
+        $produksi = fn (string $kueri) => collect(
+            $this->getJson("/api/analitik/departemen{$kueri}")->assertOk()->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        expect($produksi('')['jumlah_laporan'])->toBe(2)
+            ->and($produksi("?pengguna_id[]={$rekan->id}")['jumlah_laporan'])->toBe(1);
+    });
+
+    it('mempersempit menurut template laporan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik] = siapkanAnalitik();
+
+        $kedua = ReportTemplate::create([
+            'code' => 'UJI_KEDUA',
+            'name' => 'Uji Kedua',
+            'department_id' => null,
+            'is_active' => true,
+        ]);
+        $kedua->fields()->create([
+            'key' => 'qty_masuk',
+            'label' => 'QTY Masuk',
+            'type' => TemplateField::TIPE_DECIMAL,
+            'unit' => 'kg',
+            'sort_order' => 0,
+        ]);
+
+        $rekan = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($rekan, $milik, $kedua->load('fields'), 'dalam_proses', 40);
+
+        Sanctum::actingAs($pengawas);
+
+        $produksi = fn (string $kueri) => collect(
+            $this->getJson("/api/analitik/departemen{$kueri}")->assertOk()->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        expect($produksi('')['jumlah_laporan'])->toBe(2)
+            ->and($produksi("?template_id[]={$kedua->id}")['jumlah_laporan'])->toBe(1);
+    });
+
+    it('mempersempit menurut tanggal tunggal', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'template' => $template] = siapkanAnalitik();
+
+        $rekan = User::factory()->staff()->create(['department_id' => $milik->id]);
+        $lalu = laporanAngka($rekan, $milik, $template, 'dalam_proses', 40);
+        $lalu->update(['report_date' => Carbon::today()->subDays(5)]);
+
+        Sanctum::actingAs($pengawas);
+
+        $hariIni = Carbon::today()->toDateString();
+
+        $data = collect(
+            $this->getJson("/api/analitik/departemen?dari={$hariIni}&sampai={$hariIni}")
+                ->assertOk()->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        expect($data['jumlah_laporan'])->toBe(1);
+    });
+
+    /*
+     * Dua penyaring sekaligus harus berlaku bersama, bukan saling menimpa.
+     * Kesalahan yang paling mungkin terjadi di sini adalah penyaring kedua
+     * menghapus yang pertama — hasilnya tetap masuk akal di layar, dan tidak ada
+     * cara mengetahuinya selain menghitung.
+     */
+    it('memberlakukan beberapa penyaring sekaligus', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'template' => $template] = siapkanAnalitik();
+
+        $rekan = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($rekan, $milik, $template, 'belum_mulai', 40);
+
+        Sanctum::actingAs($pengawas);
+
+        $jumlah = fn (string $kueri) => collect(
+            $this->getJson("/api/analitik/departemen{$kueri}")->assertOk()->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name)['jumlah_laporan'];
+
+        // Orang yang benar dengan status yang benar-benar dimilikinya.
+        expect($jumlah("?pengguna_id[]={$rekan->id}&status[]=belum_mulai"))->toBe(1);
+
+        // Orang yang benar dengan status yang bukan miliknya — nol, bukan satu.
+        expect($jumlah("?pengguna_id[]={$rekan->id}&status[]=selesai"))->toBe(0);
+    });
+
+    /*
+     * Status karangan dibuang, bukan diteruskan ke `whereIn`. Diteruskan berarti
+     * halaman kosong yang terlihat seperti "tidak ada datanya", padahal
+     * permintaannya yang salah — dan pengguna akan mempercayai halaman itu.
+     */
+    it('mengabaikan status yang tidak dikenal alih-alih mengosongkan halaman', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = collect(
+            $this->getJson('/api/analitik/departemen?status[]=entah_apa')->assertOk()
+                ->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        expect($data['jumlah_laporan'])->toBe(1);
+    });
+
+    /*
+     * Penyaring isi kolom — "tampilkan semua yang untuk pembeli ini". Satu-
+     * satunya penyaring yang menyentuh isi JSON, dan karena itu satu-satunya
+     * yang kuncinya ikut masuk ke jalur query.
+     */
+    it('mempersempit menurut isi kolom laporan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik] = siapkanAnalitik();
+
+        $jenis = MasterType::factory()->create(['slug' => 'pembeli_saring', 'name' => 'Pembeli']);
+        $alfa = MasterData::factory()->create([
+            'master_type_id' => $jenis->id,
+            'name' => 'PT Pembeli Alfa',
+            'code' => 'BUY_ALFA',
+        ]);
+        $beta = MasterData::factory()->create([
+            'master_type_id' => $jenis->id,
+            'name' => 'PT Pembeli Beta',
+            'code' => 'BUY_BETA',
+        ]);
+
+        $template = ReportTemplate::create([
+            'code' => 'UJI_SARING_NILAI',
+            'name' => 'Uji Saring Nilai',
+            'department_id' => null,
+            'is_active' => true,
+        ]);
+        $template->fields()->create([
+            'key' => 'pembeli',
+            'label' => 'Pembeli',
+            'type' => TemplateField::TIPE_MASTER,
+            'master_type_id' => $jenis->id,
+            'sort_order' => 0,
+        ]);
+
+        $penyusun = User::factory()->staff()->create(['department_id' => $milik->id]);
+
+        // Satu laporan memuat dua baris: pembeli Alfa dan pembeli Beta.
+        $laporan = DailyReport::factory()->create([
+            'user_id' => $penyusun->id,
+            'department_id' => $milik->id,
+            'report_date' => Carbon::today(),
+        ]);
+        $bagian = $laporan->sections()->create([
+            'report_template_id' => $template->id,
+            'sort_order' => 0,
+        ]);
+
+        foreach ([$alfa, $beta] as $urutan => $pembeli) {
+            $bagian->items()->create([
+                'data' => ['pembeli' => ['kode' => $pembeli->code, 'nama' => $pembeli->name]],
+                'progress_status' => 'dalam_proses',
+                'sort_order' => $urutan,
+            ]);
+        }
+
+        Sanctum::actingAs($pengawas);
+
+        $produksi = collect(
+            $this->getJson('/api/analitik/departemen?nilai[]=pembeli:BUY_ALFA')->assertOk()
+                ->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        /*
+         * Barisnya ikut menyempit, bukan hanya laporannya. Laporan yang lolos
+         * memuat dua baris; menghitung keduanya membuat sorotan pembeli Alfa
+         * memuat baris milik pembeli Beta.
+         */
+        expect($produksi['jumlah_baris'])->toBe(1);
+
+        $master = collect($produksi['sorotan'])->firstWhere('jenis', 'master');
+
+        expect(collect($master['nilai'])->pluck('teks'))
+            ->toContain('PT Pembeli Alfa')
+            ->not->toContain('PT Pembeli Beta');
+    });
+
+    /*
+     * Kunci kolom ikut menyusun jalur JSON pada query, dan jalur itu tidak dapat
+     * di-bind sebagai parameter. Kunci yang bukan pengenal biasa harus jatuh
+     * sebelum menyentuh query mana pun — bukan menghasilkan galat SQL, dan
+     * terlebih bukan dijalankan.
+     */
+    it('membuang kunci penyaring nilai yang tidak berbentuk pengenal', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $jahat = urlencode('a") = 1 OR JSON_EXTRACT(data, "$.x');
+
+        $data = collect(
+            $this->getJson("/api/analitik/departemen?nilai[]={$jahat}:apa")->assertOk()
+                ->json('data.departemen'),
+        )->firstWhere('departemen', $milik->name);
+
+        // Permintaannya dijalankan seolah tanpa penyaring itu, bukan gagal.
+        expect($data['jumlah_laporan'])->toBe(1);
+    });
+
+    it('menyempitkan penyebut kepatuhan saat disaring ke satu orang', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'template' => $template] = siapkanAnalitik();
+
+        // Sepuluh rekan yang tidak pernah mengisi apa pun. Tanpa penyebut yang
+        // ikut menyempit, kepatuhan si pengisi rajin terbaca beberapa persen.
+        User::factory()->count(10)->staff()->create(['department_id' => $milik->id]);
+
+        $rajin = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($rajin, $milik, $template, 'selesai', 10);
+
+        Sanctum::actingAs($pengawas);
+
+        $hariIni = Carbon::today()->toDateString();
+        $rentang = "dari={$hariIni}&sampai={$hariIni}";
+
+        $kepatuhan = fn (string $kueri) => collect(
+            $this->getJson("/api/analitik/ringkasan?{$kueri}")->assertOk()->json('data.kartu'),
+        )->firstWhere('kunci', 'kepatuhan')['nilai'];
+
+        expect($kepatuhan("{$rentang}&pengguna_id[]={$rajin->id}"))->toBe(100);
+    });
+});
+
+describe('daftar pilihan penyaring', function (): void {
+    it('menyebut seluruh nilai yang dapat dijadikan penyaring', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $this->getJson('/api/analitik/opsi')->assertOk()
+            ->assertJsonStructure([
+                'data' => [
+                    'departemen' => [['id', 'nama']],
+                    'pengguna' => [['id', 'nama', 'departemen']],
+                    'template' => [['id', 'nama', 'departemen_id']],
+                    'status' => [['nilai', 'label']],
+                    'metrik',
+                    'batas_hari',
+                ],
+            ]);
+    });
+
+    /*
+     * Daftar pilihan adalah jalur kebocoran tersendiri, dan yang paling mudah
+     * terlupakan: angkanya boleh tersaring rapi, tetapi daftar namanya
+     * membocorkan siapa saja yang bekerja di departemen lain.
+     */
+    it('tidak menyebut orang di luar jangkauan', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $nama = collect($this->getJson('/api/analitik/opsi')->assertOk()->json('data.pengguna'))
+            ->pluck('nama');
+
+        expect($nama)->toContain('Pengawas Produksi')
+            ->and($nama)->not->toContain('Staf Quality Control');
+    });
+});

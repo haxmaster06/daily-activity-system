@@ -10,6 +10,11 @@ export interface RentangAnalitik {
   sampai: string;
   hari: number;
   departemen_id: number[];
+  status: string[];
+  pengguna_id: number[];
+  template_id: number[];
+  /** Tiap butir berbentuk `kunci:nilai`. */
+  nilai: string[];
 }
 
 /* ---------------------------------------------------------------- Ringkasan */
@@ -105,6 +110,7 @@ export interface DataProduktivitas {
 /* ------------------------------------------------------------------ Progres */
 
 export interface BarisBeban {
+  id: number | null;
   nama: string;
   berjalan: number;
   selesai: number;
@@ -117,6 +123,7 @@ export interface BarisLewatTarget {
   status: string;
   label_status: string;
   departemen: string;
+  penanggung_jawab_id: number | null;
   penanggung_jawab: string;
   target_selesai: string | null;
   telat_hari: number;
@@ -128,6 +135,7 @@ export interface BarisUmurKartu {
   status: string;
   label_status: string;
   departemen: string;
+  penanggung_jawab_id: number | null;
   penanggung_jawab: string;
   umur_hari: number;
 }
@@ -150,6 +158,9 @@ export interface DataProgres {
 
 export interface OpsiAnalitik {
   departemen: { id: number; nama: string }[];
+  pengguna: { id: number; nama: string; departemen: string }[];
+  template: { id: number; nama: string; departemen_id: number | null }[];
+  status: { nilai: string; label: string }[];
   metrik: Metrik[];
   batas_hari: number;
 }
@@ -186,11 +197,12 @@ export function selisihMembaik(kartu: KartuKpi, selisih: number): boolean {
   return kartu.arah_baik === 'naik' ? selisih >= 0 : selisih <= 0;
 }
 
-
 /* --------------------------------------------------------------- Departemen */
 
 export interface SorotanAngka {
   jenis: 'angka';
+  /** Kunci kolom template — dipakai menyusun penyaring isi kolom. */
+  kunci: string;
   label: string;
   satuan: string;
   total: number;
@@ -199,9 +211,15 @@ export interface SorotanAngka {
 
 export interface SorotanDaftar {
   jenis: 'master' | 'pilihan' | 'teks';
+  /** Kunci kolom template — dipakai menyusun penyaring isi kolom. */
+  kunci: string;
   label: string;
   jumlah_berbeda: number;
-  nilai: { teks: string; jumlah: number }[];
+  /**
+   * `teks` dibaca manusia, `saring` dikirim ke server. Keduanya berbeda pada
+   * kolom master, yang menyimpan salinan `{kode, nama}`.
+   */
+  nilai: { teks: string; jumlah: number; saring: string }[];
 }
 
 export type SorotanDepartemen = SorotanAngka | SorotanDaftar;
@@ -209,6 +227,7 @@ export type SorotanDepartemen = SorotanAngka | SorotanDaftar;
 export interface RingkasLaporan {
   id: number;
   tanggal: string;
+  penyusun_id: number | null;
   penyusun: string;
   status: string;
   label_status: string;
@@ -220,7 +239,7 @@ export interface KeadaanDepartemen {
   departemen: string;
   jumlah_laporan: number;
   jumlah_baris: number;
-  terakhir: { tanggal: string; penyusun: string } | null;
+  terakhir: { tanggal: string; penyusun_id: number | null; penyusun: string } | null;
   status_baris: Record<string, number>;
   sorotan: SorotanDepartemen[];
   laporan: RingkasLaporan[];

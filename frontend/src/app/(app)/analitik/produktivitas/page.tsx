@@ -1,17 +1,14 @@
-import { ambilProduktivitas, queryAnalitik } from '@/lib/analitik-server';
+import {
+  ambilProduktivitas,
+  queryAnalitik,
+  type FilterAnalitik,
+} from '@/lib/analitik-server';
 import { PapanProduktivitas } from './papan-produktivitas';
-
-interface Params {
-  dari?: string;
-  sampai?: string;
-  departemen?: string;
-  metrik?: string;
-}
 
 export default async function ProduktivitasPage({
   searchParams,
 }: {
-  searchParams: Promise<Params>;
+  searchParams: Promise<FilterAnalitik>;
 }) {
   const filter = await searchParams;
   const data = await ambilProduktivitas(queryAnalitik(filter));

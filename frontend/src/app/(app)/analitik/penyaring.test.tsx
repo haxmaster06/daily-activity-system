@@ -2,6 +2,8 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { OpsiAnalitik } from '@/lib/analitik';
+
 import { PenyaringAnalitik } from './penyaring';
 
 const push = vi.fn();
@@ -26,10 +28,29 @@ const DEPARTEMEN = [
   { id: 3, nama: 'EX/IM' },
 ];
 
-function render_(query = '') {
+const OPSI: OpsiAnalitik = {
+  departemen: DEPARTEMEN,
+  pengguna: [
+    { id: 11, nama: 'Pengawas Produksi', departemen: 'Produksi' },
+    { id: 12, nama: 'Staf Quality Control', departemen: 'Quality Control' },
+  ],
+  template: [
+    { id: 21, nama: 'Proses Harian', departemen_id: 1 },
+    { id: 22, nama: 'Purchase Order', departemen_id: 3 },
+  ],
+  status: [
+    { nilai: 'belum_mulai', label: 'Belum Mulai' },
+    { nilai: 'dalam_proses', label: 'Dalam Proses' },
+    { nilai: 'selesai', label: 'Selesai' },
+  ],
+  metrik: [],
+  batas_hari: 366,
+};
+
+function render_(query = '', opsi: OpsiAnalitik = OPSI) {
   params = new URLSearchParams(query);
 
-  return render(<PenyaringAnalitik departemen={DEPARTEMEN} batasHari={366} />);
+  return render(<PenyaringAnalitik opsi={opsi} />);
 }
 
 beforeEach(() => {
@@ -42,7 +63,7 @@ beforeEach(() => {
  * pilnya sendiri menghabiskan setengah layar sebelum satu angka pun terlihat.
  */
 describe('yang tampil sepanjang waktu hanya kesimpulannya', () => {
-  it('menampilkan dua tombol saja, bukan seluruh isiannya', () => {
+  it('menampilkan tombol ringkasnya saja, bukan seluruh isiannya', () => {
     render_();
 
     expect(screen.getByRole('button', { name: 'Ubah rentang tanggal' })).toBeInTheDocument();
@@ -102,8 +123,7 @@ describe('tombol Bersihkan', () => {
 
 describe('pemilih departemen', () => {
   it('tidak ditawarkan bila hanya ada satu departemen', () => {
-    params = new URLSearchParams();
-    render(<PenyaringAnalitik departemen={[DEPARTEMEN[0]]} batasHari={366} />);
+    render_('', { ...OPSI, departemen: [DEPARTEMEN[0]] });
 
     // Pemantau satu departemen tidak perlu ditawari pilihan yang jawabannya
     // sudah pasti.
@@ -134,6 +154,52 @@ describe('pemilih departemen', () => {
     await pengguna.click(await screen.findByRole('button', { name: 'EX/IM' }));
 
     expect(push).toHaveBeenCalledWith('/analitik?departemen=1%2C3');
+  });
+});
+
+describe('penyaring selain departemen', () => {
+  it('menawarkan status, orang, dan template sebagai penyaring tersendiri', () => {
+    render_();
+
+    expect(screen.getByRole('button', { name: 'Pilih status' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pilih orang' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pilih template laporan' })).toBeInTheDocument();
+  });
+
+  it('menyembunyikan penyaring yang pilihannya tinggal satu', () => {
+    render_('', { ...OPSI, template: [OPSI.template[0]] });
+
+    expect(
+      screen.queryByRole('button', { name: 'Pilih template laporan' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('menulis pilihan status ke alamat', async () => {
+    const pengguna = userEvent.setup();
+    render_();
+
+    await pengguna.click(screen.getByRole('button', { name: 'Pilih status' }));
+    await pengguna.click(await screen.findByRole('button', { name: 'Dalam Proses' }));
+
+    expect(push).toHaveBeenCalledWith('/analitik?status=dalam_proses');
+  });
+
+  /*
+   * Penyaring isi kolom datang dari klik pada isi halaman — sebuah nama pembeli,
+   * sebuah tahapan. Bila kepingnya tidak terlihat di bilah penyaring, satu-
+   * satunya cara melepasnya adalah menemukan kembali tempat menekannya.
+   */
+  it('menampilkan penyaring isi kolom sebagai keping yang dapat dilepas', async () => {
+    const pengguna = userEvent.setup();
+    render_('nilai=pembeli%3APT+Pembeli+Alfa');
+
+    const keping = screen.getByRole('button', { name: 'Lepaskan penyaring PT Pembeli Alfa' });
+
+    expect(keping).toBeInTheDocument();
+
+    await pengguna.click(keping);
+
+    expect(push).toHaveBeenCalledWith('/analitik');
   });
 });
 
