@@ -61,6 +61,34 @@
     scrollbar-gutter: stable;
   }
 
+  /*
+   * ⚠️ Pengecualian yang wajib ada, bukan penghalusan.
+   *
+   * `overflow: hidden` **tetap membuat sebuah elemen menjadi wadah gulir**
+   * menurut spesifikasi — hanya batangnya yang tidak pernah tampil. Karena itu
+   * `scrollbar-gutter: stable` di atas ikut memesan ruang batang di dalamnya,
+   * dan ruang itu memakan **10 piksel** dari lebar isinya.
+   *
+   * Akibatnya nyata dan sempat lolos: foto profil di dalam lingkaran avatar
+   * hanya selebar 18px pada wadah 28px — wajah orangnya terpotong di kiri dan
+   * kanan. Cacat yang sama berlaku bagi tiap kotak `overflow-hidden` di seluruh
+   * aplikasi, termasuk kartu dan gambar bertepi membulat.
+   *
+   * Wadah yang memang tidak pernah menggulir tidak perlu memesan ruang apa pun.
+   */
+  .overflow-hidden,
+  .overflow-x-hidden,
+  .overflow-y-hidden,
+  /*
+   * Wadah `react-easy-crop` memasang `overflow: hidden` lewat CSS pustakanya
+   * sendiri, sehingga tidak terjangkau kelas Tailwind di atas. Tanpa baris ini,
+   * ruang batang memakan lebar jendela pemotong dan foto potret menyisakan
+   * celah di sisi kanan — persis keluhan yang memunculkan pengecualian ini.
+   */
+  .reactEasyCrop_Container {
+    scrollbar-gutter: auto;
+  }
+
   *:hover,
   *:focus-within {
     scrollbar-color: theme('colors.line.DEFAULT') transparent;

@@ -56,7 +56,7 @@ export function Lanyard({ nama, keterangan, fotoUrl, className }: LanyardProps) 
      */
     <div className={cn('relative z-0 -mt-32 h-[32rem] w-72 select-none', className)}>
       {kurangiGerak ? (
-        <KartuDiam nama={namaTampil} keterangan={keteranganTampil} />
+        <KartuDiam nama={namaTampil} keterangan={keteranganTampil} fotoUrl={fotoUrl} />
       ) : (
         <Lanyard3D nama={namaTampil} keterangan={keteranganTampil} fotoUrl={fotoUrl} />
       )}
@@ -73,9 +73,11 @@ export function Lanyard({ nama, keterangan, fotoUrl, className }: LanyardProps) 
 function KartuDiam({
   nama = 'DAMS',
   keterangan = 'Sistem Monitoring Aktivitas Harian',
+  fotoUrl,
 }: {
   nama?: string;
   keterangan?: string;
+  fotoUrl?: string;
 }) {
   return (
     <div className="flex h-full flex-col items-center justify-start">
@@ -83,29 +85,54 @@ function KartuDiam({
       <span aria-hidden="true" className="h-28 w-2 bg-primary-text/85" />
       <span aria-hidden="true" className="h-2.5 w-6 rounded-sm border border-line-strong bg-surface-sunken" />
 
-      <div className="w-40 overflow-hidden rounded-card border border-line bg-surface shadow-paper">
-        <p className="bg-primary-text py-1.5 text-center font-heading text-body-lg font-bold text-white">
-          DAMS
-        </p>
+      {/*
+        Tiga blok bertumpuk: foto 70%, identitas 20%, nama perusahaan 10%.
+        Perbandingannya ditulis sebagai `basis`, bukan tinggi tetap, supaya kartu
+        versi diam dan tekstur kartu 3D benar-benar sebangun — keduanya memakai
+        angka yang sama, dan kartu yang berbeda susunannya saat animasi dimatikan
+        terbaca sebagai dua kartu berbeda.
+      */}
+      <div className="flex aspect-[512/728] w-40 flex-col overflow-hidden rounded-card border border-line bg-surface shadow-paper">
+        <div className="relative basis-[70%] bg-primary-subtle">
+          {fotoUrl ? (
+            /*
+             * Foto pemiliknya memenuhi bloknya, sama seperti kartu identitas
+             * sungguhan. Tanda centang hanya dipakai saat belum ada foto —
+             * centang yang jelas bukan foto lebih jujur daripada siluet orang
+             * generik.
+             *
+             * `<img>` biasa, bukan `next/image`: alamatnya menunjuk route yang
+             * meneruskan permintaan beserta token sesi, dan pengoptimal gambar
+             * mengambilnya tanpa cookie tersebut.
+             */
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={fotoUrl} alt="" className="absolute inset-0 size-full object-cover" />
+          ) : (
+            <span className="grid size-full place-items-center text-primary-text">
+              <svg viewBox="0 0 48 48" fill="none" aria-hidden="true" className="size-10">
+                <path
+                  d="m14 25 8 8 14-16"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          )}
 
-        <div className="flex flex-col items-center gap-1.5 px-3 py-3 text-center">
-          <span className="grid size-14 place-items-center rounded-full bg-primary-subtle text-primary-text">
-            <svg viewBox="0 0 48 48" fill="none" aria-hidden="true" className="size-7">
-              <path
-                d="m14 25 8 8 14-16"
-                stroke="currentColor"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+          {/* Tanda DAMS tetap ada, tetapi tidak lagi memakan satu blok sendiri. */}
+          <span className="absolute left-0 top-0 rounded-br-card bg-primary-text px-2 py-0.5 font-heading text-caption font-bold text-white">
+            DAMS
           </span>
+        </div>
 
-          <span className="block text-body-lg font-semibold leading-tight text-ink">{nama}</span>
-          <span className="block text-caption leading-tight text-ink-muted">{keterangan}</span>
+        <div className="flex basis-[20%] flex-col items-center justify-center gap-0.5 border-t border-line px-2 text-center">
+          <span className="block text-caption font-semibold leading-tight text-ink">{nama}</span>
+          <span className="block text-meta leading-tight text-ink-muted">{keterangan}</span>
+        </div>
 
-          <span aria-hidden="true" className="mt-1 h-px w-full bg-line" />
-
+        <div className="grid basis-[10%] place-items-center bg-surface-muted px-2">
           <span className="text-meta font-semibold uppercase tracking-wider text-ink-soft">
             CV Hasil Barokah Mandiri
           </span>

@@ -2,7 +2,10 @@
 
 use App\Models\Department;
 use App\Models\User;
+use App\Support\FotoProfil;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 it('menampilkan profil sendiri beserta tanggal bergabung', function (): void {
@@ -141,4 +144,160 @@ it('mencabut token perangkat lain tetapi mempertahankan sesi yang sedang dipakai
     $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/profil')
         ->assertOk();
+});
+
+/**
+ * Foto profil.
+ *
+ * Yang diuji bukan bahwa berkasnya tersimpan — itu bagian yang paling mudah —
+ * melainkan bahwa berkas yang tersimpan **bukan berkas yang diunggah**. Gambar
+ * digambar ulang lewat GD, sehingga metadata EXIF, muatan yang ditempelkan di
+ * belakang gambar, dan ukuran piksel raksasa ikut hilang bersamanya.
+ */
+describe('foto profil', function (): void {
+    beforeEach(function (): void {
+        Storage::fake('local');
+    });
+
+    it('menyimpan foto dan menyebutkan alamatnya pada profil', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('saya.jpg', 800, 600),
+        ])->assertOk();
+
+        $pengguna->refresh();
+
+        expect($pengguna->avatar_path)->not->toBeNull();
+        Storage::disk('local')->assertExists($pengguna->avatar_path);
+
+        $this->getJson('/api/profil')
+            ->assertOk()
+            ->assertJsonPath('data.pengguna.foto', "/api/foto/{$pengguna->id}");
+    });
+
+    /*
+     * Berkas aslinya tidak pernah tersimpan apa adanya. Berkas yang sah sebagai
+     * JPEG **dan** dapat dijalankan sebagai skrip adalah teknik yang sudah tua
+     * dan masih berhasil; menggambar ulang menghapus seluruh isi selain
+     * pikselnya.
+     */
+    it('menyimpan hasil gambar ulang, bukan bita berkas aslinya', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $berkas = UploadedFile::fake()->image('saya.jpg', 300, 300);
+        file_put_contents(
+            $berkas->getRealPath(),
+            file_get_contents($berkas->getRealPath())."\n<?php echo 'halo'; ?>",
+        );
+
+        $this->postJson('/api/profil/foto', ['foto' => $berkas])->assertOk();
+
+        $isi = Storage::disk('local')->get($pengguna->fresh()->avatar_path);
+
+        expect($isi)->not->toContain('<?php');
+    });
+
+    it('memotong foto menjadi persegi dan membatasi sisinya', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('lebar.jpg', 1600, 900),
+        ])->assertOk();
+
+        $ukuran = getimagesizefromstring(
+            Storage::disk('local')->get($pengguna->fresh()->avatar_path),
+        );
+
+        expect($ukuran[0])->toBe(FotoProfil::SISI)
+            ->and($ukuran[1])->toBe(FotoProfil::SISI);
+    });
+
+    it('menolak berkas yang bukan gambar', function (): void {
+        Sanctum::actingAs(User::factory()->staff()->create());
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->create('daftar.pdf', 20, 'application/pdf'),
+        ])->assertStatus(422)->assertJsonValidationErrors('foto');
+    });
+
+    /*
+     * Foto lama dihapus supaya penyimpanan tidak menumpuk berkas yang tidak
+     * pernah ditampilkan lagi — satu orang yang berganti foto sepuluh kali
+     * meninggalkan sembilan berkas yatim.
+     */
+    it('menghapus foto lama saat diganti', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('pertama.jpg'),
+        ])->assertOk();
+
+        $lama = $pengguna->fresh()->avatar_path;
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('kedua.jpg'),
+        ])->assertOk();
+
+        expect($pengguna->fresh()->avatar_path)->not->toBe($lama);
+        Storage::disk('local')->assertMissing($lama);
+    });
+
+    it('menghapus foto beserta berkasnya saat diminta', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('saya.jpg'),
+        ])->assertOk();
+
+        $jalur = $pengguna->fresh()->avatar_path;
+
+        $this->deleteJson('/api/profil/foto')->assertOk();
+
+        expect($pengguna->fresh()->avatar_path)->toBeNull();
+        Storage::disk('local')->assertMissing($jalur);
+    });
+
+    it('menyajikan fotonya sebagai gambar', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('saya.jpg'),
+        ])->assertOk();
+
+        $this->get("/api/pengguna/{$pengguna->id}/foto")
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/jpeg');
+    });
+
+    /*
+     * Foto orang bukan berkas yang boleh diambil siapa pun yang menebak
+     * alamatnya. Berkasnya berada di cakram lokal — di luar direktori publik —
+     * dan endpoint penyajinya tetap menuntut sesi.
+     */
+    it('menolak menyajikan foto kepada yang belum masuk', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('saya.jpg'),
+        ])->assertOk();
+
+        lupakanAutentikasi();
+
+        $this->getJson("/api/pengguna/{$pengguna->id}/foto")->assertUnauthorized();
+    });
+
+    it('menjawab 404 untuk pengguna yang belum punya foto', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $this->getJson("/api/pengguna/{$pengguna->id}/foto")->assertNotFound();
+    });
 });

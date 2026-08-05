@@ -49,6 +49,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         pengguna={{
           id: pengguna.id,
           nama: pengguna.nama,
+          foto: pengguna.foto,
           namaRole: pengguna.namaRole,
           peranLain: Math.max(0, pengguna.penetapan.length - 1),
           // Array, bukan Set — nilainya menyeberang batas Server ke Client.

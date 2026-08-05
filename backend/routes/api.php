@@ -76,6 +76,30 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::put('/profil', [ProfileController::class, 'update'])->name('profil.update');
     Route::put('/profil/kata-sandi', [ProfileController::class, 'ubahKataSandi'])
         ->name('profil.kata-sandi');
+    Route::post('/profil/foto', [ProfileController::class, 'unggahFoto'])
+        ->middleware('throttle:unggah')
+        ->name('profil.foto.unggah');
+    Route::delete('/profil/foto', [ProfileController::class, 'hapusFoto'])
+        ->name('profil.foto.hapus');
+
+    /*
+     * Foto siapa pun yang sudah masuk. Bukan berkas publik: berkasnya berada di
+     * cakram lokal dan hanya dapat diambil lewat endpoint ini.
+     */
+    Route::get('/pengguna/{pengguna}/foto', [ProfileController::class, 'foto'])
+        ->name('pengguna.foto');
+    Route::post('/profil/foto', [ProfileController::class, 'unggahFoto'])
+        ->middleware('throttle:unggah')
+        ->name('profil.foto.unggah');
+    Route::delete('/profil/foto', [ProfileController::class, 'hapusFoto'])
+        ->name('profil.foto.hapus');
+
+    /*
+     * Foto siapa pun yang sudah masuk. Bukan berkas publik: berkasnya berada di
+     * cakram lokal dan hanya dapat diambil lewat endpoint ini.
+     */
+    Route::get('/pengguna/{pengguna}/foto', [ProfileController::class, 'foto'])
+        ->name('pengguna.foto');
 
     // Master data. Pembatasan sebenarnya ditegakkan Policy pada tiap aksi.
     Route::get('/departemen', [DepartmentController::class, 'index'])->name('departemen.index');

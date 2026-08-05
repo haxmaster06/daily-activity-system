@@ -1,29 +1,51 @@
 import { render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DataRingkasan } from '@/lib/analitik';
 import { PapanRingkasan } from './papan-ringkasan';
 
 /*
- * Grafiknya diganti boneka. Chart.js menggambar ke `<canvas>`, dan jsdom tidak
- * menyediakan konteks gambar sama sekali — merendernya sungguhan hanya
- * menghasilkan galat yang tidak ada hubungannya dengan yang diuji di sini.
+ * Penyaring bersama membaca alamat halaman. Tanpa tiruan ini seluruh papan gagal
+ * dirender karena alasan yang tidak ada hubungannya dengan yang diuji di sini.
  */
-/*
- * TautanDepartemen memakai penyaring bersama, yang membaca alamat halaman.
- * Tanpa tiruan ini seluruh papan gagal dirender karena alasan yang tidak ada
- * hubungannya dengan tabel pendamping yang sedang diuji.
- */
+const push = vi.fn();
+let params = new URLSearchParams();
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push, refresh: vi.fn() }),
   usePathname: () => '/analitik/ringkasan',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => params,
 }));
 
+/*
+ * Grafiknya diganti boneka: Chart.js menggambar ke `<canvas>`, dan jsdom tidak
+ * menyediakan konteks gambar sama sekali.
+ *
+ * Bonekanya berupa tombol yang memanggil callback grafiknya. Itulah yang
+ * benar-benar perlu diuji di sini — bukan gambar kanvasnya, melainkan bahwa
+ * segmen yang ditekan berakhir sebagai penyaring yang benar di alamat halaman.
+ */
 vi.mock('../grafik', () => ({
-  GrafikTrenKepatuhan: () => <div data-testid="grafik" data-nama="tren" />,
-  GrafikSebaranStatus: () => <div data-testid="grafik" data-nama="sebaran" />,
-  GrafikStatusDepartemen: () => <div data-testid="grafik" data-nama="departemen" />,
+  GrafikTrenKepatuhan: ({ onPilihTanggal }: { onPilihTanggal?: (t: string) => void }) => (
+    <button type="button" onClick={() => onPilihTanggal?.('2026-08-03')}>
+      titik tren
+    </button>
+  ),
+  GrafikSebaranStatus: ({ onPilihStatus }: { onPilihStatus?: (s: string) => void }) => (
+    <button type="button" onClick={() => onPilihStatus?.('dalam_proses')}>
+      juring sebaran
+    </button>
+  ),
+  GrafikStatusDepartemen: ({
+    onPilih,
+  }: {
+    onPilih?: (departemen: number, status: string) => void;
+  }) => (
+    <button type="button" onClick={() => onPilih?.(3, 'selesai')}>
+      segmen departemen
+    </button>
+  ),
 }));
 
 const CONTOH: DataRingkasan = {
@@ -97,18 +119,79 @@ describe('tabel pendamping wajib', () => {
   it('menyertakan tabel di dalam panel yang sama dengan tiap grafik', () => {
     render(<PapanRingkasan data={CONTOH} />);
 
-    const grafik = screen.getAllByTestId('grafik');
-    expect(grafik).toHaveLength(3);
+    const grafik = ['titik tren', 'juring sebaran', 'segmen departemen'].map((nama) =>
+      screen.getByRole('button', { name: nama }),
+    );
 
     for (const satu of grafik) {
       const panel = satu.closest('section');
 
-      expect(panel, `grafik ${satu.dataset.nama} tidak berada di dalam panel`).not.toBeNull();
+      expect(panel, `grafik ${satu.textContent} tidak berada di dalam panel`).not.toBeNull();
       expect(
         panel?.querySelector('table'),
-        `grafik ${satu.dataset.nama} tidak punya tabel pendamping`,
+        `grafik ${satu.textContent} tidak punya tabel pendamping`,
       ).not.toBeNull();
     }
+  });
+});
+
+/**
+ * Grafik yang hanya bisa dilihat menjawab "berapa" dan berhenti di situ.
+ * Pertanyaan berikutnya selalu "yang mana" — dan jawabannya adalah menyaring
+ * seluruh halaman dengan hal yang barusan ditekan.
+ */
+describe('grafik menyaring seluruh halaman', () => {
+  beforeEach(() => {
+    push.mockReset();
+    params = new URLSearchParams();
+  });
+
+  it('menyaring status saat juring sebaran ditekan', async () => {
+    const pengguna = userEvent.setup();
+    render(<PapanRingkasan data={CONTOH} />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'juring sebaran' }));
+
+    expect(push).toHaveBeenCalledWith('/analitik/ringkasan?status=dalam_proses');
+  });
+
+  /*
+   * Segmen pada batang bertumpuk memuat dua keterangan sekaligus: departemennya
+   * dan statusnya. Menerapkan salah satunya saja menampilkan angka yang bukan
+   * angka yang barusan ditekan pengguna.
+   */
+  it('menyaring departemen dan status sekaligus dari satu segmen', async () => {
+    const pengguna = userEvent.setup();
+    render(<PapanRingkasan data={CONTOH} />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'segmen departemen' }));
+
+    const alamat = push.mock.calls[0][0] as string;
+
+    expect(alamat).toContain('departemen=3');
+    expect(alamat).toContain('status=selesai');
+  });
+
+  it('melepaskan penyaringnya saat segmen yang sama ditekan ulang', async () => {
+    const pengguna = userEvent.setup();
+    params = new URLSearchParams('departemen=3&status=selesai');
+    render(<PapanRingkasan data={CONTOH} />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'segmen departemen' }));
+
+    expect(push).toHaveBeenCalledWith('/analitik/ringkasan');
+  });
+
+  it('mempersempit rentang ke satu hari saat titik tren ditekan', async () => {
+    const pengguna = userEvent.setup();
+    render(<PapanRingkasan data={CONTOH} />);
+
+    await pengguna.click(screen.getByRole('button', { name: 'titik tren' }));
+
+    const alamat = push.mock.calls[0][0] as string;
+
+    expect(alamat).toContain('dari=2026-08-03');
+    expect(alamat).toContain('sampai=2026-08-03');
   });
 });
 

@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\FotoProfilRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\Audit;
+use App\Support\FotoProfil;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProfileController extends Controller
 {
@@ -60,6 +65,100 @@ class ProfileController extends Controller
             new UserResource($pengguna->loadMissing(['role', 'department'])),
             'Profil berhasil diperbarui.',
         );
+    }
+
+    /**
+     * Mengganti foto profil sendiri.
+     *
+     * Foto lama dihapus setelah yang baru tersimpan, bukan sebelumnya: bila
+     * penyimpanan gagal di tengah jalan, pengguna tetap punya foto lamanya alih-
+     * alih kehilangan keduanya.
+     */
+    public function unggahFoto(FotoProfilRequest $request): JsonResponse
+    {
+        $pengguna = $request->user();
+        $lama = $pengguna->avatar_path;
+
+        $jalur = FotoProfil::simpan($request->file('foto'), $pengguna->getKey());
+
+        $pengguna->forceFill(['avatar_path' => $jalur])->save();
+
+        FotoProfil::hapus($lama);
+
+        Audit::catat(
+            Audit::AKSI_DIPERBARUI,
+            Audit::MODUL_PENGGUNA,
+            'Mengganti foto profil sendiri',
+            $pengguna,
+        );
+
+        return ApiResponse::ok(
+            new UserResource($pengguna->loadMissing(['role', 'department'])),
+            'Foto profil berhasil diperbarui.',
+        );
+    }
+
+    public function hapusFoto(Request $request): JsonResponse
+    {
+        $pengguna = $request->user();
+
+        if ($pengguna->avatar_path === null) {
+            return ApiResponse::ok(
+                new UserResource($pengguna->loadMissing(['role', 'department'])),
+                'Belum ada foto profil yang perlu dihapus.',
+            );
+        }
+
+        $jalur = $pengguna->avatar_path;
+
+        $pengguna->forceFill(['avatar_path' => null])->save();
+
+        FotoProfil::hapus($jalur);
+
+        Audit::catat(
+            Audit::AKSI_DIPERBARUI,
+            Audit::MODUL_PENGGUNA,
+            'Menghapus foto profil sendiri',
+            $pengguna,
+        );
+
+        return ApiResponse::ok(
+            new UserResource($pengguna->loadMissing(['role', 'department'])),
+            'Foto profil berhasil dihapus.',
+        );
+    }
+
+    /**
+     * Menyajikan foto profil seseorang.
+     *
+     * ⚠️ Berkasnya berada di cakram `local`, **bukan** direktori publik, dan
+     * hanya dapat diambil lewat sini. Foto orang bukan berkas yang boleh diunduh
+     * siapa pun yang menebak alamatnya.
+     *
+     * Siapa pun yang sudah masuk boleh melihat foto rekan kerjanya — nama dan
+     * departemen mereka pun sudah tampil pada laporan, papan progres, dan daftar
+     * penyaring. Yang tidak boleh adalah pengunjung tanpa sesi.
+     */
+    public function foto(User $pengguna): StreamedResponse|JsonResponse
+    {
+        $jalur = $pengguna->avatar_path;
+
+        if ($jalur === null || ! Storage::disk(FotoProfil::CAKRAM)->exists($jalur)) {
+            return ApiResponse::error('Foto profil tidak ditemukan.', 404);
+        }
+
+        return Storage::disk(FotoProfil::CAKRAM)->response($jalur, null, [
+            'Content-Type' => 'image/jpeg',
+
+            /*
+             * `private` — foto ini bukan milik umum, dan proksi bersama tidak
+             * boleh menyimpannya untuk pengguna lain. `max-age` pendek: foto
+             * yang baru diganti harus terlihat berganti tanpa memaksa pengguna
+             * memuat ulang dengan tembolok dikosongkan.
+             */
+            'Cache-Control' => 'private, max-age=60',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     /**

@@ -21,6 +21,8 @@ export interface PenggunaSesi {
   nama: string;
   email: string;
   aktif: boolean;
+  /** Alamat fotonya, atau null bila belum ada. */
+  foto: string | null;
   /** Slug peran utama. Untuk pelabelan saja — keputusan izin memakai `izin`. */
   role: string;
   namaRole: string;
@@ -37,6 +39,7 @@ interface PenggunaApi {
   nama: string;
   email: string;
   aktif: boolean;
+  foto?: string | null;
   role: { slug: string | null; nama: string | null };
   penetapan?: {
     role_id: number;
@@ -71,6 +74,7 @@ export const penggunaSaatIni = cache(async (): Promise<PenggunaSesi | null> => {
       nama: data.nama,
       email: data.email,
       aktif: data.aktif,
+      foto: data.foto ?? null,
       /*
        * Slug tidak lagi diterjemahkan ke daftar tertutup. Peran dapat dibuat
        * administrator, sehingga slug yang tidak dikenal itu wajar — dan

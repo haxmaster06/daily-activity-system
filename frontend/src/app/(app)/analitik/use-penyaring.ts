@@ -96,6 +96,42 @@ export function usePenyaring() {
     [atur, daftar],
   );
 
+  /**
+   * Menyaring beberapa parameter sekaligus dalam satu perpindahan.
+   *
+   * Dipakai segmen grafik bertumpuk: menekan bagian oranye pada batang Produksi
+   * berarti "Produksi **dan** dalam proses", dan keduanya harus berlaku
+   * bersamaan. Memanggil `saring()` dua kali berturut-turut tidak bisa —
+   * keduanya membaca `searchParams` yang sama, sehingga yang kedua menimpa yang
+   * pertama dan hanya satu penyaring yang tersisa.
+   *
+   * Menekan segmen yang sama sekali lagi melepaskan seluruhnya, sama seperti
+   * penyaring tunggal.
+   */
+  const saringGabungan = useCallback(
+    (pasangan: Partial<Record<KunciDaftar, string | number>>) => {
+      const butir = Object.entries(pasangan).filter(
+        ([, nilai]) => nilai !== '' && nilai !== undefined,
+      ) as [KunciDaftar, string | number][];
+
+      if (butir.length === 0) return;
+
+      const sudahBerlaku = butir.every(([kunci, nilai]) => {
+        const isi = daftar[kunci];
+
+        return isi.length === 1 && isi[0] === String(nilai);
+      });
+
+      terapkan((params) => {
+        for (const [kunci, nilai] of butir) {
+          if (sudahBerlaku) params.delete(kunci);
+          else params.set(kunci, String(nilai));
+        }
+      });
+    },
+    [daftar, terapkan],
+  );
+
   /** Menambah atau membuang satu nilai tanpa mengganggu yang lain. */
   const alihkan = useCallback(
     (kunci: KunciDaftar, nilai: string | number) => {
@@ -209,6 +245,7 @@ export function usePenyaring() {
     terapkan,
     atur,
     saring,
+    saringGabungan,
     alihkan,
     hanya,
     saringTanggal,

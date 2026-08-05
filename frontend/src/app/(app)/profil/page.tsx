@@ -5,6 +5,7 @@ import { Lanyard } from '@/components/ui/lanyard';
 import { panggilApi } from '@/lib/api';
 import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import type { Pengguna } from '@/lib/master-data';
+import { FotoProfil } from './foto-profil';
 import { FormKataSandi, FormNama } from './profil-form';
 
 export const metadata = { title: 'Profil Saya — DAMS' };
@@ -42,13 +43,11 @@ export default async function ProfilPage() {
       <div className="space-y-3">
         <section className="card p-4">
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-8">
-            {/*
-              Kartu identitas menggantung. Belum ada unggah foto pengguna,
-              sehingga kartunya memakai tanda DAMS sebagai tampilan bawaan.
-            */}
+            {/* Kartu identitas menggantung. */}
             <Lanyard
               nama={pengguna.nama}
               keterangan={`${pengguna.role.nama} · ${pengguna.departemen.nama ?? '—'}`}
+              fotoUrl={pengguna.foto ?? undefined}
               className="shrink-0"
             />
 
@@ -74,10 +73,23 @@ export default async function ProfilPage() {
           </p>
         </section>
 
-        <section className="card p-4">
-          <h2 className="mb-3 font-heading text-section-title text-ink">Informasi Akun</h2>
-          <FormNama namaAwal={pengguna.nama} />
-        </section>
+        {/*
+          Foto dan nama berdampingan pada layar lebar. Keduanya isian pendek —
+          satu pemotong gambar dan satu kolom teks — dan ditumpuk penuh-lebar
+          keduanya menyisakan setengah layar kosong di kanan, sementara Ubah Kata
+          Sandi terdorong turun sampai perlu digulir.
+        */}
+        <div className="grid gap-3 lg:grid-cols-2">
+          <section className="card p-4">
+            <h2 className="mb-3 font-heading text-section-title text-ink">Foto Profil</h2>
+            <FotoProfil nama={pengguna.nama} fotoAwal={pengguna.foto ?? null} />
+          </section>
+
+          <section className="card p-4">
+            <h2 className="mb-3 font-heading text-section-title text-ink">Informasi Akun</h2>
+            <FormNama namaAwal={pengguna.nama} />
+          </section>
+        </div>
 
         <section className="card p-4">
           <h2 className="mb-3 font-heading text-section-title text-ink">Ubah Kata Sandi</h2>

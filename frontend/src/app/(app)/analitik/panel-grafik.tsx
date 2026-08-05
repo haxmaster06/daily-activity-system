@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { MousePointerClick } from 'lucide-react';
 
 /**
  * Satu grafik beserta tabel angkanya.
@@ -20,15 +21,33 @@ export function PanelGrafik({
   keterangan,
   grafik,
   tabel,
+  dapatDisaring = false,
 }: {
   judul: string;
   keterangan?: string;
   grafik: ReactNode;
   tabel: ReactNode;
+  /** Menyalakan keterangan bahwa grafiknya dapat ditekan untuk menyaring. */
+  dapatDisaring?: boolean;
 }) {
   return (
     <section className="rounded-card border border-line bg-surface p-3">
-      <h2 className="font-heading text-section-title text-ink">{judul}</h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h2 className="font-heading text-section-title text-ink">{judul}</h2>
+
+        {/*
+          Grafik yang dapat ditekan tidak punya penanda visual apa pun — kanvas
+          tidak berubah bentuk saat disorot. Tanpa kalimat ini, satu-satunya cara
+          mengetahuinya adalah menekannya secara kebetulan.
+        */}
+        {dapatDisaring && (
+          <p className="inline-flex items-center gap-1 text-caption text-ink-soft">
+            <MousePointerClick aria-hidden="true" className="size-3.5" />
+            Tekan grafik atau baris tabel untuk menyaring
+          </p>
+        )}
+      </div>
+
       {keterangan && <p className="mt-0.5 text-body text-ink-muted">{keterangan}</p>}
 
       <div className="mt-3 grid gap-3 lg:grid-cols-2">

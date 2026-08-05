@@ -11,8 +11,8 @@ import {
 import { Select } from '@/components/ui/select';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 import type { DataProduktivitas } from '@/lib/analitik';
-import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
-import { TautanDepartemen } from '../dapat-disaring';
+import { formatAngka, formatTanggal } from '@/lib/format';
+import { TautanDepartemen, TautanPengguna, TautanTanggal } from '../dapat-disaring';
 import { GrafikProduktivitas, GrafikProduktivitasDepartemen } from '../grafik';
 import { PanelGrafik } from '../panel-grafik';
 import { usePenyaring } from '../use-penyaring';
@@ -29,7 +29,7 @@ import { usePenyaring } from '../use-penyaring';
  * dapat dibagikan lengkap dengan metrik dan rentangnya.
  */
 export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
-  const { pilihMetrik, saringDepartemen } = usePenyaring();
+  const { pilihMetrik, saringDepartemen, saringTanggal } = usePenyaring();
 
   if (data.metrik_tersedia.length === 0) {
     return (
@@ -124,9 +124,16 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
         </div>
 
         <PanelGrafik
+          dapatDisaring
           judul={`${metrik.label} per hari`}
           keterangan={`Satuan ${metrik.satuan}. ${formatTanggal(data.rentang.dari)} – ${formatTanggal(data.rentang.sampai)}.`}
-          grafik={<GrafikProduktivitas data={isi.per_hari} metrik={metrik} />}
+          grafik={
+            <GrafikProduktivitas
+              data={isi.per_hari}
+              metrik={metrik}
+              onPilihTanggal={saringTanggal}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>
@@ -141,7 +148,9 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
                   .filter((satu) => satu.baris > 0)
                   .map((satu) => (
                     <tr key={satu.tanggal} className="border-b border-line last:border-0">
-                      <Td>{formatTanggalRingkas(satu.tanggal)}</Td>
+                      <Td>
+                        <TautanTanggal tanggal={satu.tanggal} />
+                      </Td>
                       <Td align="right">{formatAngka(satu.nilai, desimal)}</Td>
                       <Td align="right">{formatAngka(satu.baris)}</Td>
                       <Td align="right">{formatAngka(satu.pelapor)}</Td>
@@ -159,16 +168,14 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
         />
 
         <PanelGrafik
+          dapatDisaring
           judul={`${metrik.label} per departemen`}
           keterangan="Diurutkan dari yang terbesar."
           grafik={
             <GrafikProduktivitasDepartemen
               data={isi.per_departemen}
               metrik={metrik}
-              onPilih={(nama) => {
-                const cocok = isi.per_departemen.find((satu) => satu.departemen === nama);
-                if (cocok) saringDepartemen(cocok.departemen_id);
-              }}
+              onPilih={saringDepartemen}
             />
           }
           tabel={
@@ -218,7 +225,9 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
                 )}
                 {isi.per_orang.map((satu) => (
                   <tr key={satu.pengguna_id} className="border-b border-line last:border-0">
-                    <Td>{satu.nama}</Td>
+                    <Td>
+                      <TautanPengguna id={satu.pengguna_id} nama={satu.nama} />
+                    </Td>
                     <Td align="right">{formatAngka(satu.nilai, desimal)}</Td>
                     <Td align="right">{formatAngka(satu.hari)}</Td>
                     <Td align="right">

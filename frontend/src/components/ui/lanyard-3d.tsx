@@ -392,59 +392,126 @@ function useTeksturKartu(nama: string, keterangan: string, fotoUrl?: string) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
+    /*
+     * Tiga blok bertumpuk, sama persis dengan kartu versi diam pada
+     * `lanyard.tsx`. Angkanya ditulis sebagai bagian dari tinggi kartu, bukan
+     * piksel lepas: kartu yang berbeda susunannya saat animasi dimatikan
+     * terbaca sebagai dua kartu yang berlainan.
+     */
+    const tinggiFoto = canvas.height * 0.7;
+    const tinggiIdentitas = canvas.height * 0.2;
+    const pusatX = canvas.width / 2;
+
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = '#005BBF';
-    ctx.fillRect(0, 0, canvas.width, 96);
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 46px "Plus Jakarta Sans", system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('DAMS', canvas.width / 2, 64);
-
-    const pusatX = canvas.width / 2;
-    const pusatY = 290;
-
-    ctx.beginPath();
-    ctx.arc(pusatX, pusatY, 108, 0, Math.PI * 2);
+    // Blok 1 — foto. Latar birunya terlihat sampai fotonya selesai dimuat.
     ctx.fillStyle = '#E8F0FE';
-    ctx.fill();
+    ctx.fillRect(0, 0, canvas.width, tinggiFoto);
+
+    ctx.textAlign = 'center';
 
     if (!fotoUrl) {
       ctx.strokeStyle = '#005BBF';
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 20;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
       ctx.beginPath();
-      ctx.moveTo(pusatX - 44, pusatY + 4);
-      ctx.lineTo(pusatX - 10, pusatY + 40);
-      ctx.lineTo(pusatX + 50, pusatY - 38);
+      ctx.moveTo(pusatX - 58, tinggiFoto / 2 + 6);
+      ctx.lineTo(pusatX - 14, tinggiFoto / 2 + 52);
+      ctx.lineTo(pusatX + 66, tinggiFoto / 2 - 50);
       ctx.stroke();
     }
 
-    ctx.fillStyle = '#191C1E';
-    ctx.font = 'bold 40px "Plus Jakarta Sans", system-ui, sans-serif';
-    potongTeks(ctx, nama, pusatX, 470, canvas.width - 56);
-
-    ctx.fillStyle = '#414754';
-    ctx.font = '28px Inter, system-ui, sans-serif';
-    potongTeks(ctx, keterangan, pusatX, 516, canvas.width - 56);
+    // Blok 2 — nama, peran, departemen.
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, tinggiFoto, canvas.width, tinggiIdentitas);
 
     ctx.strokeStyle = '#D9DDE5';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(48, 592);
-    ctx.lineTo(canvas.width - 48, 592);
+    ctx.moveTo(0, tinggiFoto);
+    ctx.lineTo(canvas.width, tinggiFoto);
     ctx.stroke();
+
+    ctx.fillStyle = '#191C1E';
+    ctx.font = 'bold 38px "Plus Jakarta Sans", system-ui, sans-serif';
+    potongTeks(ctx, nama, pusatX, tinggiFoto + 58, canvas.width - 56);
+
+    ctx.fillStyle = '#414754';
+    ctx.font = '26px Inter, system-ui, sans-serif';
+    potongTeks(ctx, keterangan, pusatX, tinggiFoto + 102, canvas.width - 56);
+
+    // Blok 3 — nama perusahaan.
+    ctx.fillStyle = '#F2F4F7';
+    ctx.fillRect(0, tinggiFoto + tinggiIdentitas, canvas.width, canvas.height);
 
     ctx.fillStyle = '#727785';
     ctx.font = '600 22px Inter, system-ui, sans-serif';
-    ctx.fillText('CV HASIL BAROKAH MANDIRI', pusatX, 640);
+    ctx.fillText('CV HASIL BAROKAH MANDIRI', pusatX, canvas.height - 26);
+
+    // Tanda DAMS menumpang di sudut blok foto, bukan memakan satu blok sendiri.
+    ctx.fillStyle = '#005BBF';
+    ctx.fillRect(0, 0, 132, 52);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 30px "Plus Jakarta Sans", system-ui, sans-serif';
+    ctx.fillText('DAMS', 66, 36);
 
     const tekstur = new THREE.CanvasTexture(canvas);
     tekstur.colorSpace = THREE.SRGBColorSpace;
     tekstur.anisotropy = 8;
+
+    /*
+     * Fotonya digambar **setelah** teksturnya jadi, dan itu tidak dapat
+     * dihindari: memuat gambar bersifat asinkron, sedangkan hook ini harus
+     * mengembalikan tekstur seketika agar kartunya langsung tampil.
+     *
+     * `needsUpdate` yang menyambungkan keduanya — tanpa baris itu kanvasnya
+     * memang berubah, tetapi GPU tetap memakai salinan lamanya dan blok fotonya
+     * kosong selamanya. Persis itu keadaan sebelumnya: tempat fotonya sudah
+     * disediakan, gambarnya tidak pernah digambar.
+     */
+    if (fotoUrl) {
+      const gambar = new Image();
+
+      gambar.onload = () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, tinggiFoto);
+        ctx.clip();
+
+        /*
+         * Menutup bloknya, bukan diregangkan: bagian yang berlebih dipotong.
+         * Foto yang berubah proporsi membuat wajah orangnya terlihat salah, dan
+         * itu justru satu-satunya isi blok ini.
+         */
+        const skala = Math.max(canvas.width / gambar.width, tinggiFoto / gambar.height);
+        const lebar = gambar.width * skala;
+        const tinggi = gambar.height * skala;
+
+        ctx.drawImage(
+          gambar,
+          (canvas.width - lebar) / 2,
+          (tinggiFoto - tinggi) / 2,
+          lebar,
+          tinggi,
+        );
+        ctx.restore();
+
+        // Tanda DAMS digambar ulang: fotonya baru saja menimpanya.
+        ctx.fillStyle = '#005BBF';
+        ctx.fillRect(0, 0, 132, 52);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 30px "Plus Jakarta Sans", system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('DAMS', 66, 36);
+
+        tekstur.needsUpdate = true;
+      };
+
+      gambar.src = fotoUrl;
+    }
 
     return tekstur;
   }, [nama, keterangan, fotoUrl]);

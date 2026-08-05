@@ -27,7 +27,7 @@ import { PanelGrafik } from '../panel-grafik';
  * bebannya menumpuk, dan berapa yang belum punya penanggung jawab.
  */
 export function PapanProgres({ data }: { data: DataProgres }) {
-  const { saringDepartemen } = usePenyaring();
+  const { saring, saringGabungan } = usePenyaring();
 
   const kartuRingkas = [
     {
@@ -71,18 +71,13 @@ export function PapanProgres({ data }: { data: DataProgres }) {
         </div>
 
         <PanelGrafik
+          dapatDisaring
           judul="Kartu per departemen"
-          keterangan="Klik batangnya, atau nama departemen pada tabel, untuk menyaring seluruh halaman."
+          keterangan="Menekan satu segmen menyaring departemen sekaligus statusnya. Tanpa tetikus: tautan pada tabel di bawah."
           grafik={
             <GrafikStatusDepartemen
               data={data.status_per_departemen}
-              onPilihDepartemen={(nama) => {
-                const cocok = data.status_per_departemen.find(
-                  (satu) => satu.departemen === nama,
-                );
-
-                if (cocok) saringDepartemen(cocok.departemen_id);
-              }}
+              onPilih={(departemen, status) => saringGabungan({ departemen, status })}
             />
           }
           tabel={
@@ -118,9 +113,15 @@ export function PapanProgres({ data }: { data: DataProgres }) {
         />
 
         <PanelGrafik
+          dapatDisaring
           judul="Sebaran status baris laporan"
           keterangan="Dari baris aktivitas pada laporan, memakai kosakata status yang sama dengan papan progres."
-          grafik={<GrafikSebaranStatus data={data.sebaran_status_baris} />}
+          grafik={
+            <GrafikSebaranStatus
+              data={data.sebaran_status_baris}
+              onPilihStatus={(status) => saring('status', status)}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>
@@ -151,9 +152,15 @@ export function PapanProgres({ data }: { data: DataProgres }) {
         />
 
         <PanelGrafik
+          dapatDisaring
           judul="Beban per penanggung jawab"
           keterangan="Lima belas teratas menurut kartu yang masih berjalan."
-          grafik={<GrafikBeban data={data.beban_penanggung_jawab} />}
+          grafik={
+            <GrafikBeban
+              data={data.beban_penanggung_jawab}
+              onPilih={(pengguna, status) => saringGabungan({ pengguna, status })}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>

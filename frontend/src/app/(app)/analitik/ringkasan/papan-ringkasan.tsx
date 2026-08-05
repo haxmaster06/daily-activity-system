@@ -14,11 +14,12 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { DataRingkasan } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
-import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
-import { TautanDepartemen } from '../dapat-disaring';
+import { formatAngka, formatTanggal } from '@/lib/format';
+import { TautanDepartemen, TautanStatus, TautanTanggal } from '../dapat-disaring';
 import { GrafikSebaranStatus, GrafikStatusDepartemen, GrafikTrenKepatuhan } from '../grafik';
 import { KartuAngka } from '../kartu-kpi';
 import { PanelGrafik } from '../panel-grafik';
+import { usePenyaring } from '../use-penyaring';
 
 /**
  * Halaman pertama Executive Analytics: yang perlu diketahui dalam sepuluh detik.
@@ -29,6 +30,8 @@ import { PanelGrafik } from '../panel-grafik';
  * pertanyaannya tanpa satu pun grafik dibaca.
  */
 export function PapanRingkasan({ data }: { data: DataRingkasan }) {
+  const { saring, saringGabungan, saringTanggal } = usePenyaring();
+
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-3">
@@ -67,9 +70,12 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
         </section>
 
         <PanelGrafik
+          dapatDisaring
           judul="Tren kepatuhan"
           keterangan={`${formatTanggal(data.rentang.dari)} – ${formatTanggal(data.rentang.sampai)}. Titik abu-abu menandai akhir pekan.`}
-          grafik={<GrafikTrenKepatuhan data={data.tren_kepatuhan} />}
+          grafik={
+            <GrafikTrenKepatuhan data={data.tren_kepatuhan} onPilihTanggal={saringTanggal} />
+          }
           tabel={
             <DataTable>
               <DataTableHead>
@@ -88,7 +94,7 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
                     )}
                   >
                     <Td>
-                      {formatTanggalRingkas(satu.tanggal)}
+                      <TautanTanggal tanggal={satu.tanggal} />
                       {satu.akhir_pekan && (
                         <span className="ml-1 text-caption">(akhir pekan)</span>
                       )}
@@ -104,9 +110,15 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
         />
 
         <PanelGrafik
+          dapatDisaring
           judul="Sebaran status baris laporan"
           keterangan="Dihitung dari baris aktivitas pada laporan sepanjang rentang."
-          grafik={<GrafikSebaranStatus data={data.sebaran_status_baris} />}
+          grafik={
+            <GrafikSebaranStatus
+              data={data.sebaran_status_baris}
+              onPilihStatus={(status) => saring('status', status)}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>
@@ -118,7 +130,9 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
                 {data.sebaran_status_baris.map((satu) => (
                   <tr key={satu.status} className="border-b border-line last:border-0">
                     <Td>
-                      <StatusBadge status={satu.status} />
+                      <TautanStatus status={satu.status} label={satu.label}>
+                        <StatusBadge status={satu.status} />
+                      </TautanStatus>
                     </Td>
                     <Td align="right">{formatAngka(satu.jumlah)}</Td>
                     <Td align="right">{formatAngka(satu.persen)}%</Td>
@@ -130,9 +144,15 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
         />
 
         <PanelGrafik
+          dapatDisaring
           judul="Kartu progres per departemen"
           keterangan="Rinciannya, beserta yang lewat target, ada di tab Progres."
-          grafik={<GrafikStatusDepartemen data={data.status_per_departemen} />}
+          grafik={
+            <GrafikStatusDepartemen
+              data={data.status_per_departemen}
+              onPilih={(departemen, status) => saringGabungan({ departemen, status })}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>

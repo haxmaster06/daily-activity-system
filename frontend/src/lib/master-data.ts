@@ -42,6 +42,8 @@ export interface Pengguna {
   nama: string;
   email: string;
   aktif: boolean;
+  /** Alamat fotonya, atau null bila belum ada. Layar menampilkan inisial namanya. */
+  foto?: string | null;
   role: { slug: string | null; nama: string | null };
   penetapan: PenetapanPeran[];
   /** Akun administrator awal — tidak pernah dapat dihapus. */

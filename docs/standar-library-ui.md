@@ -175,6 +175,7 @@ react-aria-components      perilaku dialog, date picker, combobox
 @dnd-kit/utilities         penolong transform CSS untuk @dnd-kit
 chart.js                   grafik Executive Analytics (§9.2)
 react-chartjs-2            pembungkus React untuk chart.js
+react-easy-crop            pemotong foto profil (§9.4)
 motion                     animasi dan AnimatePresence
 cmdk                       command palette
 class-variance-authority   varian komponen
@@ -307,6 +308,35 @@ menahan model posisi di kepalanya, sedangkan menu menyebut kolom tujuannya
 dengan kata dan cukup satu penekanan. Jalur itu juga yang membuat perpindahan
 kartu dapat diuji tanpa tata letak — jsdom tidak punya ukuran elemen, sehingga
 sensor papan ketik `@dnd-kit` tidak dapat menghitung arah di dalam test.
+
+---
+
+### 9.4 `react-easy-crop` — pemotong foto profil
+
+Dipakai di `src/app/(app)/profil/pemotong-foto.tsx`.
+
+| Pertanyaan §9 | Jawaban |
+|---|---|
+| Radix punya? | Tidak. Radix tidak menyediakan pemotong gambar. |
+| React Aria punya? | Tidak. React Aria tidak menyediakan pemotong gambar. |
+| Cukup ditulis sendiri? | **Sudah dicoba, dan gagal.** Versi pertama ditulis sendiri dan menyisakan ruang kosong di sisi gambar pada rasio tertentu. Perkaranya bukan satu rumus yang keliru: pemotong gambar harus menyatukan skala penutup, batas geser, titik jangkar perbesaran, cubit dua jari, dan putaran roda tetikus — dan tiap pasangan di antaranya punya kasus tepi sendiri. |
+
+#### Konsekuensi yang wajib ditangani
+
+1. **Pustakanya hanya menerima seret dan cubit.** Bagian gambar yang dipakai
+   adalah keputusan yang tidak dapat diwakilkan, sehingga geserannya dibuat
+   dapat dijalankan dengan tombol panah lewat `crop` yang dikendalikan sendiri,
+   dan perbesarannya memakai `input[type=range]` bawaan.
+2. **Hasilnya dipotong di peramban, bukan dikirim sebagai koordinat.** Server
+   tetap menggambar ulang gambarnya — itu yang menghapus metadata EXIF dan
+   muatan yang menumpang di dalam berkas. Mengirim koordinat berarti server
+   harus memercayai angka dari peramban dan memeriksa tiap satunya; mengirim
+   gambar yang sudah terpotong tidak menambah satu pun jalur baru yang perlu
+   dijaga.
+3. **Diganti boneka di dalam test.** Pustakanya mengukur elemennya lewat
+   `getBoundingClientRect`, dan jsdom mengembalikan nol untuk semuanya.
+   Perhitungan potongan adalah tanggung jawab pustakanya; yang diuji adalah apa
+   yang dilakukan dengan hasilnya.
 
 ---
 

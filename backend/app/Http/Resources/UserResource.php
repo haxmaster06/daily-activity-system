@@ -31,6 +31,17 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'aktif' => $this->is_active,
 
+            /*
+             * Alamat fotonya, bukan berkasnya. Null berarti belum ada foto, dan
+             * layar menampilkan inisial namanya — bukan gambar orang generik
+             * yang membuat seluruh daftar terlihat sama.
+             *
+             * Alamat ini menunjuk route Next.js yang meneruskan permintaannya
+             * ke backend beserta token; peramban tidak pernah memanggil backend
+             * secara langsung.
+             */
+            'foto' => $this->avatar_path === null ? null : "/api/foto/{$this->id}",
+
             // Peran utama, untuk pelabelan ringkas di tabel dan bilah navigasi.
             'role' => [
                 'slug' => $peranUtama?->slug,

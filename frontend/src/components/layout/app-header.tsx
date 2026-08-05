@@ -7,6 +7,8 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'motion/react';
 import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 
+import { Avatar } from '@/components/ui/avatar';
+
 import { Dock } from '@/components/layout/dock';
 import { LoncengNotifikasi } from '@/components/layout/lonceng-notifikasi';
 import { StaggeredMenu } from '@/components/layout/staggered-menu';
@@ -19,6 +21,7 @@ export interface PenggunaHeader {
   /** Dipakai lonceng untuk mendengarkan channel notifikasi miliknya. */
   id: number;
   nama: string;
+  foto: string | null;
   namaRole: string;
   /** Jumlah peran tambahan di luar peran utama. */
   peranLain: number;
@@ -90,9 +93,7 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
               className="ml-1 hidden min-w-0 items-center gap-2 rounded-control py-1 pl-1 pr-1.5 transition-colors duration-fast hover:bg-surface-muted md:flex"
               aria-label="Menu akun"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary-text">
-                <UserRound aria-hidden="true" className="size-4" />
-              </span>
+              <Avatar nama={pengguna.nama} foto={pengguna.foto} ukuran="sm" />
               {/* Nama tidak dipotong — `truncate` dilarang untuk isi bermakna
                   (standar §23.2). Blok ini disembunyikan di layar sempit. */}
               <span className="hidden text-left leading-tight sm:block">
