@@ -166,8 +166,24 @@ Write-Host "  [OK] Port siap digunakan." -ForegroundColor Green
 Write-Host ""
 
 # ---- Deteksi Windows Terminal (wt.exe) ----
-$wtPath = "wt.exe"
-if (-not (Get-Command wt -ErrorAction SilentlyContinue)) {
+#
+# Jalur yang dipakai selalu jalur mutlak.
+#
+# Versi sebelumnya menyimpan string "wt.exe" begitu saja bila `Get-Command wt`
+# berhasil, lalu memeriksanya dengan `Test-Path`. `Test-Path "wt.exe"` mencari
+# berkas bernama wt.exe **di direktori kerja** — yaitu akar project — dan di
+# sana memang tidak ada. Pemeriksaannya selalu gagal justru ketika Windows
+# Terminal benar-benar terpasang, sehingga skrip jatuh ke jalur cadangan dan
+# membuka lima jendela cmd terpisah.
+#
+# Dulu tidak terlihat karena alias `wt` belum terdaftar: `Get-Command` gagal,
+# jalur mutlak dipakai, dan semuanya berjalan. Update Windows mendaftarkan
+# aliasnya, dan cacat yang sejak awal ada langsung muncul.
+$perintahWt = Get-Command wt.exe -ErrorAction SilentlyContinue
+
+if ($perintahWt) {
+    $wtPath = $perintahWt.Source
+} else {
     $wtPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
 }
 
@@ -198,16 +214,36 @@ Write-Host "[LAUNCH] Menjalankan server..." -ForegroundColor Cyan
 if (Test-Path $wtPath) {
     Write-Host "[INFO] Windows Terminal terdeteksi. Membuka tab per-service..." -ForegroundColor Green
 
-    # Backend API (Laravel)
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-API`" cmd /k `"$perintahBackend`""
-    # Queue worker - memproses export Excel/PDF di latar belakang
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-QUEUE`" cmd /k `"php artisan queue:listen --tries=3 --timeout=300`""
-    # Scheduler - pengingat laporan harian & tugas terjadwal
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-SCHEDULER`" cmd /k `"php artisan schedule:work`""
-    # Reverb - WebSocket untuk notifikasi seketika
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$backendPath`" --title `"DAMS-REVERB`" cmd /k `"php artisan reverb:start`""
-    # Frontend (Next.js)
-    Start-Process $wtPath -ArgumentList "-w 0 nt -d `"$frontendPath`" --title `"DAMS-FRONTEND`" cmd /k `"npm run dev`""
+    <#
+        Satu pemanggilan `wt` untuk seluruh tab, dirangkai dengan `;`.
+
+        Sebelumnya tiap layanan dipanggil terpisah memakai `-w 0`, yang berarti
+        "jendela yang terakhir dipakai". Selama belum ada satu pun jendela
+        Windows Terminal, kelima pemanggilan itu berlomba: masing-masing tidak
+        menemukan jendela untuk ditumpangi, lalu membuat jendelanya sendiri.
+        Hasilnya lima jendela terpisah, bukan lima tab.
+
+        Balapannya tidak pernah pasti — dulu kebetulan menang, dan berubah
+        begitu Windows Terminal diperbarui. Satu pemanggilan menghapus
+        kemungkinan itu sepenuhnya: Windows Terminal membangun seluruh tabnya
+        sekaligus, tanpa bergantung pada jendela yang sudah ada.
+    #>
+    $tab = @(
+        # Backend API (Laravel)
+        "-d `"$backendPath`" --title `"DAMS-API`" cmd /k `"$perintahBackend`""
+        # Queue worker - memproses export Excel/PDF di latar belakang
+        "nt -d `"$backendPath`" --title `"DAMS-QUEUE`" cmd /k `"php artisan queue:listen --tries=3 --timeout=300`""
+        # Scheduler - pengingat laporan harian & tugas terjadwal
+        "nt -d `"$backendPath`" --title `"DAMS-SCHEDULER`" cmd /k `"php artisan schedule:work`""
+        # Reverb - WebSocket untuk notifikasi seketika
+        "nt -d `"$backendPath`" --title `"DAMS-REVERB`" cmd /k `"php artisan reverb:start`""
+        # Frontend (Next.js)
+        "nt -d `"$frontendPath`" --title `"DAMS-FRONTEND`" cmd /k `"npm run dev`""
+    )
+
+    # Pemisah `;` dibaca Windows Terminal sendiri, bukan PowerShell — seluruh
+    # rangkaian diteruskan apa adanya lewat -ArgumentList.
+    Start-Process $wtPath -ArgumentList ($tab -join ' ; ')
 } else {
     Write-Host "[WARN] Windows Terminal tidak ditemukan. Membuka jendela terpisah..." -ForegroundColor Yellow
 
