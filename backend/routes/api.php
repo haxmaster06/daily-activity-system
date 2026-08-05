@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\ImportMasterController;
 use App\Http\Controllers\LampiranController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\MasterTypeController;
@@ -122,6 +123,24 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('master.jenis.update');
     Route::delete('/master/jenis/{jenis:slug}', [MasterTypeController::class, 'destroy'])
         ->name('master.jenis.destroy');
+
+    /*
+     * Unduh template dan import daftar master.
+     *
+     * Harus mendahului `/master/{jenis}` — pola `/master/{jenis}/…` sama
+     * panjang, dan yang terdaftar lebih dulu yang menang. Cacat yang sama sudah
+     * pernah terjadi pada `/role/matriks`.
+     *
+     * Preview-first, sama seperti export: `pratinjau` tidak menulis apa pun.
+     */
+    Route::get('/master/{jenis:slug}/template-import', [ImportMasterController::class, 'template'])
+        ->name('master.template-import');
+    Route::post('/master/{jenis:slug}/import/pratinjau', [ImportMasterController::class, 'pratinjau'])
+        ->middleware('throttle:unggah')
+        ->name('master.import.pratinjau');
+    Route::post('/master/{jenis:slug}/import', [ImportMasterController::class, 'simpan'])
+        ->middleware('throttle:unggah')
+        ->name('master.import');
 
     // Juga harus mendahului `/master/{jenis}` karena polanya sama panjang.
     Route::get('/master/{jenis:slug}/cari', [MasterDataController::class, 'cari'])

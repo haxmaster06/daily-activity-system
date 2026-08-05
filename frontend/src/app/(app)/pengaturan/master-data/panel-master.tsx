@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { Database, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Database, Lock, Pencil, Plus, Trash2, Upload } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -22,6 +22,7 @@ import { formatAngka } from '@/lib/format';
 import type { BarisMaster, JenisMaster } from '@/lib/master-server';
 import { hapusBaris, hapusJenis } from './actions';
 import { BarisDialog } from './baris-dialog';
+import { ImportDialog } from './import-dialog';
 import { JenisDialog } from './jenis-dialog';
 
 interface Props {
@@ -53,6 +54,7 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
     terbuka: false,
     ubah: null,
   });
+  const [dialogImport, setDialogImport] = useState(false);
   const [konfirmasiJenis, setKonfirmasiJenis] = useState<JenisMaster | null>(null);
   const [konfirmasiBaris, setKonfirmasiBaris] = useState<BarisMaster | null>(null);
   const [pemberitahuan, setPemberitahuan] = useState<{
@@ -178,14 +180,25 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
                   )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setDialogBaris({ terbuka: true, ubah: null })}
-                  className="btn-primary btn-sm"
-                >
-                  <Plus aria-hidden="true" className="size-4" />
-                  Tambah Data
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDialogImport(true)}
+                    className="btn-secondary btn-sm"
+                  >
+                    <Upload aria-hidden="true" className="size-4" />
+                    Import
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDialogBaris({ terbuka: true, ubah: null })}
+                    className="btn-primary btn-sm"
+                  >
+                    <Plus aria-hidden="true" className="size-4" />
+                    Tambah Data
+                  </button>
+                </div>
               </div>
 
               <FilterBar
@@ -314,6 +327,19 @@ export function PanelMaster({ jenis, terpilih, isi, meta, pilihanInduk, peringat
           await jalankan(hapusJenis(target.slug));
         }}
       />
+
+      {terpilih && (
+        <ImportDialog
+          terbuka={dialogImport}
+          onTutup={() => setDialogImport(false)}
+          jenis={terpilih}
+          onSelesai={(pesan) => {
+            setDialogImport(false);
+            setPemberitahuan({ jenis: 'berhasil', pesan });
+            router.refresh();
+          }}
+        />
+      )}
 
       <ConfirmDialog
         terbuka={konfirmasiBaris !== null}

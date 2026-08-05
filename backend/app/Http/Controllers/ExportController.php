@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Support\ApiResponse;
 use App\Support\Audit;
 use App\Support\DataExport;
+use App\Support\SelAman;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -72,7 +73,14 @@ class ExportController extends Controller
 
         foreach ($data['baris'] as $nomor => $baris) {
             foreach ($data['kolom'] as $index => $kolom) {
-                $sheet->setCellValue(
+                /*
+                 * Lewat SelAman, bukan setCellValue langsung. Isi sel berasal
+                 * dari isian pengguna, dan berkas ini dibuka orang lain — sel
+                 * yang diawali `=` akan dijalankan Excel sebagai rumus di
+                 * komputer penerimanya. Lihat App\Support\SelAman.
+                 */
+                SelAman::tulis(
+                    $sheet,
                     [$index + 1, $barisHeader + 1 + $nomor],
                     $baris[$kolom['kunci']] ?? '',
                 );
