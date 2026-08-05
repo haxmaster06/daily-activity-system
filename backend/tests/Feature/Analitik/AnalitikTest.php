@@ -2,6 +2,7 @@
 
 use App\Models\DailyReport;
 use App\Models\Department;
+use App\Models\MasterData;
 use App\Models\MasterType;
 use App\Models\Permission;
 use App\Models\ReportTemplate;
@@ -450,5 +451,125 @@ describe('peta panas kepatuhan', function (): void {
         foreach ($peta['baris'] as $baris) {
             expect($baris['sel'])->toHaveCount(5);
         }
+    });
+});
+
+describe('keadaan departemen', function (): void {
+    /*
+     * Halaman ini menjawab pertanyaan yang berbeda dari tab lain: bukan
+     * seberapa rajin timnya, melainkan sedang mengerjakan apa. Ringkasannya
+     * dibangkitkan dari template departemen masing-masing.
+     */
+    it('meringkas kolom angka bersatuan dari isi laporan', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        ['milik' => $milik] = siapkanAnalitik();
+
+        $data = $this->getJson('/api/analitik/departemen')->assertOk()->json('data.departemen');
+
+        $produksi = collect($data)->firstWhere('departemen', $milik->name);
+
+        expect($produksi)->not->toBeNull()
+            ->and($produksi['jumlah_laporan'])->toBe(1)
+            ->and($produksi['jumlah_baris'])->toBe(1);
+
+        $angka = collect($produksi['sorotan'])->firstWhere('jenis', 'angka');
+
+        expect($angka['label'])->toBe('QTY Masuk')
+            ->and($angka['satuan'])->toBe('kg')
+            ->and($angka['total'])->toEqual(100);
+    });
+
+    it('menyebut nilai kolom master sebagai jawaban "untuk siapa"', function (): void {
+        ['milik' => $milik] = siapkanAnalitik();
+
+        $supplier = MasterType::factory()->create(['slug' => 'pembeli_uji', 'name' => 'Pembeli']);
+        $alfa = MasterData::factory()->create([
+            'master_type_id' => $supplier->id,
+            'name' => 'PT Pembeli Alfa',
+            'code' => 'BUY_ALFA',
+        ]);
+
+        $template = ReportTemplate::create([
+            'code' => 'UJI_PEMBELI',
+            'name' => 'Uji Pembeli',
+            'department_id' => null,
+            'is_active' => true,
+        ]);
+        $template->fields()->create([
+            'key' => 'pembeli',
+            'label' => 'Pembeli',
+            'type' => TemplateField::TIPE_MASTER,
+            'master_type_id' => $supplier->id,
+            'sort_order' => 0,
+        ]);
+
+        $pengguna = User::factory()->staff()->create(['department_id' => $milik->id]);
+
+        $laporan = DailyReport::factory()->create([
+            'user_id' => $pengguna->id,
+            'department_id' => $milik->id,
+            'report_date' => Carbon::today()->subDay(),
+        ]);
+        $bagian = $laporan->sections()->create([
+            'report_template_id' => $template->id,
+            'sort_order' => 0,
+        ]);
+        $bagian->items()->create([
+            'data' => ['pembeli' => ['kode' => $alfa->code, 'nama' => $alfa->name]],
+            'progress_status' => 'dalam_proses',
+            'sort_order' => 0,
+        ]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        $data = $this->getJson('/api/analitik/departemen')->assertOk()->json('data.departemen');
+        $produksi = collect($data)->firstWhere('departemen', $milik->name);
+
+        $master = collect($produksi['sorotan'])->firstWhere('jenis', 'master');
+
+        expect($master['label'])->toBe('Pembeli')
+            ->and(collect($master['nilai'])->pluck('teks'))->toContain('PT Pembeli Alfa');
+    });
+
+    it('menawarkan laporan terbaru untuk dibuka', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        ['milik' => $milik] = siapkanAnalitik();
+
+        $data = $this->getJson('/api/analitik/departemen')->assertOk()->json('data.departemen');
+        $produksi = collect($data)->firstWhere('departemen', $milik->name);
+
+        expect($produksi['laporan'])->toHaveCount(1)
+            ->and($produksi['laporan'][0])->toHaveKeys(['id', 'tanggal', 'penyusun', 'jumlah_baris']);
+    });
+
+    it('tidak membocorkan isi laporan departemen lain', function (): void {
+        ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = collect($this->getJson('/api/analitik/departemen')->assertOk()->json('data.departemen'));
+
+        // Departemen lain tidak muncul sama sekali — bukan muncul dengan angka
+        // nol, sebab angkanya pun sudah memberi tahu ada tidaknya kegiatan.
+        expect($data->pluck('departemen'))->not->toContain($lain->name);
+
+        $total = $data->sum('jumlah_baris');
+
+        // Hanya satu baris miliknya sendiri; baris departemen lain tidak ikut.
+        expect($total)->toBe(1);
+    });
+
+    it('menyebut departemen yang belum melapor, bukan menyembunyikannya', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
+
+        $data = collect($this->getJson('/api/analitik/departemen')->assertOk()->json('data.departemen'));
+
+        /*
+         * Departemen tanpa laporan tetap muncul dengan jumlah nol. Justru
+         * ketiadaan laporannya yang perlu terbaca — menghilangkannya membuat
+         * halaman terlihat seolah semua departemen sudah melapor.
+         */
+        expect($data->where('jumlah_laporan', 0))->not->toBeEmpty();
     });
 });

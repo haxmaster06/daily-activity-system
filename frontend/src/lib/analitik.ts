@@ -244,3 +244,47 @@ export function warnaPetaPanas(persen: number, anggota: number): string {
 
   return 'bg-secondary/70';
 }
+
+/* --------------------------------------------------------------- Departemen */
+
+export interface SorotanAngka {
+  jenis: 'angka';
+  label: string;
+  satuan: string;
+  total: number;
+  baris: number;
+}
+
+export interface SorotanDaftar {
+  jenis: 'master' | 'pilihan' | 'teks';
+  label: string;
+  jumlah_berbeda: number;
+  nilai: { teks: string; jumlah: number }[];
+}
+
+export type SorotanDepartemen = SorotanAngka | SorotanDaftar;
+
+export interface RingkasLaporan {
+  id: number;
+  tanggal: string;
+  penyusun: string;
+  status: string;
+  label_status: string;
+  jumlah_baris: number;
+}
+
+export interface KeadaanDepartemen {
+  departemen_id: number;
+  departemen: string;
+  jumlah_laporan: number;
+  jumlah_baris: number;
+  terakhir: { tanggal: string; penyusun: string } | null;
+  status_baris: Record<string, number>;
+  sorotan: SorotanDepartemen[];
+  laporan: RingkasLaporan[];
+}
+
+export interface DataDepartemen {
+  rentang: RentangAnalitik;
+  departemen: KeadaanDepartemen[];
+}

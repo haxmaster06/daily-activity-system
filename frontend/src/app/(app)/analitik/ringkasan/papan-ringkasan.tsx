@@ -16,9 +16,9 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { DataRingkasan } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
-import { GrafikSebaranStatus, GrafikStatusDepartemen, GrafikTrenKepatuhan } from './grafik';
-import { KartuAngka } from './kartu-kpi';
-import { PanelGrafik } from './panel-grafik';
+import { GrafikSebaranStatus, GrafikStatusDepartemen, GrafikTrenKepatuhan } from '../grafik';
+import { KartuAngka } from '../kartu-kpi';
+import { PanelGrafik } from '../panel-grafik';
 
 /**
  * Halaman pertama Executive Analytics: yang perlu diketahui dalam sepuluh detik.

@@ -1,5 +1,5 @@
-import { ambilRingkasan, queryAnalitik } from '@/lib/analitik-server';
-import { PapanRingkasan } from './papan-ringkasan';
+import { ambilKeadaanDepartemen, queryAnalitik } from '@/lib/analitik-server';
+import { PapanDepartemen } from './departemen/papan-departemen';
 
 interface Params {
   dari?: string;
@@ -7,13 +7,13 @@ interface Params {
   departemen?: string;
 }
 
-export default async function RingkasanPage({
+export default async function DepartemenPage({
   searchParams,
 }: {
   searchParams: Promise<Params>;
 }) {
   const filter = await searchParams;
-  const data = await ambilRingkasan(queryAnalitik(filter));
+  const data = await ambilKeadaanDepartemen(queryAnalitik(filter));
 
-  return <PapanRingkasan data={data} />;
+  return <PapanDepartemen data={data} />;
 }

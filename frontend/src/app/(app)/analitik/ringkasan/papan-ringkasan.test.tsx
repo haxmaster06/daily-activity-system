@@ -9,7 +9,7 @@ import { PapanRingkasan } from './papan-ringkasan';
  * menyediakan konteks gambar sama sekali — merendernya sungguhan hanya
  * menghasilkan galat yang tidak ada hubungannya dengan yang diuji di sini.
  */
-vi.mock('./grafik', () => ({
+vi.mock('../grafik', () => ({
   GrafikTrenKepatuhan: () => <div data-testid="grafik" data-nama="tren" />,
   GrafikSebaranStatus: () => <div data-testid="grafik" data-nama="sebaran" />,
   GrafikStatusDepartemen: () => <div data-testid="grafik" data-nama="departemen" />,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Analitik\AngkaDepartemen;
 use App\Support\Analitik\AngkaKepatuhan;
 use App\Support\Analitik\AngkaProduktivitas;
 use App\Support\Analitik\AngkaProgres;
@@ -45,6 +46,25 @@ class AnalitikController extends Controller
                 ->values(),
             'metrik' => AngkaProduktivitas::metrikTersedia(),
             'batas_hari' => PenyaringAnalitik::BATAS_HARI,
+        ]);
+    }
+
+    /**
+     * Keadaan pekerjaan tiap departemen, dalam istilah departemen itu sendiri.
+     *
+     * Halaman yang paling sering dibuka seorang Direktur, dan satu-satunya yang
+     * menjawab "sedang mengerjakan apa" alih-alih "seberapa rajin". Ringkasannya
+     * dibangkitkan dari template masing-masing departemen — kolom Produksi
+     * bicara kilogram dan LOT, kolom Exim bicara EMKL dan dokumen, dan keduanya
+     * tidak bisa diseragamkan.
+     */
+    public function departemen(Request $request): JsonResponse
+    {
+        $saring = PenyaringAnalitik::dariPermintaan($request);
+
+        return ApiResponse::ok([
+            'rentang' => $saring->ringkas(),
+            ...AngkaDepartemen::susun($saring),
         ]);
     }
 

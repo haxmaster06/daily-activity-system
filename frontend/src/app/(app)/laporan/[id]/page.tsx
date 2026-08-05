@@ -1,8 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { TabelIsian } from '@/components/laporan/tabel-isian';
-import { PillNav, type ItemTab } from '@/components/ui/pill-nav';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { GalatApi } from '@/lib/api';
 import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
@@ -10,6 +8,7 @@ import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
 import { ambilLaporan } from '@/lib/laporan-server';
 import { RAGAM_STATUS } from '@/lib/laporan';
 import { penggunaSaatIni } from '@/lib/session';
+import { IsiLaporan } from './isi-laporan';
 import { PanelLampiran } from './panel-lampiran';
 import { TindakanLaporan } from './tindakan-laporan';
 
@@ -53,21 +52,6 @@ export default async function DetailLaporanPage({
     { label: 'Ditinjau', nilai: formatTanggalWaktu(laporan.ditinjau_pada) },
     { label: 'Peninjau', nilai: laporan.peninjau?.nama ?? '—' },
   ];
-
-  const bagian = laporan.bagian ?? [];
-
-  const tab: ItemTab[] = bagian.map((item) => ({
-    nilai: item.template.kode.toLowerCase(),
-    label: item.template.nama,
-    jumlah: item.baris.length,
-    isi: (
-      <TabelIsian
-        kolom={item.template.kolom}
-        baris={item.baris.map((b) => b.nilai)}
-        terkunci
-      />
-    ),
-  }));
 
   return (
     <>
@@ -121,13 +105,7 @@ export default async function DetailLaporanPage({
         bolehHapus={laporan.penyusun?.id === pengguna.id && laporan.dapat_disunting}
       />
 
-      {bagian.length === 0 ? (
-        <p className="card p-8 text-center text-body-lg text-ink-soft">
-          Laporan ini belum punya isi.
-        </p>
-      ) : (
-        <PillNav item={tab} kunciUrl="bagian" />
-      )}
+      <IsiLaporan laporan={laporan} />
     </>
   );
 }
