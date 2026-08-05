@@ -67,6 +67,15 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('notifikasi.baca-semua');
     Route::post('/notifikasi/{notifikasi}/baca', [NotifikasiController::class, 'baca'])
         ->name('notifikasi.baca');
+    Route::delete('/notifikasi/bersihkan', [NotifikasiController::class, 'bersihkan'])
+        ->name('notifikasi.bersihkan');
+    /*
+     * Didaftarkan sesudah `bersihkan` — id notifikasi berupa UUID, sehingga
+     * "bersihkan" tidak akan pernah cocok dengannya, tetapi urutannya tetap
+     * ditegakkan agar tidak bergantung pada bentuk id yang bisa berubah.
+     */
+    Route::delete('/notifikasi/{notifikasi}', [NotifikasiController::class, 'hapus'])
+        ->name('notifikasi.hapus');
     Route::post('/monitoring/pengingat', PengingatController::class)
         ->middleware(['izin:monitoring.kirim-pengingat', 'throttle:pengingat'])
         ->name('monitoring.pengingat');

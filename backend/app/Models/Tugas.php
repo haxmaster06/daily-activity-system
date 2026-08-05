@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Events\DataBerubah;
+use App\Models\Concerns\MenyiarkanPerubahan;
 use Database\Factories\TugasFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +26,8 @@ class Tugas extends Model
 {
     /** @use HasFactory<TugasFactory> */
     use HasFactory;
+
+    use MenyiarkanPerubahan;
 
     protected $table = 'tugas';
 
@@ -143,5 +147,10 @@ class Tugas extends Model
         return $this->target_selesai !== null
             && $this->status !== self::STATUS_SELESAI
             && $this->target_selesai->isPast();
+    }
+
+    protected function jenisSiaran(): string
+    {
+        return DataBerubah::TUGAS;
     }
 }

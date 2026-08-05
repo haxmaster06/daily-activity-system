@@ -75,8 +75,13 @@ export function Avatar({
   ukuran?: keyof typeof UKURAN;
   className?: string;
 }) {
-  const [gagal, setGagal] = useState(false);
-  const tampilkanFoto = typeof foto === 'string' && foto !== '' && !gagal;
+  /*
+   * Kegagalan diikat pada alamat yang gagal, bukan pada komponennya. Sebuah
+   * penanda tunggal tidak pernah pulih: begitu satu foto gagal dimuat, foto
+   * pengganti yang baru disimpan pun tidak akan pernah dicoba.
+   */
+  const [gagalUntuk, setGagalUntuk] = useState<string | null>(null);
+  const tampilkanFoto = typeof foto === 'string' && foto !== '' && gagalUntuk !== foto;
 
   return (
     /*
@@ -111,7 +116,7 @@ export function Avatar({
            */
           alt=""
           className="absolute inset-0 block h-full w-full object-cover"
-          onError={() => setGagal(true)}
+          onError={() => setGagalUntuk(foto ?? null)}
         />
       ) : (
         <span aria-hidden="true" className="absolute inset-0 grid place-items-center">

@@ -67,4 +67,59 @@ class NotifikasiController extends Controller
 
         return ApiResponse::ok(null, 'Semua notifikasi ditandai sudah dibaca.');
     }
+
+    /**
+     * Menghapus satu notifikasi.
+     *
+     * Dihapus sungguhan, bukan disembunyikan. Notifikasi bukan catatan yang
+     * perlu diaudit — riwayat tindakan yang sebenarnya ada di `audit_logs`,
+     * dan menyimpan pemberitahuan yang sudah dibuang pemiliknya hanya
+     * menumbuhkan tabel yang tidak pernah dibaca siapa pun.
+     */
+    public function hapus(Request $request, string $notifikasi): JsonResponse
+    {
+        $baris = $request->user()->notifications()->whereKey($notifikasi)->first();
+
+        if (! $baris) {
+            return ApiResponse::error('Notifikasi tidak ditemukan.', 404);
+        }
+
+        $baris->delete();
+
+        return ApiResponse::ok(
+            ['jumlah_belum_dibaca' => $request->user()->unreadNotifications()->count()],
+            'Notifikasi dihapus.',
+        );
+    }
+
+    /**
+     * Membersihkan notifikasi.
+     *
+     * Bawaannya **hanya yang sudah dibaca**. Menghapus semuanya sekaligus
+     * berarti membuang pemberitahuan yang belum sempat dilihat pemiliknya, dan
+     * tidak ada jalan mengembalikannya. Yang ingin membuang seluruhnya mengirim
+     * `semua=1` — pilihan yang dibuat sadar, bukan akibat sampingan dari
+     * menekan tombol bersihkan.
+     */
+    public function bersihkan(Request $request): JsonResponse
+    {
+        $pengguna = $request->user();
+        $semua = $request->boolean('semua');
+
+        $jumlah = $semua
+            ? $pengguna->notifications()->delete()
+            : $pengguna->readNotifications()->delete();
+
+        return ApiResponse::ok(
+            [
+                'jumlah_dihapus' => (int) $jumlah,
+                'jumlah_belum_dibaca' => $pengguna->unreadNotifications()->count(),
+            ],
+            $jumlah === 0
+                ? 'Tidak ada notifikasi yang perlu dibersihkan.'
+                : ($semua
+                    ? 'Semua notifikasi dihapus.'
+                    : 'Notifikasi yang sudah dibaca dihapus.'),
+        );
+    }
 }

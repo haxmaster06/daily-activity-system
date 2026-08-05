@@ -174,7 +174,37 @@ describe('foto profil', function (): void {
 
         $this->getJson('/api/profil')
             ->assertOk()
-            ->assertJsonPath('data.pengguna.foto', "/api/foto/{$pengguna->id}");
+            ->assertJsonPath(
+                'data.pengguna.foto',
+                "/api/foto/{$pengguna->id}?v=".mb_substr(sha1($pengguna->avatar_path), 0, 8),
+            );
+    });
+
+    /*
+     * Alamat fotonya tidak pernah berubah meski fotonya diganti, sedangkan
+     * jawabannya boleh ditembolokkan peramban. Tanpa penanda versi, foto yang
+     * baru disimpan tetap menampilkan foto lama — dan pengguna menyimpulkan
+     * penyimpanannya gagal.
+     */
+    it('mengubah alamat fotonya setiap kali fotonya diganti', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        Sanctum::actingAs($pengguna);
+
+        $alamat = function () {
+            return $this->getJson('/api/profil')->assertOk()->json('data.pengguna.foto');
+        };
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('pertama.jpg'),
+        ])->assertOk();
+
+        $pertama = $alamat();
+
+        $this->postJson('/api/profil/foto', [
+            'foto' => UploadedFile::fake()->image('kedua.jpg'),
+        ])->assertOk();
+
+        expect($alamat())->not->toBe($pertama);
     });
 
     /*

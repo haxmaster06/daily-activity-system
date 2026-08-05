@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Events\DataBerubah;
+use App\Models\Concerns\MenyiarkanPerubahan;
 use Database\Factories\DailyReportFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,6 +17,8 @@ class DailyReport extends Model
 {
     /** @use HasFactory<DailyReportFactory> */
     use HasFactory;
+
+    use MenyiarkanPerubahan;
 
     public const STATUS_DRAF = 'draf';
 
@@ -161,5 +165,10 @@ class DailyReport extends Model
     public function sudahDikirim(): bool
     {
         return in_array($this->status, [self::STATUS_DIKIRIM, self::STATUS_DITINJAU], true);
+    }
+
+    protected function jenisSiaran(): string
+    {
+        return DataBerubah::LAPORAN;
     }
 }

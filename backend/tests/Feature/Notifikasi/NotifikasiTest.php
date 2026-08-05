@@ -215,3 +215,99 @@ it('menolak pengingat untuk diri sendiri', function (): void {
     $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['atasan']->id])
         ->assertStatus(422);
 });
+
+/**
+ * Menghapus dan membersihkan notifikasi.
+ *
+ * Yang paling mudah salah di sini bukan penghapusannya, melainkan **milik
+ * siapa** yang terhapus: relasi `notifications()` sudah terikat pemiliknya,
+ * dan satu query yang menembusnya membuat siapa pun dapat menghapus kotak
+ * notifikasi orang lain dengan menebak sebuah UUID.
+ */
+describe('menghapus notifikasi', function (): void {
+    /** @return array{pengguna: User, id: string} */
+    function notifikasiContoh(): array
+    {
+        $pengguna = User::factory()->staff()->create();
+        $pengguna->notify(new PengingatLaporan(User::factory()->supervisor()->create(), now()));
+
+        return [
+            'pengguna' => $pengguna,
+            'id' => (string) $pengguna->notifications()->firstOrFail()->id,
+        ];
+    }
+
+    it('menghapus satu notifikasi milik sendiri', function (): void {
+        ['pengguna' => $pengguna, 'id' => $id] = notifikasiContoh();
+
+        Sanctum::actingAs($pengguna);
+
+        $this->deleteJson("/api/notifikasi/{$id}")
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_belum_dibaca', 0);
+
+        expect($pengguna->fresh()->notifications()->count())->toBe(0);
+    });
+
+    it('tidak dapat menghapus notifikasi orang lain', function (): void {
+        ['pengguna' => $pemilik, 'id' => $id] = notifikasiContoh();
+
+        Sanctum::actingAs(User::factory()->staff()->create());
+
+        // 404, bukan 403: menolak dengan "bukan milik Anda" tetap memberi tahu
+        // bahwa notifikasi itu ada.
+        $this->deleteJson("/api/notifikasi/{$id}")->assertNotFound();
+
+        expect($pemilik->fresh()->notifications()->count())->toBe(1);
+    });
+
+    /*
+     * Bawaannya hanya yang sudah dibaca. Menghapus semuanya sekaligus berarti
+     * membuang pemberitahuan yang belum sempat dilihat pemiliknya, dan tidak ada
+     * jalan mengembalikannya.
+     */
+    it('membersihkan hanya yang sudah dibaca', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        $pengirim = User::factory()->supervisor()->create();
+
+        $pengguna->notify(new PengingatLaporan($pengirim, now()));
+        $pengguna->notify(new PengingatLaporan($pengirim, now()));
+
+        $pengguna->notifications()->first()->markAsRead();
+
+        Sanctum::actingAs($pengguna);
+
+        $this->deleteJson('/api/notifikasi/bersihkan')
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_dihapus', 1)
+            ->assertJsonPath('data.jumlah_belum_dibaca', 1);
+
+        expect($pengguna->fresh()->notifications()->count())->toBe(1);
+    });
+
+    it('membersihkan seluruhnya hanya bila diminta terang-terangan', function (): void {
+        $pengguna = User::factory()->staff()->create();
+        $pengirim = User::factory()->supervisor()->create();
+
+        $pengguna->notify(new PengingatLaporan($pengirim, now()));
+        $pengguna->notify(new PengingatLaporan($pengirim, now()));
+
+        Sanctum::actingAs($pengguna);
+
+        $this->deleteJson('/api/notifikasi/bersihkan?semua=1')
+            ->assertOk()
+            ->assertJsonPath('data.jumlah_dihapus', 2);
+
+        expect($pengguna->fresh()->notifications()->count())->toBe(0);
+    });
+
+    it('tidak menyentuh notifikasi pengguna lain saat membersihkan', function (): void {
+        ['pengguna' => $orangLain] = notifikasiContoh();
+
+        Sanctum::actingAs(User::factory()->staff()->create());
+
+        $this->deleteJson('/api/notifikasi/bersihkan?semua=1')->assertOk();
+
+        expect($orangLain->fresh()->notifications()->count())->toBe(1);
+    });
+});

@@ -39,8 +39,17 @@ class UserResource extends JsonResource
              * Alamat ini menunjuk route Next.js yang meneruskan permintaannya
              * ke backend beserta token; peramban tidak pernah memanggil backend
              * secara langsung.
+             *
+             * ⚠️ `?v=` bukan hiasan. Alamatnya sendiri tidak pernah berubah
+             * meski fotonya diganti, sedangkan jawabannya boleh ditembolokkan
+             * peramban. Tanpa penanda ini, foto yang baru disimpan tetap
+             * menampilkan foto lama sampai temboloknya kedaluwarsa — dan
+             * pengguna menyimpulkan penyimpanannya gagal. Nilainya diturunkan
+             * dari jalur berkasnya, yang selalu baru pada tiap unggahan.
              */
-            'foto' => $this->avatar_path === null ? null : "/api/foto/{$this->id}",
+            'foto' => $this->avatar_path === null
+                ? null
+                : "/api/foto/{$this->id}?v=".mb_substr(sha1($this->avatar_path), 0, 8),
 
             // Peran utama, untuk pelabelan ringkas di tabel dan bilah navigasi.
             'role' => [

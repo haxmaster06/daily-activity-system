@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Bell, BellRing, CheckCheck, Inbox } from 'lucide-react';
+import { Bell, BellRing, CheckCheck, Inbox, Trash2, X } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 import { echoDams } from '@/lib/echo';
@@ -147,7 +147,64 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
     }
   }
 
+  /**
+   * Menghapus satu notifikasi.
+   *
+   * Dibuang lebih dulu di layar. Notifikasi yang tetap tampil beberapa ratus
+   * milidetik setelah tombol hapusnya ditekan membuat pengguna menekannya lagi
+   * — dan permintaan kedua menemukan barisnya sudah tidak ada.
+   */
+  async function hapus(id: string) {
+    setKotak((sebelumnya) => {
+      const dibuang = sebelumnya.daftar.find((satu) => satu.id === id);
+
+      return {
+        jumlah_belum_dibaca:
+          dibuang && !dibuang.dibaca
+            ? Math.max(0, sebelumnya.jumlah_belum_dibaca - 1)
+            : sebelumnya.jumlah_belum_dibaca,
+        daftar: sebelumnya.daftar.filter((satu) => satu.id !== id),
+      };
+    });
+
+    try {
+      await fetch('/api/notifikasi/hapus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } finally {
+      void muat();
+    }
+  }
+
+  /**
+   * Membersihkan notifikasi yang sudah dibaca.
+   *
+   * Hanya yang sudah dibaca, dan itu disengaja: membuang seluruhnya sekaligus
+   * berarti menghapus pemberitahuan yang belum sempat dilihat, tanpa jalan
+   * mengembalikannya. Yang belum dibaca dihapus satu per satu bila memang
+   * dikehendaki.
+   */
+  async function bersihkan() {
+    setKotak((sebelumnya) => ({
+      jumlah_belum_dibaca: sebelumnya.jumlah_belum_dibaca,
+      daftar: sebelumnya.daftar.filter((satu) => !satu.dibaca),
+    }));
+
+    try {
+      await fetch('/api/notifikasi/hapus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bersihkan: true }),
+      });
+    } finally {
+      void muat();
+    }
+  }
+
   const belumDibaca = kotak.jumlah_belum_dibaca;
+  const adaYangDibaca = kotak.daftar.some((satu) => satu.dibaca);
 
   return (
     <DropdownMenu.Root onOpenChange={(terbuka) => terbuka && void muat()}>
@@ -181,17 +238,37 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
           <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
             <p className="text-label font-semibold text-ink">Notifikasi</p>
 
-            {belumDibaca > 0 && (
-              <DropdownMenu.Item
-                onSelect={(event) => {
-                  event.preventDefault();
-                  void tandaiDibaca();
-                }}
-                className="cursor-pointer rounded-control px-1.5 py-0.5 text-caption text-primary-text outline-none data-[highlighted]:bg-primary-subtle"
-              >
-                Tandai semua dibaca
-              </DropdownMenu.Item>
-            )}
+            <span className="flex items-center gap-1">
+              {belumDibaca > 0 && (
+                <DropdownMenu.Item
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void tandaiDibaca();
+                  }}
+                  className="cursor-pointer rounded-control px-1.5 py-0.5 text-caption text-primary-text outline-none data-[highlighted]:bg-primary-subtle"
+                >
+                  Tandai semua dibaca
+                </DropdownMenu.Item>
+              )}
+
+              {/*
+                Hanya membuang yang sudah dibaca — lihat catatan pada
+                `bersihkan()`. Tombolnya pun hanya muncul saat memang ada yang
+                dapat dibuang.
+              */}
+              {adaYangDibaca && (
+                <DropdownMenu.Item
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void bersihkan();
+                  }}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-control px-1.5 py-0.5 text-caption text-ink-soft outline-none data-[highlighted]:bg-surface-muted data-[highlighted]:text-danger-text"
+                >
+                  <Trash2 aria-hidden="true" className="size-3" />
+                  Bersihkan
+                </DropdownMenu.Item>
+              )}
+            </span>
           </div>
 
           <div className="max-h-80 overflow-y-auto">
@@ -204,15 +281,22 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
                 const Ikon = IKON[item.jenis] ?? Bell;
 
                 return (
+                  /*
+                    Tombol hapus berada **di luar** menu item, bukan di dalamnya.
+                    Menu item Radix menangkap seluruh penekanan di dalamnya dan
+                    menjalankan `onSelect`-nya sendiri, sehingga tombol hapus
+                    yang bersarang akan ikut membuka tautan notifikasinya
+                    sebelum sempat menghapus apa pun.
+                  */
+                  <div key={item.id} className="group/baris relative">
                   <DropdownMenu.Item
-                    key={item.id}
                     onSelect={(event) => {
                       event.preventDefault();
                       if (!item.dibaca) void tandaiDibaca(item.id);
                       if (item.tautan) router.push(item.tautan);
                     }}
                     className={cn(
-                      'flex cursor-pointer items-start gap-2.5 border-b border-line px-3 py-2.5 outline-none last:border-b-0',
+                      'flex cursor-pointer items-start gap-2.5 border-b border-line py-2.5 pl-3 pr-9 outline-none last:border-b-0',
                       'data-[highlighted]:bg-surface-muted',
                       !item.dibaca && 'bg-primary-subtle/30',
                     )}
@@ -247,6 +331,24 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
                       <span className="sr-only">Belum dibaca</span>
                     )}
                   </DropdownMenu.Item>
+
+                  {/*
+                    Selalu ada di DOM, hanya disamarkan sampai barisnya disorot
+                    atau tombolnya terfokus. `hidden` sampai hover membuatnya
+                    tidak pernah terjangkau papan ketik maupun layar sentuh.
+                  */}
+                  <button
+                    type="button"
+                    onClick={(peristiwa) => {
+                      peristiwa.stopPropagation();
+                      void hapus(item.id);
+                    }}
+                    aria-label={`Hapus notifikasi ${item.judul}`}
+                    className="absolute right-2 top-2.5 grid size-6 place-items-center rounded-control text-ink-soft opacity-0 transition-opacity duration-fast hover:bg-surface-sunken hover:text-danger-text focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group-hover/baris:opacity-100"
+                  >
+                    <X aria-hidden="true" className="size-3.5" />
+                  </button>
+                  </div>
                 );
               })
             )}
