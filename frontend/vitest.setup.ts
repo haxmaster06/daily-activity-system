@@ -22,3 +22,17 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+/*
+ * jsdom tidak mengimplementasikan `ResizeObserver`, sedangkan Radix memakainya
+ * untuk menempatkan Popover dan Tooltip. Tanpa stub ini, komponen apa pun yang
+ * membuka salah satunya gagal dengan "ResizeObserver is not defined" — galat
+ * yang menyesatkan, karena yang terlihat seolah komponennya yang rusak.
+ */
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}

@@ -18,6 +18,7 @@ import { cn } from '@/lib/cn';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
 import type { Laporan } from '@/lib/laporan';
 import { RAGAM_STATUS, type StatusLaporan } from '@/lib/laporan';
+import { TautanDepartemen } from '../dapat-disaring';
 import { ambilLaporanUntukTampilan } from './actions';
 
 /**
@@ -132,7 +133,9 @@ function KartuDepartemen({
   return (
     <section className="flex flex-col rounded-card border border-line bg-surface p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-heading text-section-title text-ink">{keadaan.departemen}</h2>
+        <h2 className="font-heading text-section-title text-ink">
+          <TautanDepartemen id={keadaan.departemen_id} nama={keadaan.departemen} />
+        </h2>
         <p className="text-caption text-ink-soft">
           {formatAngka(keadaan.jumlah_laporan)} laporan, {formatAngka(keadaan.jumlah_baris)} baris
           {keadaan.terakhir && (

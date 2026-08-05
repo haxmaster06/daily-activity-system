@@ -9,6 +9,17 @@ import { PapanRingkasan } from './papan-ringkasan';
  * menyediakan konteks gambar sama sekali — merendernya sungguhan hanya
  * menghasilkan galat yang tidak ada hubungannya dengan yang diuji di sini.
  */
+/*
+ * TautanDepartemen memakai penyaring bersama, yang membaca alamat halaman.
+ * Tanpa tiruan ini seluruh papan gagal dirender karena alasan yang tidak ada
+ * hubungannya dengan tabel pendamping yang sedang diuji.
+ */
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => '/analitik/ringkasan',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 vi.mock('../grafik', () => ({
   GrafikTrenKepatuhan: () => <div data-testid="grafik" data-nama="tren" />,
   GrafikSebaranStatus: () => <div data-testid="grafik" data-nama="sebaran" />,

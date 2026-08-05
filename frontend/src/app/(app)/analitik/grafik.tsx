@@ -215,9 +215,11 @@ export function GrafikProduktivitas({
 export function GrafikProduktivitasDepartemen({
   data,
   metrik,
+  onPilih,
 }: {
   data: { departemen: string; nilai: number }[];
   metrik: Metrik;
+  onPilih?: (departemen: string) => void;
 }) {
   const gerak = gerakDikurangi();
 
@@ -246,6 +248,10 @@ export function GrafikProduktivitasDepartemen({
         grid: { color: WARNA.garisBantu },
       },
       y: { ticks: { color: WARNA.teks, font: { size: 11 } } },
+    },
+    onClick: (_peristiwa, elemen: ActiveElement[]) => {
+      const pertama = elemen[0];
+      if (pertama && data[pertama.index]) onPilih?.(data[pertama.index].departemen);
     },
   };
 

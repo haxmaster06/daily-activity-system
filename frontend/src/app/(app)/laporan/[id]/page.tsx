@@ -76,12 +76,18 @@ export default async function DetailLaporanPage({
 
       <TindakanLaporan laporan={laporan} bolehMeninjau={bolehMeninjau} />
 
-      <section className="card mb-3 p-3">
-        <dl className="grid gap-x-6 gap-y-1.5 sm:grid-cols-2 lg:grid-cols-3">
+      {/*
+        Skalanya sengaja disamakan dengan isi laporannya: label 11px, nilai
+        13px. Kepala yang lebih besar dari isinya menghabiskan tinggi layar
+        untuk keterangan yang hanya dibaca sekali, sementara isi laporan yang
+        justru dibandingkan antar baris terdorong ke bawah lipatan.
+      */}
+      <section className="card mb-3 px-3 py-2">
+        <dl className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
           {keterangan.map((item) => (
             <div key={item.label} className="flex items-baseline justify-between gap-3">
               <dt className="text-caption text-ink-soft">{item.label}</dt>
-              <dd className="text-body-lg text-ink">{item.nilai}</dd>
+              <dd className="text-body leading-5 text-ink">{item.nilai}</dd>
             </div>
           ))}
         </dl>

@@ -1,7 +1,5 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-
 import {
   DataTable,
   DataTableBody,
@@ -14,8 +12,10 @@ import { Select } from '@/components/ui/select';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 import type { DataProduktivitas } from '@/lib/analitik';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
+import { TautanDepartemen } from '../dapat-disaring';
 import { GrafikProduktivitas, GrafikProduktivitasDepartemen } from '../grafik';
 import { PanelGrafik } from '../panel-grafik';
+import { usePenyaring } from '../use-penyaring';
 
 /**
  * Angka di dalam laporan harian, dibaca sebagai jumlah.
@@ -29,15 +29,7 @@ import { PanelGrafik } from '../panel-grafik';
  * dapat dibagikan lengkap dengan metrik dan rentangnya.
  */
 export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  function pilihMetrik(penanda: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('metrik', penanda);
-    router.push(`${pathname}?${params.toString()}`);
-  }
+  const { pilihMetrik, saringDepartemen } = usePenyaring();
 
   if (data.metrik_tersedia.length === 0) {
     return (
@@ -169,7 +161,16 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
         <PanelGrafik
           judul={`${metrik.label} per departemen`}
           keterangan="Diurutkan dari yang terbesar."
-          grafik={<GrafikProduktivitasDepartemen data={isi.per_departemen} metrik={metrik} />}
+          grafik={
+            <GrafikProduktivitasDepartemen
+              data={isi.per_departemen}
+              metrik={metrik}
+              onPilih={(nama) => {
+                const cocok = isi.per_departemen.find((satu) => satu.departemen === nama);
+                if (cocok) saringDepartemen(cocok.departemen_id);
+              }}
+            />
+          }
           tabel={
             <DataTable>
               <DataTableHead>
@@ -183,7 +184,9 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
                 )}
                 {isi.per_departemen.map((satu) => (
                   <tr key={satu.departemen_id} className="border-b border-line last:border-0">
-                    <Td>{satu.departemen}</Td>
+                    <Td>
+                      <TautanDepartemen id={satu.departemen_id} nama={satu.departemen} />
+                    </Td>
                     <Td align="right">{formatAngka(satu.nilai, desimal)}</Td>
                     <Td align="right">{formatAngka(satu.baris)}</Td>
                   </tr>

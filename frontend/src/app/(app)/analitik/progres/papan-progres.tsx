@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { AlertTriangle, Clock } from 'lucide-react';
 
 import {
@@ -12,12 +10,13 @@ import {
   Td,
   Th,
 } from '@/components/ui/data-table';
-import { Modal } from '@/components/ui/modal';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
-import type { BarisStatusDepartemen, DataProgres } from '@/lib/analitik';
+import type { DataProgres } from '@/lib/analitik';
 import { formatAngka, formatTanggalRingkas } from '@/lib/format';
+import { TautanDepartemen } from '../dapat-disaring';
 import { GrafikBeban, GrafikSebaranStatus, GrafikStatusDepartemen } from '../grafik';
+import { usePenyaring } from '../use-penyaring';
 import { PanelGrafik } from '../panel-grafik';
 
 /**
@@ -28,7 +27,7 @@ import { PanelGrafik } from '../panel-grafik';
  * bebannya menumpuk, dan berapa yang belum punya penanggung jawab.
  */
 export function PapanProgres({ data }: { data: DataProgres }) {
-  const [dibuka, setDibuka] = useState<BarisStatusDepartemen | null>(null);
+  const { saringDepartemen } = usePenyaring();
 
   const kartuRingkas = [
     {
@@ -73,15 +72,17 @@ export function PapanProgres({ data }: { data: DataProgres }) {
 
         <PanelGrafik
           judul="Kartu per departemen"
-          keterangan="Pilih nama departemen pada tabel, atau klik batangnya, untuk membuka rincian."
+          keterangan="Klik batangnya, atau nama departemen pada tabel, untuk menyaring seluruh halaman."
           grafik={
             <GrafikStatusDepartemen
               data={data.status_per_departemen}
-              onPilihDepartemen={(nama) =>
-                setDibuka(
-                  data.status_per_departemen.find((satu) => satu.departemen === nama) ?? null,
-                )
-              }
+              onPilihDepartemen={(nama) => {
+                const cocok = data.status_per_departemen.find(
+                  (satu) => satu.departemen === nama,
+                );
+
+                if (cocok) saringDepartemen(cocok.departemen_id);
+              }}
             />
           }
           tabel={
@@ -102,15 +103,9 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                       {/*
                         Batang grafik dapat diklik, tetapi kanvas tidak dapat
                         difokus papan ketik sama sekali. Tanpa tombol ini,
-                        rinciannya hanya terbuka bagi pengguna tetikus.
+                        penyaringan hanya terjangkau pengguna tetikus.
                       */}
-                      <button
-                        type="button"
-                        onClick={() => setDibuka(satu)}
-                        className="rounded-control text-left text-primary-text underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                      >
-                        {satu.departemen}
-                      </button>
+                      <TautanDepartemen id={satu.departemen_id} nama={satu.departemen} />
                     </Td>
                     <Td align="right">{formatAngka(satu.belum_mulai)}</Td>
                     <Td align="right">{formatAngka(satu.dalam_proses)}</Td>
@@ -263,38 +258,6 @@ export function PapanProgres({ data }: { data: DataProgres }) {
           </div>
         </section>
 
-        <Modal
-          terbuka={dibuka !== null}
-          onTutup={() => setDibuka(null)}
-          judul={dibuka?.departemen ?? ''}
-          keterangan={dibuka ? `${formatAngka(dibuka.total)} kartu tercatat.` : undefined}
-        >
-          {dibuka && (
-            <div className="flex flex-col gap-3">
-              <dl className="grid grid-cols-3 gap-2 text-center">
-                {(
-                  [
-                    ['Belum Mulai', dibuka.belum_mulai],
-                    ['Dalam Proses', dibuka.dalam_proses],
-                    ['Selesai', dibuka.selesai],
-                  ] as const
-                ).map(([label, jumlah]) => (
-                  <div key={label} className="rounded-card bg-surface-muted px-2 py-3">
-                    <dt className="text-caption text-ink-muted">{label}</dt>
-                    <dd className="mt-1 text-page-title text-ink">{formatAngka(jumlah)}</dd>
-                  </div>
-                ))}
-              </dl>
-
-              <Link
-                href={`/progress?departemen_id=${dibuka.departemen_id}`}
-                className="btn-secondary btn-sm w-fit"
-              >
-                Buka papan progres departemen ini
-              </Link>
-            </div>
-          )}
-        </Modal>
       </div>
     </TooltipProvider>
   );

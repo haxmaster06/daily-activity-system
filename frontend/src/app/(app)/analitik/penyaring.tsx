@@ -1,12 +1,12 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Building2, CalendarRange, Check, X } from 'lucide-react';
 
 import { DatePicker } from '@/components/ui/date-picker';
 import { Popover } from '@/components/ui/popover';
 import { cn } from '@/lib/cn';
 import { formatTanggalRingkas } from '@/lib/format';
+import { usePenyaring } from './use-penyaring';
 
 /** Pintasan rentang yang paling sering dipakai. */
 const PINTASAN = [
@@ -45,36 +45,15 @@ export function PenyaringAnalitik({
   departemen: { id: number; nama: string }[];
   batasHari: number;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const dari = searchParams.get('dari');
-  const sampai = searchParams.get('sampai');
-
-  const terpilih = (searchParams.get('departemen') ?? '')
-    .split(',')
-    .filter(Boolean)
-    .map(Number);
-
-  function terapkan(ubah: (params: URLSearchParams) => void) {
-    const params = new URLSearchParams(searchParams.toString());
-    ubah(params);
-
-    const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
-  }
-
-  function alihkanDepartemen(id: number) {
-    const berikutnya = terpilih.includes(id)
-      ? terpilih.filter((satu) => satu !== id)
-      : [...terpilih, id];
-
-    terapkan((params) => {
-      if (berikutnya.length === 0) params.delete('departemen');
-      else params.set('departemen', berikutnya.join(','));
-    });
-  }
+  const {
+    dari,
+    sampai,
+    departemen: terpilih,
+    terapkan,
+    alihkanDepartemen,
+    bersihkan,
+    adaPenyaring,
+  } = usePenyaring();
 
   /** Pintasan yang sedang berlaku, bila rentangnya persis salah satunya. */
   const pintasanAktif = PINTASAN.find(
@@ -93,8 +72,6 @@ export function PenyaringAnalitik({
       : terpilih.length === 1
         ? (departemen.find((satu) => satu.id === terpilih[0])?.nama ?? '1 departemen')
         : `${terpilih.length} departemen`;
-
-  const adaPenyaring = dari !== null || sampai !== null || terpilih.length > 0;
 
   return (
     <section
@@ -229,7 +206,7 @@ export function PenyaringAnalitik({
       {adaPenyaring && (
         <button
           type="button"
-          onClick={() => router.push(pathname)}
+          onClick={bersihkan}
           className="inline-flex h-input-sm items-center gap-1 rounded-control px-2 text-body text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-danger-text"
         >
           <X aria-hidden="true" className="size-3.5" />

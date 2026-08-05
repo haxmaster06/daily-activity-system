@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 import {
@@ -16,6 +15,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { DataRingkasan } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
+import { TautanDepartemen } from '../dapat-disaring';
 import { GrafikSebaranStatus, GrafikStatusDepartemen, GrafikTrenKepatuhan } from '../grafik';
 import { KartuAngka } from '../kartu-kpi';
 import { PanelGrafik } from '../panel-grafik';
@@ -148,12 +148,7 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
                 {data.status_per_departemen.map((satu) => (
                   <tr key={satu.departemen_id} className="border-b border-line last:border-0">
                     <Td>
-                      <Link
-                        href={`/progress?departemen_id=${satu.departemen_id}`}
-                        className="rounded-control text-primary-text underline-offset-4 hover:underline"
-                      >
-                        {satu.departemen}
-                      </Link>
+                      <TautanDepartemen id={satu.departemen_id} nama={satu.departemen} />
                     </Td>
                     <Td align="right">{formatAngka(satu.belum_mulai)}</Td>
                     <Td align="right">{formatAngka(satu.dalam_proses)}</Td>
