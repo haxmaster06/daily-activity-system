@@ -86,3 +86,61 @@ export async function hapusDrafLaporan(id: number): Promise<HasilAksi> {
     return hasilGalat(galat);
   }
 }
+
+/** Satu baris pada hasil pemeriksaan berkas import laporan. */
+export interface BarisImportLaporan {
+  baris: number;
+  tanggal: string | null;
+  tampilan: Record<string, string>;
+  tindakan: 'diterima' | 'ditolak';
+  alasan: string | null;
+}
+
+export interface HasilPratinjauImportLaporan {
+  template: { id: number; nama: string };
+  baris: BarisImportLaporan[];
+  tanggal: { tanggal: string; jumlah_baris: number; sudah_ada: boolean }[];
+  ringkasan: { diterima: number; ditolak: number; total: number; laporan: number };
+  /** Berkas melebihi batas baris; yang diperiksa hanya bagian awalnya. */
+  terpotong: boolean;
+}
+
+/**
+ * Memeriksa berkas laporan tanpa menyimpan apa pun.
+ *
+ * Berkasnya dikirim ulang saat disimpan, bukan disimpan sementara di server
+ * Next — berkas sementara yang tidak pernah terhapus adalah cara paling sunyi
+ * untuk menghabiskan ruang penyimpanan.
+ */
+export async function pratinjauImportLaporan(
+  templateId: number,
+  berkas: FormData,
+): Promise<HasilAksi & { hasil?: HasilPratinjauImportLaporan }> {
+  try {
+    const { data, message } = await panggilApi<HasilPratinjauImportLaporan>(
+      `/template/${templateId}/import/pratinjau`,
+      { method: 'POST', body: berkas },
+    );
+
+    return { ...hasilBerhasil(message || 'Berkas berhasil dibaca.'), hasil: data };
+  } catch (galat) {
+    return hasilGalat(galat);
+  }
+}
+
+export async function simpanImportLaporan(
+  templateId: number,
+  berkas: FormData,
+): Promise<HasilAksi> {
+  try {
+    const { message } = await panggilApi(`/template/${templateId}/import`, {
+      method: 'POST',
+      body: berkas,
+    });
+    revalidatePath(HALAMAN);
+
+    return hasilBerhasil(message || 'Laporan berhasil diimpor.');
+  } catch (galat) {
+    return hasilGalat(galat);
+  }
+}

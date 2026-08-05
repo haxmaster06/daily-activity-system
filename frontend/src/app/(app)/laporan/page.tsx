@@ -5,6 +5,7 @@ import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { melihatOrangLain } from '@/lib/izin';
 import { ambilDaftarLaporan } from '@/lib/laporan-server';
 import { penggunaSaatIni } from '@/lib/session';
+import { ambilTemplate } from '@/lib/template-server';
 import { DaftarLaporan } from './daftar-laporan';
 
 export const metadata = { title: 'Laporan Saya — DAMS' };
@@ -33,6 +34,21 @@ export default async function LaporanPage({
   const { data, meta } = await ambilDaftarLaporan(query);
 
   /*
+   * Template yang boleh dipakai import. Backend menolak template departemen
+   * lain, tetapi menawarkannya lebih dulu lalu menolak setelah pengguna
+   * mengunggah berkasnya adalah cara yang buruk untuk menyampaikan aturan yang
+   * sudah diketahui sejak awal.
+   */
+  const templateImport = (await ambilTemplate(new URLSearchParams({ aktif: '1' })))
+    .filter(
+      (satu) =>
+        satu.departemen === null ||
+        satu.departemen === undefined ||
+        satu.departemen.id === pengguna.departemenId,
+    )
+    .map((satu) => ({ id: satu.id, nama: satu.nama }));
+
+  /*
    * Jangkauannya sudah dibatasi server lewat DailyReport::scopeVisibleTo().
    * Yang ditentukan di sini hanya penyebutan halamannya — Staff melihat
    * laporannya sendiri, atasan melihat laporan orang lain juga.
@@ -47,6 +63,7 @@ export default async function LaporanPage({
         meta={meta}
         tampilkanPenyusun={melihatLaporanOrangLain}
         judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Saya'}
+        templateImport={templateImport}
       />
     </>
   );

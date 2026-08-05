@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\DailyReport;
 use App\Models\MasterData;
+use App\Models\ReportTemplate;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -14,9 +16,21 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class ImportBerkasRequest extends FormRequest
 {
+    /**
+     * Yang diperiksa adalah izin membuat data yang akan dihasilkan berkasnya.
+     *
+     * Dipilih dari rute, bukan ditetapkan satu kali: berkas ini dipakai dua
+     * import yang berbeda, dan memeriksa izin master pada import laporan akan
+     * menutup fitur itu bagi Staf — yang justru satu-satunya orang yang
+     * mengisinya.
+     */
     public function authorize(): bool
     {
-        return $this->user()->can('create', MasterData::class);
+        $kelas = $this->route('template') instanceof ReportTemplate
+            ? DailyReport::class
+            : MasterData::class;
+
+        return $this->user()->can('create', $kelas);
     }
 
     /**

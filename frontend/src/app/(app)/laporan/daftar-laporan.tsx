@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { FileText, Plus } from 'lucide-react';
+import { FileText, Plus, Upload } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -21,6 +21,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { formatTanggal } from '@/lib/format';
 import { RAGAM_STATUS, type Laporan } from '@/lib/laporan';
 import { hapusDrafLaporan } from './actions';
+import { ImportLaporanDialog, type PilihanTemplateImport } from './import-laporan-dialog';
 
 interface DaftarLaporanProps {
   laporan: Laporan[];
@@ -28,6 +29,8 @@ interface DaftarLaporanProps {
   /** Supervisor ke atas melihat kolom penyusun; Staff tidak perlu. */
   tampilkanPenyusun: boolean;
   judul: string;
+  /** Template yang boleh dipakai import. Kosong berarti tombolnya tidak ada. */
+  templateImport: PilihanTemplateImport[];
 }
 
 export function DaftarLaporan({
@@ -35,9 +38,11 @@ export function DaftarLaporan({
   meta,
   tampilkanPenyusun,
   judul,
+  templateImport,
 }: DaftarLaporanProps) {
   const router = useRouter();
   const [konfirmasiHapus, setKonfirmasiHapus] = useState<Laporan | null>(null);
+  const [dialogImport, setDialogImport] = useState(false);
   const [pemberitahuan, setPemberitahuan] = useState<{
     jenis: 'galat' | 'berhasil';
     pesan: string;
@@ -60,10 +65,24 @@ export function DaftarLaporan({
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-page-title text-ink">{judul}</h1>
-        <Link href="/laporan/baru" className="btn-primary btn-sm">
-          <Plus aria-hidden="true" className="size-4" />
-          Buat Laporan
-        </Link>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {templateImport.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setDialogImport(true)}
+              className="btn-secondary btn-sm"
+            >
+              <Upload aria-hidden="true" className="size-4" />
+              Import
+            </button>
+          )}
+
+          <Link href="/laporan/baru" className="btn-primary btn-sm">
+            <Plus aria-hidden="true" className="size-4" />
+            Buat Laporan
+          </Link>
+        </div>
       </div>
 
       {pemberitahuan && (
@@ -159,6 +178,17 @@ export function DaftarLaporan({
           Belum ada laporan sama sekali. Mulai dari tombol Buat Laporan di atas.
         </p>
       )}
+
+      <ImportLaporanDialog
+        terbuka={dialogImport}
+        onTutup={() => setDialogImport(false)}
+        template={templateImport}
+        onSelesai={(pesan) => {
+          setDialogImport(false);
+          setPemberitahuan({ jenis: 'berhasil', pesan });
+          router.refresh();
+        }}
+      />
 
       <ConfirmDialog
         terbuka={konfirmasiHapus !== null}

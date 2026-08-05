@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\ImportLaporanController;
 use App\Http\Controllers\ImportMasterController;
 use App\Http\Controllers\LampiranController;
 use App\Http\Controllers\MasterDataController;
@@ -182,6 +183,22 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
      */
     Route::delete('/pengguna/{user}', [UserController::class, 'destroy'])
         ->name('pengguna.destroy');
+
+    /*
+     * Import laporan harian. Bentuk kolomnya berbeda tiap template, sehingga
+     * template berkasnya dibangkitkan per template laporan.
+     *
+     * Harus mendahului `/template/{template}` — pola turunannya sama panjang
+     * dan yang terdaftar lebih dulu yang menang.
+     */
+    Route::get('/template/{template}/import/template', [ImportLaporanController::class, 'template'])
+        ->name('laporan.import.template');
+    Route::post('/template/{template}/import/pratinjau', [ImportLaporanController::class, 'pratinjau'])
+        ->middleware('throttle:unggah')
+        ->name('laporan.import.pratinjau');
+    Route::post('/template/{template}/import', [ImportLaporanController::class, 'simpan'])
+        ->middleware('throttle:unggah')
+        ->name('laporan.import');
 
     Route::get('/template/opsi-kolom', [ReportTemplateController::class, 'opsiKolom'])
         ->name('template.opsi-kolom');
