@@ -24,7 +24,6 @@ import {
 import { Plus } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { OpsiCombobox } from '@/components/ui/combobox';
 import type { OpsiSelect } from '@/components/ui/select';
@@ -119,15 +118,18 @@ function susunUlang(
  * Papan progres harian.
  *
  * Tarik-lepas memakai `@dnd-kit`, bukan `useDragAndDrop` milik React Aria yang
- * sudah terpasang. Alasannya satu dan menentukan: React Aria mengumumkan
- * seluruh petunjuk papan ketik lewat wilayah `aria-live` miliknya sendiri, dan
- * kamusnya **tidak memuat Bahasa Indonesia** — 34 locale, tanpa `id-ID`.
- * Pengguna pembaca layar akan mendengar "Press Enter to start dragging",
- * padahal seluruh teks DAMS wajib Bahasa Indonesia (CLAUDE.md). React Aria
- * tidak menyediakan jalan publik untuk mengganti kamus internalnya. `@dnd-kit`
- * menyerahkan seluruh kalimatnya kepada kita lewat `announcements` dan
- * `screenReaderInstructions` di bawah. Dicatat di
- * `docs/standar-library-ui.md` §9.
+ * sudah terpasang. Sebabnya: React Aria mengumumkan seluruh petunjuk papan
+ * ketik lewat wilayah `aria-live` miliknya sendiri, dan kamusnya **tidak
+ * memuat Bahasa Indonesia** — 34 locale, tanpa `id-ID`. `@dnd-kit` menyerahkan
+ * seluruh kalimatnya kepada kita lewat `announcements` dan
+ * `screenReaderInstructions` di bawah.
+ *
+ * Sejak `src/lib/react-aria-bahasa.ts` ada, teks React Aria sebenarnya sudah
+ * dapat diterjemahkan lewat kamus global — jadi tarik-lepas miliknya kini layak
+ * dipertimbangkan ulang. Yang menahan penggantian bukan lagi soal bahasa,
+ * melainkan bahwa yang ini sudah terbangun, teruji, dan terbukti di peramban,
+ * sementara menggantinya tidak menambah apa pun bagi pengguna. Dicatat lengkap
+ * di `docs/standar-library-ui.md` §9.1.
  */
 export function PapanKanban({
   kolomAwal,
@@ -291,16 +293,22 @@ export function PapanKanban({
     <>
       {bolehKelola && (
         <div className="mb-3 flex justify-end">
-          <Button
-            ukuran="sm"
+          {/*
+            Memakai kelas `btn-primary`, sama dengan seluruh layar lain. Dua
+            cara membuat tombol dalam satu aplikasi pada akhirnya menghasilkan
+            dua tampilan yang berbeda — dan itu yang terjadi di sini.
+          */}
+          <button
+            type="button"
             onClick={() => {
               setSedangDiubah(null);
               setDialogTerbuka(true);
             }}
+            className="btn-primary btn-sm"
           >
             <Plus aria-hidden="true" className="size-4" />
             Tambah Tugas
-          </Button>
+          </button>
         </div>
       )}
 

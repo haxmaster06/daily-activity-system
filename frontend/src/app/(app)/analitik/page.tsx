@@ -1,25 +1,19 @@
-import { Breadcrumb } from '@/components/layout/breadcrumb';
-import { PageHeader } from '@/components/layout/page-header';
-import { ambilAnalitik } from '@/lib/analitik-server';
-import { wajibAkses } from '@/lib/session';
-import { PapanAnalitik } from './papan-analitik';
+import { ambilRingkasan, queryAnalitik } from '@/lib/analitik-server';
+import { PapanRingkasan } from './papan-ringkasan';
 
-export const metadata = { title: 'Executive Analytics — DAMS' };
+interface Params {
+  dari?: string;
+  sampai?: string;
+  departemen?: string;
+}
 
-export default async function AnalitikPage() {
-  await wajibAkses('/analitik');
+export default async function RingkasanPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const filter = await searchParams;
+  const data = await ambilRingkasan(queryAnalitik(filter));
 
-  const data = await ambilAnalitik();
-
-  return (
-    <>
-      <Breadcrumb jejak={[{ label: 'Executive Analytics' }]} />
-      <PageHeader
-        judul="Executive Analytics"
-        keterangan="Ringkasan visual progres dan kepatuhan pada seluruh jangkauan data Anda."
-      />
-
-      <PapanAnalitik data={data} />
-    </>
-  );
+  return <PapanRingkasan data={data} />;
 }

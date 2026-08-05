@@ -6,6 +6,7 @@ import {
   BarElement,
   CategoryScale,
   Chart as ChartJS,
+  Filler,
   Legend,
   LinearScale,
   LineElement,
@@ -16,15 +17,16 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 
-import { formatTanggalRingkas } from '@/lib/format';
 import {
   WARNA,
-  persenKepatuhan,
   type BarisBeban,
-  type BarisKepatuhan,
+  type BarisKepatuhanDepartemen,
+  type BarisKepatuhanHarian,
   type BarisSebaranStatus,
   type BarisStatusDepartemen,
+  type Metrik,
 } from '@/lib/analitik';
+import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
 
 /*
  * Chart.js v4 tidak mendaftarkan apa pun secara otomatis. Yang didaftarkan
@@ -38,17 +40,12 @@ ChartJS.register(
   PointElement,
   LineElement,
   ArcElement,
+  Filler,
   Tooltip,
   Legend,
 );
 
-/**
- * Animasi dimatikan bila pengguna memintanya lewat setelan sistem.
- *
- * Dibaca sekali saat render, bukan lewat state: nilainya praktis tidak pernah
- * berubah di tengah sesi, dan mendengarkan perubahannya hanya menambah
- * pekerjaan tanpa hasil yang terlihat.
- */
+/** Animasi dimatikan bila pengguna memintanya lewat setelan sistem. */
 function gerakDikurangi(): boolean {
   return (
     typeof window !== 'undefined' &&
@@ -68,6 +65,7 @@ function dasar(gerak: boolean) {
     responsive: true,
     maintainAspectRatio: false,
     animation: gerak ? (false as const) : { duration: 260 },
+    interaction: { mode: 'index' as const, intersect: false },
     plugins: {
       legend: {
         position: 'bottom' as const,
@@ -78,18 +76,285 @@ function dasar(gerak: boolean) {
         titleFont: { size: 12 },
         bodyFont: { size: 12 },
         padding: 8,
+        displayColors: true,
       },
     },
   };
 }
 
-/** Sumbu jumlah kartu: selalu bilangan bulat, selalu mulai dari nol. */
 const SUMBU_JUMLAH = {
   beginAtZero: true,
   // Tanpa `precision`, angka kecil membuat sumbu menulis "0,5 — 1 — 1,5".
   ticks: { precision: 0, color: WARNA.teks, font: { size: 11 } },
   grid: { color: WARNA.garisBantu },
 };
+
+/* ------------------------------------------------------------ tren kepatuhan */
+
+export function GrafikTrenKepatuhan({ data }: { data: BarisKepatuhanHarian[] }) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: data.map((satu) => formatTanggalRingkas(satu.tanggal)),
+      datasets: [
+        {
+          label: 'Kepatuhan (%)',
+          data: data.map((satu) => satu.persen),
+          borderColor: WARNA.primary,
+          backgroundColor: 'rgba(26, 115, 232, 0.12)',
+          fill: true,
+          tension: 0.25,
+          /*
+           * Akhir pekan diberi titik lebih besar dan berwarna lain. Banyak
+           * departemen memang tidak melapor hari Minggu, dan tanpa penanda itu
+           * grafiknya terbaca seperti kemerosotan berulang.
+           */
+          pointRadius: data.map((satu) => (satu.akhir_pekan ? 4 : 2)),
+          pointBackgroundColor: data.map((satu) =>
+            satu.akhir_pekan ? WARNA.belum_mulai : WARNA.primary,
+          ),
+        },
+      ],
+    }),
+    [data],
+  );
+
+  const opsi: ChartOptions<'line'> = {
+    ...dasar(gerak),
+    scales: {
+      x: { ticks: { color: WARNA.teks, font: { size: 10 }, maxTicksLimit: 10 } },
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: { color: WARNA.teks, font: { size: 11 }, callback: (n) => `${n}%` },
+        grid: { color: WARNA.garisBantu },
+      },
+    },
+    plugins: {
+      ...dasar(gerak).plugins,
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          title: (butir) => formatTanggal(data[butir[0].dataIndex]?.tanggal ?? ''),
+          label: (butir) => {
+            const baris = data[butir.dataIndex];
+
+            return baris === undefined
+              ? ''
+              : `${baris.melapor} dari ${baris.wajib} melapor (${baris.persen}%)` +
+                  (baris.akhir_pekan ? ' — akhir pekan' : '');
+          },
+        },
+      },
+    },
+  };
+
+  return <Line aria-hidden="true" data={konfigurasi} options={opsi} />;
+}
+
+/* --------------------------------------------------- kepatuhan per departemen */
+
+export function GrafikKepatuhanDepartemen({
+  data,
+  onPilih,
+}: {
+  data: BarisKepatuhanDepartemen[];
+  onPilih?: (departemen: string) => void;
+}) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: data.map((satu) => satu.departemen),
+      datasets: [
+        {
+          label: 'Kepatuhan (%)',
+          data: data.map((satu) => satu.persen),
+          // Merah untuk yang di bawah separuh: itu ambang yang membuat seorang
+          // eksekutif berhenti membaca dan mulai bertanya.
+          backgroundColor: data.map((satu) =>
+            satu.persen < 50 ? WARNA.danger : satu.persen < 80 ? WARNA.dalam_proses : WARNA.selesai,
+          ),
+        },
+      ],
+    }),
+    [data],
+  );
+
+  const opsi: ChartOptions<'bar'> = {
+    ...dasar(gerak),
+    indexAxis: 'y',
+    plugins: {
+      ...dasar(gerak).plugins,
+      legend: { display: false },
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          label: (butir) => {
+            const baris = data[butir.dataIndex];
+
+            return baris === undefined
+              ? ''
+              : `${baris.laporan} dari ${baris.seharusnya} laporan (${baris.persen}%), ${baris.anggota} anggota`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        max: 100,
+        ticks: { color: WARNA.teks, font: { size: 11 }, callback: (n) => `${n}%` },
+        grid: { color: WARNA.garisBantu },
+      },
+      y: { ticks: { color: WARNA.teks, font: { size: 11 } } },
+    },
+    onClick: (_peristiwa, elemen: ActiveElement[]) => {
+      const pertama = elemen[0];
+      if (pertama && data[pertama.index]) onPilih?.(data[pertama.index].departemen);
+    },
+  };
+
+  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
+}
+
+/* ------------------------------------------------------------------ jam kirim */
+
+export function GrafikJamKirim({ data }: { data: { jam: number; jumlah: number }[] }) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: data.map((satu) => `${String(satu.jam).padStart(2, '0')}.00`),
+      datasets: [
+        {
+          label: 'Laporan dikirim',
+          data: data.map((satu) => satu.jumlah),
+          // Di luar jam kerja diberi warna lain: kepatuhan seratus persen yang
+          // seluruhnya dikirim tengah malam bukan kabar baik.
+          backgroundColor: data.map((satu) =>
+            satu.jam >= 7 && satu.jam <= 18 ? WARNA.primary : WARNA.belum_mulai,
+          ),
+        },
+      ],
+    }),
+    [data],
+  );
+
+  const opsi: ChartOptions<'bar'> = {
+    ...dasar(gerak),
+    plugins: { ...dasar(gerak).plugins, legend: { display: false } },
+    scales: {
+      x: { ticks: { color: WARNA.teks, font: { size: 10 }, maxTicksLimit: 12 } },
+      y: SUMBU_JUMLAH,
+    },
+  };
+
+  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
+}
+
+/* -------------------------------------------------------------- produktivitas */
+
+export function GrafikProduktivitas({
+  data,
+  metrik,
+}: {
+  data: { tanggal: string; nilai: number; baris: number; pelapor: number }[];
+  metrik: Metrik;
+}) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: data.map((satu) => formatTanggalRingkas(satu.tanggal)),
+      datasets: [
+        {
+          label: `${metrik.label} (${metrik.satuan})`,
+          data: data.map((satu) => satu.nilai),
+          borderColor: WARNA.primary,
+          backgroundColor: 'rgba(26, 115, 232, 0.12)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2,
+        },
+      ],
+    }),
+    [data, metrik],
+  );
+
+  const opsi: ChartOptions<'line'> = {
+    ...dasar(gerak),
+    plugins: {
+      ...dasar(gerak).plugins,
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          title: (butir) => formatTanggal(data[butir[0].dataIndex]?.tanggal ?? ''),
+          label: (butir) => {
+            const baris = data[butir.dataIndex];
+
+            return baris === undefined
+              ? ''
+              : `${formatAngka(baris.nilai, metrik.desimal ? 2 : 0)} ${metrik.satuan} — ${baris.baris} baris, ${baris.pelapor} pelapor`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: { ticks: { color: WARNA.teks, font: { size: 10 }, maxTicksLimit: 10 } },
+      y: {
+        beginAtZero: true,
+        ticks: { color: WARNA.teks, font: { size: 11 } },
+        grid: { color: WARNA.garisBantu },
+      },
+    },
+  };
+
+  return <Line aria-hidden="true" data={konfigurasi} options={opsi} />;
+}
+
+export function GrafikProduktivitasDepartemen({
+  data,
+  metrik,
+}: {
+  data: { departemen: string; nilai: number }[];
+  metrik: Metrik;
+}) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: data.map((satu) => satu.departemen),
+      datasets: [
+        {
+          label: `${metrik.label} (${metrik.satuan})`,
+          data: data.map((satu) => satu.nilai),
+          backgroundColor: WARNA.primary,
+        },
+      ],
+    }),
+    [data, metrik],
+  );
+
+  const opsi: ChartOptions<'bar'> = {
+    ...dasar(gerak),
+    indexAxis: 'y',
+    plugins: { ...dasar(gerak).plugins, legend: { display: false } },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { color: WARNA.teks, font: { size: 11 } },
+        grid: { color: WARNA.garisBantu },
+      },
+      y: { ticks: { color: WARNA.teks, font: { size: 11 } } },
+    },
+  };
+
+  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
+}
+
+/* -------------------------------------------------------------------- progres */
 
 export function GrafikStatusDepartemen({
   data,
@@ -132,60 +397,11 @@ export function GrafikStatusDepartemen({
     },
     onClick: (_peristiwa, elemen: ActiveElement[]) => {
       const pertama = elemen[0];
-      if (pertama && data[pertama.index]) {
-        onPilihDepartemen?.(data[pertama.index].departemen);
-      }
+      if (pertama && data[pertama.index]) onPilihDepartemen?.(data[pertama.index].departemen);
     },
   };
 
   return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
-}
-
-export function GrafikKepatuhan({ data }: { data: BarisKepatuhan[] }) {
-  const gerak = gerakDikurangi();
-
-  const konfigurasi = useMemo(
-    () => ({
-      labels: data.map((satu) => formatTanggalRingkas(satu.tanggal)),
-      datasets: [
-        {
-          label: 'Kepatuhan (%)',
-          data: data.map(persenKepatuhan),
-          borderColor: WARNA.primary,
-          backgroundColor: WARNA.primary,
-          tension: 0.25,
-          pointRadius: 2,
-        },
-      ],
-    }),
-    [data],
-  );
-
-  const opsi: ChartOptions<'line'> = {
-    ...dasar(gerak),
-    scales: {
-      x: {
-        ticks: {
-          color: WARNA.teks,
-          font: { size: 10 },
-          // Tiga puluh tanggal berdempetan tidak terbaca; ditampilkan berselang.
-          maxTicksLimit: 8,
-        },
-      },
-      y: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          color: WARNA.teks,
-          font: { size: 11 },
-          callback: (nilai) => `${nilai}%`,
-        },
-        grid: { color: WARNA.garisBantu },
-      },
-    },
-  };
-
-  return <Line aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
 
 export function GrafikSebaranStatus({ data }: { data: BarisSebaranStatus[] }) {
@@ -205,7 +421,25 @@ export function GrafikSebaranStatus({ data }: { data: BarisSebaranStatus[] }) {
     [data],
   );
 
-  const opsi: ChartOptions<'doughnut'> = dasar(gerak);
+  const opsi: ChartOptions<'doughnut'> = {
+    ...dasar(gerak),
+    interaction: { mode: 'nearest', intersect: true },
+    plugins: {
+      ...dasar(gerak).plugins,
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          label: (butir) => {
+            const baris = data[butir.dataIndex];
+
+            return baris === undefined
+              ? ''
+              : `${baris.label}: ${formatAngka(baris.jumlah)} baris (${baris.persen}%)`;
+          },
+        },
+      },
+    },
+  };
 
   return <Doughnut aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
@@ -236,6 +470,19 @@ export function GrafikBeban({ data }: { data: BarisBeban[] }) {
     ...dasar(gerak),
     // Mendatar supaya nama orang terbaca penuh tanpa diputar miring.
     indexAxis: 'y',
+    plugins: {
+      ...dasar(gerak).plugins,
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          afterBody: (butir) => {
+            const baris = data[butir[0]?.dataIndex ?? -1];
+
+            return baris && baris.telat > 0 ? `${baris.telat} kartu lewat target` : '';
+          },
+        },
+      },
+    },
     scales: {
       x: { stacked: true, ...SUMBU_JUMLAH },
       y: { stacked: true, ticks: { color: WARNA.teks, font: { size: 11 } } },

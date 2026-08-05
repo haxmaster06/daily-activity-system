@@ -280,13 +280,24 @@ export const KAMUS_REACT_ARIA: Record<string, Record<string, Pesan>> = {
 /**
  * Memasang kamus ke simbol global yang dibaca React Aria.
  *
- * Wajib dijalankan **sebelum** komponen React Aria pertama dirender: daftar
- * paketnya dihitung sekali lalu disimpan selamanya di dalam library, sehingga
- * pemasangan yang terlambat tidak berpengaruh sama sekali.
+ * Dipanggil dari efek di `ui-provider.tsx`, **sesudah hidrasi** — bukan saat
+ * modul dimuat.
  *
- * Hanya di peramban. Di server, `getGlobalDictionaryForPackage` memang
- * mengembalikan null lebih dulu, dan teks React Aria yang terpengaruh hanya
- * muncul di dalam overlay yang baru dirender setelah hidrasi.
+ * Alasannya ditemukan dari cacat sungguhan, bukan dari membaca dokumentasi.
+ * `getGlobalDictionaryForPackage()` mengembalikan null bila `window` tidak ada,
+ * sehingga server **selalu** memakai bahasa Inggris. Memasang kamus sebelum
+ * render pertama di peramban membuat keduanya berbeda:
+ *
+ *     aria-valuetext="Empty"    ← server
+ *     aria-valuetext="Kosong"   ← klien
+ *
+ * pada segmen tanggal kosong milik DatePicker, yang memang dirender sejak SSR.
+ * React melaporkannya sebagai ketidakcocokan hidrasi.
+ *
+ * Pemasangan terlambat tetap berlaku karena `cachedGlobalStrings` **tidak**
+ * ikut terisi saat simbolnya masih kosong — library mengembalikan null lebih
+ * dulu, tanpa menyimpan apa pun. Panggilan berikutnya membaca ulang simbolnya
+ * dan menemukan kamus ini.
  */
 export function pasangBahasaReactAria(): void {
   if (typeof window === 'undefined') return;

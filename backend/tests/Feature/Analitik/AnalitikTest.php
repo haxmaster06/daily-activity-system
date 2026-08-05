@@ -2,55 +2,59 @@
 
 use App\Models\DailyReport;
 use App\Models\Department;
+use App\Models\MasterType;
 use App\Models\Permission;
 use App\Models\ReportTemplate;
+use App\Models\TemplateField;
 use App\Models\Tugas;
 use App\Models\User;
+use App\Support\Analitik\PenyaringAnalitik;
 use App\Support\KatalogIzin;
 use Database\Seeders\DepartmentSeeder;
-use Database\Seeders\ReportTemplateSeeder;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
 
 /**
- * Berkas terpenting pada rilis ini.
+ * Berkas terpenting pada modul ini.
  *
- * Halaman ringkasan adalah jalur kebocoran data yang paling mudah terjadi: satu
- * query yang lupa `visibleTo()` membuat pemegang jangkauan satu departemen
- * membaca angka seluruh perusahaan, dan tidak ada yang terlihat salah di layar.
- * Karena itu **tiap angka** diuji tersendiri terhadap pemegang jangkauan
- * Departemen — bukan sekali di satu tempat lalu dianggap mewakili sisanya.
+ * Executive Analytics punya **dua** jalur kebocoran, bukan satu:
+ *
+ * 1. Query yang lupa `visibleTo()` — pemegang jangkauan satu departemen membaca
+ *    angka seluruh perusahaan, dan tidak ada yang terlihat salah di layar.
+ * 2. Penyaring `departemen_id` yang dikirim pengguna sendiri — bila diterima
+ *    apa adanya, siapa pun dapat meminta departemen mana pun.
+ *
+ * Keduanya diuji, dan diuji terhadap seseorang yang **boleh** membuka halaman
+ * ini tetapi jangkauannya hanya satu departemen. Menguji Administrator saja
+ * tidak membuktikan apa pun: jangkauannya Korporat, sehingga query yang bocor
+ * pun memberi hasil yang sama benarnya.
  */
 
 /**
- * Dua departemen berisi kartu dan laporan, ditambah seorang pengawas yang
- * hanya berhak atas departemen pertama.
- *
- * @return array{pengawas: User, milik: Department, lain: Department}
+ * @return array{pengawas: User, milik: Department, lain: Department, template: ReportTemplate}
  */
 function siapkanAnalitik(): array
 {
     test()->seed(DepartmentSeeder::class);
-    test()->seed(ReportTemplateSeeder::class);
 
     $milik = Department::where('code', 'PRODUKSI')->firstOrFail();
     $lain = Department::where('code', 'QC')->firstOrFail();
 
-    $pengawas = User::factory()->supervisor()->create(['department_id' => $milik->id]);
-    $orangLain = User::factory()->staff()->create(['department_id' => $lain->id]);
+    $pengawas = User::factory()->supervisor()->create([
+        'department_id' => $milik->id,
+        'name' => 'Pengawas Produksi',
+    ]);
+    $orangLain = User::factory()->staff()->create([
+        'department_id' => $lain->id,
+        'name' => 'Staf Quality Control',
+    ]);
 
-    /*
-     * Inilah keadaan yang sebenarnya berbahaya, dan karena itu yang diuji:
-     * seseorang yang **boleh** membuka Executive Analytics tetapi jangkauannya
-     * hanya satu departemen. Menguji Administrator saja tidak membuktikan apa
-     * pun — jangkauannya Korporat, sehingga query yang lupa `visibleTo()` pun
-     * memberi hasil yang sama benarnya.
-     */
     $pengawas->roles->first()->permissions()->syncWithoutDetaching(
         Permission::where('key', KatalogIzin::ANALITIK_LIHAT)->pluck('id'),
     );
 
-    // Kartu di kedua departemen, judulnya sengaja mudah dibedakan.
+    $template = templateAngka();
+
     Tugas::factory()->create([
         'department_id' => $milik->id,
         'title' => 'Kartu milik sendiri',
@@ -62,7 +66,6 @@ function siapkanAnalitik(): array
         'penanggung_jawab_id' => $orangLain->id,
     ]);
 
-    // Kartu lewat target di kedua departemen.
     Tugas::factory()->create([
         'department_id' => $milik->id,
         'title' => 'Telat milik sendiri',
@@ -74,23 +77,47 @@ function siapkanAnalitik(): array
         'target_selesai' => Carbon::today()->subDays(3),
     ]);
 
-    laporanAnalitik($pengawas, $milik, 'selesai');
-    laporanAnalitik($orangLain, $lain, 'dalam_proses');
+    laporanAngka($pengawas, $milik, $template, 'selesai', 100);
+    laporanAngka($orangLain, $lain, $template, 'dalam_proses', 250);
 
-    /*
-     * `fresh()` wajib. `User::$with` memuat `roles.permissions` sejak model
-     * dibuat, sehingga izin yang baru disinkronkan di atas tidak terlihat oleh
-     * instance yang sudah ada di memori — dan `boleh()` menyimpan hasilnya.
-     * Tanpa ini setiap permintaan berakhir 403, dan penyebabnya terlihat
-     * seperti kesalahan otorisasi padahal hanya soal model basi.
-     */
-    return ['pengawas' => $pengawas->fresh(), 'milik' => $milik, 'lain' => $lain];
+    return [
+        'pengawas' => $pengawas->fresh(),
+        'milik' => $milik,
+        'lain' => $lain,
+        'template' => $template,
+    ];
 }
 
-function laporanAnalitik(User $pengguna, Department $departemen, string $status): DailyReport
+/** Template berisi satu kolom angka bersatuan kilogram. */
+function templateAngka(): ReportTemplate
 {
-    $template = ReportTemplate::where('code', 'AKTIVITAS_UMUM')->firstOrFail();
+    MasterType::factory()->create(['slug' => 'satuan_uji', 'name' => 'Satuan']);
 
+    $template = ReportTemplate::create([
+        'code' => 'UJI_ANALITIK',
+        'name' => 'Uji Analitik',
+        'department_id' => null,
+        'is_active' => true,
+    ]);
+
+    $template->fields()->create([
+        'key' => 'qty_masuk',
+        'label' => 'QTY Masuk',
+        'type' => TemplateField::TIPE_DECIMAL,
+        'unit' => 'kg',
+        'sort_order' => 0,
+    ]);
+
+    return $template->load('fields');
+}
+
+function laporanAngka(
+    User $pengguna,
+    Department $departemen,
+    ReportTemplate $template,
+    string $status,
+    float $qty,
+): DailyReport {
     $laporan = DailyReport::factory()->create([
         'user_id' => $pengguna->id,
         'department_id' => $departemen->id,
@@ -103,7 +130,7 @@ function laporanAnalitik(User $pengguna, Department $departemen, string $status)
     ]);
 
     $bagian->items()->create([
-        'data' => ['status' => $status],
+        'data' => ['qty_masuk' => $qty],
         'progress_status' => $status,
         'sort_order' => 0,
     ]);
@@ -111,138 +138,317 @@ function laporanAnalitik(User $pengguna, Department $departemen, string $status)
     return $laporan;
 }
 
-it('menolak Executive Analytics tanpa izin', function (): void {
-    $pengguna = User::factory()->staff()->create();
+describe('penjagaan akses', function (): void {
+    it('menolak seluruh halaman analitik tanpa izin', function (string $jalur): void {
+        Sanctum::actingAs(User::factory()->staff()->create());
 
-    Sanctum::actingAs($pengguna);
+        $this->getJson("/api/analitik/{$jalur}")->assertForbidden();
+    })->with(['opsi', 'ringkasan', 'kepatuhan', 'produktivitas', 'progres']);
 
-    $this->getJson('/api/analitik')->assertForbidden();
+    it('membuka tiap halaman bagi pemegang izinnya', function (string $jalur): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        $this->getJson("/api/analitik/{$jalur}")->assertOk();
+    })->with(['opsi', 'ringkasan', 'kepatuhan', 'produktivitas', 'progres']);
 });
 
-it('membuka Executive Analytics bagi pemegang izinnya', function (): void {
-    Sanctum::actingAs(User::factory()->administrator()->create());
+describe('penyaring departemen tidak boleh memperluas jangkauan', function (): void {
+    /*
+     * Inilah jalur kebocoran yang baru: penyaringnya dikirim pengguna. Meminta
+     * departemen di luar jangkauan harus dibuang diam-diam — menolaknya dengan
+     * pesan "departemen itu di luar jangkauan Anda" pun sudah memberi tahu
+     * bahwa departemen itu ada.
+     */
+    it('membuang departemen di luar jangkauan pada ringkasan', function (): void {
+        ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
 
-    $this->getJson('/api/analitik')
-        ->assertOk()
-        ->assertJsonStructure([
-            'data' => [
-                'rentang' => ['dari', 'sampai', 'hari'],
-                'status_per_departemen',
-                'kepatuhan',
-                'sebaran_status_baris',
-                'beban_penanggung_jawab',
-                'lewat_target',
-            ],
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson("/api/analitik/ringkasan?departemen_id[]={$lain->id}")
+            ->assertOk()
+            ->json('data');
+
+        // Permintaannya dibuang, sehingga penyaringnya kosong — dan yang
+        // terbaca tetap hanya departemennya sendiri.
+        expect($data['rentang']['departemen_id'])->toBe([])
+            ->and(collect($data['status_per_departemen'])->pluck('departemen'))
+            ->not->toContain($lain->name);
+    });
+
+    it('membuang departemen di luar jangkauan pada kepatuhan', function (): void {
+        ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson("/api/analitik/kepatuhan?departemen_id[]={$lain->id}")
+            ->assertOk()
+            ->json('data');
+
+        expect(collect($data['per_orang'])->pluck('nama'))
+            ->not->toContain('Staf Quality Control')
+            ->and(collect($data['per_departemen'])->pluck('departemen'))
+            ->not->toContain($lain->name);
+    });
+
+    it('membuang departemen di luar jangkauan pada produktivitas', function (): void {
+        ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson("/api/analitik/produktivitas?departemen_id[]={$lain->id}")
+            ->assertOk()
+            ->json('data');
+
+        // 100 kg miliknya sendiri; 250 kg milik departemen lain tidak ikut.
+        expect($data['data']['ringkasan']['total'])->toEqual(100);
+    });
+
+    it('menghormati penyaring departemen yang memang di dalam jangkauan', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        ['milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+
+        $data = $this->getJson("/api/analitik/produktivitas?departemen_id[]={$milik->id}")
+            ->assertOk()
+            ->json('data');
+
+        expect($data['rentang']['departemen_id'])->toBe([$milik->id])
+            ->and($data['data']['ringkasan']['total'])->toEqual(100);
+
+        $keduanya = $this->getJson(
+            "/api/analitik/produktivitas?departemen_id[]={$milik->id}&departemen_id[]={$lain->id}",
+        )->assertOk()->json('data');
+
+        expect($keduanya['data']['ringkasan']['total'])->toEqual(350);
+    });
+
+    it('hanya menawarkan departemen yang terjangkau pada daftar pilihan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $nama = collect($this->getJson('/api/analitik/opsi')->assertOk()->json('data.departemen'))
+            ->pluck('nama');
+
+        expect($nama)->toContain($milik->name)
+            ->and($nama)->not->toContain($lain->name);
+    });
+});
+
+describe('jangkauan data pada tiap angka', function (): void {
+    it('tidak membocorkan kartu departemen lain', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
+
+        expect(collect($data['lewat_target'])->pluck('judul'))
+            ->toContain('Telat milik sendiri')
+            ->not->toContain('Telat departemen lain')
+            ->and(collect($data['beban_penanggung_jawab'])->pluck('nama'))
+            ->not->toContain('Staf Quality Control');
+    });
+
+    it('tidak membocorkan baris laporan departemen lain', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $sebaran = collect(
+            $this->getJson('/api/analitik/progres')->assertOk()->json('data.sebaran_status_baris'),
+        )->pluck('jumlah', 'status');
+
+        expect($sebaran['selesai'])->toBe(1)
+            ->and($sebaran['dalam_proses'])->toBe(0);
+    });
+
+    it('tidak membocorkan angka produksi departemen lain', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson('/api/analitik/produktivitas')->assertOk()->json('data');
+
+        expect($data['data']['ringkasan']['total'])->toEqual(100)
+            ->and(collect($data['data']['per_orang'])->pluck('nama'))
+            ->not->toContain('Staf Quality Control');
+    });
+
+    it('tidak membocorkan orang departemen lain pada kepatuhan', function (): void {
+        ['pengawas' => $pengawas] = siapkanAnalitik();
+
+        Sanctum::actingAs($pengawas);
+
+        $data = $this->getJson('/api/analitik/kepatuhan')->assertOk()->json('data');
+
+        $nama = collect($data['per_orang'])->pluck('nama');
+
+        expect($nama)->toContain('Pengawas Produksi')
+            ->and($nama)->not->toContain('Staf Quality Control');
+    });
+
+    it('menampilkan seluruh departemen bagi pemegang jangkauan Korporat', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        ['milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+
+        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
+
+        expect(collect($data['status_per_departemen'])->pluck('departemen'))
+            ->toContain($milik->name)
+            ->toContain($lain->name)
+            ->and(collect($data['lewat_target'])->pluck('judul'))
+            ->toContain('Telat milik sendiri')
+            ->toContain('Telat departemen lain');
+    });
+});
+
+describe('angka produktivitas', function (): void {
+    /*
+     * Metrik dikenali dari pasangan kunci **dan** satuan. Menjumlahkan kilogram
+     * dengan pouch karena namanya mirip menghasilkan angka yang terlihat masuk
+     * akal dan sepenuhnya salah.
+     */
+    it('tidak mencampur satuan yang berbeda meski kuncinya sama', function (): void {
+        ['milik' => $milik] = siapkanAnalitik();
+
+        $lain = ReportTemplate::create([
+            'code' => 'UJI_POUCH',
+            'name' => 'Uji Pouch',
+            'department_id' => null,
+            'is_active' => true,
         ]);
+        $lain->fields()->create([
+            'key' => 'qty_masuk',
+            'label' => 'QTY Masuk',
+            'type' => TemplateField::TIPE_INTEGER,
+            'unit' => '/pouch 300g',
+            'sort_order' => 0,
+        ]);
+
+        $pengguna = User::factory()->staff()->create(['department_id' => $milik->id]);
+        laporanAngka($pengguna, $milik, $lain->load('fields'), 'selesai', 9000);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        $tersedia = collect(
+            $this->getJson('/api/analitik/produktivitas')->assertOk()->json('data.metrik_tersedia'),
+        );
+
+        expect($tersedia->pluck('penanda'))
+            ->toContain('qty_masuk|kg')
+            ->toContain('qty_masuk|/pouch 300g');
+
+        $kilogram = $this->getJson('/api/analitik/produktivitas?metrik=qty_masuk%7Ckg')
+            ->assertOk()
+            ->json('data.data.ringkasan.total');
+
+        // 100 + 250 kg. Sembilan ribu pouch tidak ikut terjumlah.
+        expect($kilogram)->toEqual(350);
+    });
+
+    it('menolak metrik yang tidak dikenal', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
+
+        $this->getJson('/api/analitik/produktivitas?metrik=entah_apa%7Ckg')->assertStatus(422);
+    });
+
+    it('mengisi hari tanpa data dengan nol', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
+
+        $perHari = $this->getJson('/api/analitik/produktivitas')
+            ->assertOk()
+            ->json('data.data.per_hari');
+
+        /*
+         * Grafik garis yang melompati tanggal kosong menyambungkan dua titik
+         * berjauhan menjadi garis landai, dan yang terbaca justru kebalikan
+         * dari keadaannya.
+         */
+        expect($perHari)->toHaveCount(30)
+            ->and(collect($perHari)->where('nilai', 0.0)->count())->toBeGreaterThan(0);
+    });
 });
 
-it('tidak membocorkan departemen lain pada sebaran kartu', function (): void {
-    ['pengawas' => $pengawas, 'lain' => $lain] = siapkanAnalitik();
+describe('rentang tanggal', function (): void {
+    it('memakai 30 hari terakhir bila tidak diminta', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
 
-    Sanctum::actingAs($pengawas);
+        $rentang = $this->getJson('/api/analitik/ringkasan')->assertOk()->json('data.rentang');
 
-    $baris = collect($this->getJson('/api/analitik')->assertOk()->json('data.status_per_departemen'));
+        expect($rentang['hari'])->toBe(30)
+            ->and($rentang['sampai'])->toBe(Carbon::today()->toDateString());
+    });
 
-    /*
-     * Departemen lain boleh saja tidak muncul sama sekali; yang dilarang adalah
-     * munculnya dengan angka. Angka itulah yang membocorkan berapa banyak
-     * pekerjaan berjalan di tim yang tidak boleh ia baca.
-     */
-    $lainnya = $baris->firstWhere('departemen', $lain->name);
+    it('membatasi jendela yang terlalu panjang', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
 
-    expect($baris->pluck('departemen'))->toContain('Produksi');
+        /*
+         * Tanpa batas, satu permintaan dengan rentang sepuluh tahun membaca
+         * seluruh arsip laporan — dan halaman ringkasan adalah tempat paling
+         * mudah untuk tidak sengaja melakukannya.
+         */
+        $rentang = $this->getJson('/api/analitik/ringkasan?dari=2016-01-01&sampai=2026-08-05')
+            ->assertOk()
+            ->json('data.rentang');
 
-    if ($lainnya !== null) {
-        expect(array_sum(array_diff_key($lainnya, ['departemen' => null])))->toBe(0);
-    }
+        expect($rentang['hari'])->toBeLessThanOrEqual(PenyaringAnalitik::BATAS_HARI + 1);
+    });
+
+    it('membalik rentang yang tertukar alih-alih menolaknya', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        $rentang = $this->getJson('/api/analitik/ringkasan?dari=2026-08-05&sampai=2026-08-01')
+            ->assertOk()
+            ->json('data.rentang');
+
+        expect($rentang['dari'])->toBe('2026-08-01')
+            ->and($rentang['sampai'])->toBe('2026-08-05');
+    });
 });
 
-it('tidak membocorkan laporan departemen lain pada kepatuhan', function (): void {
-    ['pengawas' => $pengawas] = siapkanAnalitik();
+describe('ringkasan eksekutif', function (): void {
+    it('menyertakan pembanding periode sebelumnya', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
 
-    Sanctum::actingAs($pengawas);
+        $kartu = collect($this->getJson('/api/analitik/ringkasan')->assertOk()->json('data.kartu'));
 
-    $hariIni = collect($this->getJson('/api/analitik')->assertOk()->json('data.kepatuhan'))
-        ->firstWhere('tanggal', Carbon::today()->toDateString());
+        // Angka tanpa pembanding hampir tidak berarti.
+        expect($kartu->pluck('kunci'))
+            ->toContain('kepatuhan')
+            ->toContain('laporan')
+            ->and($kartu->firstWhere('kunci', 'laporan'))
+            ->toHaveKey('sebelumnya');
+    });
 
-    // Dua orang membuat laporan hari ini, tetapi hanya satu yang terlihat.
-    expect($hariIni['melapor'])->toBe(1)
-        // Penyebutnya pun terbatas jangkauan: anggota departemen lain tidak
-        // ikut menaikkan angka wajib lapor.
-        ->and($hariIni['wajib'])->toBe(1);
+    it('menyebut yang perlu ditindaklanjuti dengan kalimat, bukan grafik', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
+
+        $sorotan = collect(
+            $this->getJson('/api/analitik/ringkasan')->assertOk()->json('data.sorotan'),
+        );
+
+        expect($sorotan)->not->toBeEmpty()
+            ->and($sorotan->first())->toHaveKeys(['jenis', 'teks']);
+    });
 });
 
-it('tidak membocorkan baris laporan departemen lain', function (): void {
-    ['pengawas' => $pengawas] = siapkanAnalitik();
+describe('peta panas kepatuhan', function (): void {
+    it('memuat satu sel untuk tiap pasangan departemen dan hari', function (): void {
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        siapkanAnalitik();
 
-    Sanctum::actingAs($pengawas);
+        $peta = $this->getJson('/api/analitik/kepatuhan?dari=2026-08-01&sampai=2026-08-05')
+            ->assertOk()
+            ->json('data.peta_panas');
 
-    $sebaran = collect($this->getJson('/api/analitik')->assertOk()->json('data.sebaran_status_baris'))
-        ->pluck('jumlah', 'status');
+        expect($peta['tanggal'])->toHaveCount(5);
 
-    // Baris "selesai" miliknya sendiri terhitung; "dalam_proses" milik
-    // departemen lain tidak.
-    expect($sebaran['selesai'])->toBe(1)
-        ->and($sebaran['dalam_proses'])->toBe(0);
-});
-
-it('tidak membocorkan beban orang di departemen lain', function (): void {
-    ['pengawas' => $pengawas] = siapkanAnalitik();
-
-    Sanctum::actingAs($pengawas);
-
-    $nama = collect($this->getJson('/api/analitik')->assertOk()->json('data.beban_penanggung_jawab'))
-        ->pluck('nama');
-
-    expect($nama)->toContain($pengawas->name);
-
-    $orangLain = User::where('department_id', '!=', $pengawas->department_id)
-        ->whereNot('id', $pengawas->id)
-        ->pluck('name');
-
-    foreach ($orangLain as $satu) {
-        expect($nama)->not->toContain($satu);
-    }
-});
-
-it('tidak membocorkan kartu telat departemen lain', function (): void {
-    ['pengawas' => $pengawas] = siapkanAnalitik();
-
-    Sanctum::actingAs($pengawas);
-
-    $judul = collect($this->getJson('/api/analitik')->assertOk()->json('data.lewat_target'))
-        ->pluck('judul');
-
-    expect($judul)->toContain('Telat milik sendiri')
-        ->and($judul)->not->toContain('Telat departemen lain');
-});
-
-it('menampilkan seluruh departemen bagi pemegang jangkauan Korporat', function (): void {
-    ['milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
-
-    Sanctum::actingAs(User::factory()->administrator()->create());
-
-    $data = $this->getJson('/api/analitik')->assertOk()->json('data');
-
-    expect(collect($data['status_per_departemen'])->pluck('departemen'))
-        ->toContain($milik->name)
-        ->toContain($lain->name)
-        ->and(collect($data['lewat_target'])->pluck('judul'))
-        ->toContain('Telat milik sendiri')
-        ->toContain('Telat departemen lain');
-});
-
-it('mengisi seluruh hari pada rentang kepatuhan, termasuk yang kosong', function (): void {
-    Sanctum::actingAs(User::factory()->administrator()->create());
-
-    $kepatuhan = $this->getJson('/api/analitik')->assertOk()->json('data.kepatuhan');
-
-    /*
-     * Hari tanpa satu laporan pun wajib tetap muncul dengan angka nol. Grafik
-     * garis yang melompati tanggal kosong menyambungkan dua titik berjauhan
-     * menjadi garis landai, dan yang terbaca justru kebalikan dari keadaannya.
-     */
-    expect($kepatuhan)->toHaveCount(30)
-        ->and($kepatuhan[0]['tanggal'])->toBe(Carbon::today()->subDays(29)->toDateString())
-        ->and($kepatuhan[29]['tanggal'])->toBe(Carbon::today()->toDateString());
+        foreach ($peta['baris'] as $baris) {
+            expect($baris['sel'])->toHaveCount(5);
+        }
+    });
 });

@@ -1,20 +1,10 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { I18nProvider, RouterProvider } from 'react-aria-components';
 
 import { pasangBahasaReactAria } from '@/lib/react-aria-bahasa';
-
-/*
- * Dipanggil saat modul dimuat, bukan di dalam efek.
- *
- * React Aria menghitung daftar paket kamusnya sekali lalu menyimpannya
- * selamanya. Memasangnya di `useEffect` berarti terlambat — komponen React Aria
- * pertama sudah dirender lebih dulu, kamusnya sudah terkunci pada bahasa
- * Inggris, dan tidak ada cara mengembalikannya tanpa memuat ulang halaman.
- */
-pasangBahasaReactAria();
 
 declare module 'react-aria-components' {
   interface RouterConfig {
@@ -33,6 +23,39 @@ declare module 'react-aria-components' {
  */
 export function UiProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+
+  /*
+   * Kamus Bahasa Indonesia dipasang **sesudah hidrasi**, bukan saat modul
+   * dimuat — dan itu keputusan yang lahir dari cacat sungguhan.
+   *
+   * `getGlobalDictionaryForPackage()` mengembalikan null bila `window` tidak
+   * ada, sehingga **server selalu memakai bahasa Inggris**. Memasang kamus
+   * sebelum render pertama di peramban membuat keduanya berbeda, dan React
+   * melaporkannya sebagai ketidakcocokan hidrasi. Yang benar-benar terjadi:
+   *
+   *     aria-valuetext="Empty"    ← server
+   *     aria-valuetext="Kosong"   ← klien
+   *
+   * pada segmen tanggal kosong milik DatePicker — dan segmen itu memang
+   * dirender sejak SSR, bukan hanya di dalam overlay.
+   *
+   * Dipasang di efek, render pertama peramban sama persis dengan server,
+   * sehingga hidrasinya bersih. Teks React Aria yang benar-benar bermasalah —
+   * tombol Tutup pada Popover, tombol dan sel kalender — seluruhnya baru
+   * dirender saat pengguna membukanya, yaitu jauh sesudah efek ini berjalan,
+   * sehingga tetap Bahasa Indonesia.
+   *
+   * Yang tersisa berbahasa Inggris hanyalah `aria-valuetext` segmen tanggal
+   * yang masih kosong dan belum tersentuh sama sekali. Begitu diisi, nilainya
+   * bukan lagi "Empty".
+   *
+   * Sengaja **tidak** memaksa render ulang seluruh pohon setelah pemasangan:
+   * biayanya satu render penuh tiap pemuatan halaman, untuk mengganti satu
+   * atribut pada isian yang belum disentuh.
+   */
+  useEffect(() => {
+    pasangBahasaReactAria();
+  }, []);
 
   return (
     <I18nProvider locale="id-ID">

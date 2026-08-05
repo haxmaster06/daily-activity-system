@@ -168,13 +168,33 @@ melewati batas panjang.
 
 ### Executive Analytics
 
-`GET /api/analitik` mengembalikan **seluruh** angkanya dalam satu permintaan:
-`status_per_departemen`, `kepatuhan` (30 hari), `sebaran_status_baris`,
-`beban_penanggung_jawab`, dan `lewat_target`.
+Empat halaman, empat endpoint — bukan satu balasan raksasa. Pembacanya membuka
+satu halaman pada satu waktu.
 
-Seluruh agregasinya melewati `visibleTo()`. Satu query yang melupakannya membuat
-pemegang jangkauan satu departemen membaca angka seluruh perusahaan — dan tidak
-ada yang terlihat salah di layar. `AnalitikTest` menguji kelimanya satu per satu.
+| Metode | Alamat | Isi |
+|---|---|---|
+| GET | `/analitik/opsi` | Departemen yang boleh dibaca, dan metrik yang tersedia |
+| GET | `/analitik/ringkasan` | Kartu angka berpembanding, tren, dan kalimat "perlu perhatian" |
+| GET | `/analitik/kepatuhan` | Peta panas departemen × hari, per orang, jam pengiriman |
+| GET | `/analitik/produktivitas` | Angka bersatuan dari isi laporan: kg, box, pouch |
+| GET | `/analitik/progres` | Kartu papan progres, beban, telat, umur kartu |
+
+Penyaring yang diterima semuanya: `dari`, `sampai`, `departemen_id[]`, dan
+`metrik` (khusus produktivitas). Rentang bawaan 30 hari terakhir; rentang
+terpanjang 366 hari, dan permintaan yang lebih panjang dipotong, bukan ditolak.
+
+**Dua jalur kebocoran, bukan satu.** Selain query yang lupa `visibleTo()`,
+penyaring `departemen_id` dikirim pengguna sendiri. Terjemahannya dipusatkan di
+`App\Support\Analitik\PenyaringAnalitik`, yang **membuang** departemen di luar
+jangkauan sebelum satu angka pun dihitung — bukan menolaknya dengan galat, sebab
+pesan "departemen itu di luar jangkauan Anda" pun sudah memberi tahu bahwa
+departemen itu ada. `AnalitikTest` menguji keduanya, terhadap pemegang jangkauan
+satu departemen.
+
+Produktivitas membaca kolom angka bersatuan dari `daily_report_items.data`.
+Metriknya dikenali dari pasangan **kunci dan satuan**, bukan kunci saja:
+menjumlahkan kilogram dengan pouch karena namanya mirip menghasilkan angka yang
+terlihat masuk akal dan sepenuhnya salah.
 
 ### Master data
 

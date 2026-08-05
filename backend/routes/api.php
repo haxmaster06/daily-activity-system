@@ -103,9 +103,14 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
      * Izinnya terpisah dari monitoring: yang dibaca di sini melintasi seluruh
      * jangkauan pemegangnya sekaligus, bukan satu tim.
      */
-    Route::get('/analitik', AnalitikController::class)
-        ->middleware('izin:analitik.lihat')
-        ->name('analitik');
+    Route::middleware('izin:analitik.lihat')->prefix('analitik')->group(function (): void {
+        Route::get('/opsi', [AnalitikController::class, 'opsi'])->name('analitik.opsi');
+        Route::get('/ringkasan', [AnalitikController::class, 'ringkasan'])->name('analitik.ringkasan');
+        Route::get('/kepatuhan', [AnalitikController::class, 'kepatuhan'])->name('analitik.kepatuhan');
+        Route::get('/produktivitas', [AnalitikController::class, 'produktivitas'])
+            ->name('analitik.produktivitas');
+        Route::get('/progres', [AnalitikController::class, 'progres'])->name('analitik.progres');
+    });
 
     /*
      * Daftar master generik — Supplier, Produk, Satuan, dan apa pun yang

@@ -344,9 +344,39 @@ Jebakan kedua ditutup `react-aria-bahasa.test.ts`: ia membaca kamus bawaan
 React Aria langsung dari `node_modules` dan membandingkan kunci per paket.
 Upgrade yang menambah kunci **menggagalkan test**, bukan menjatuhkan halaman.
 
-Kamusnya dipasang saat modul `ui-provider.tsx` dimuat, bukan di dalam efek:
-React Aria menghitung daftar paketnya sekali lalu menyimpannya selamanya, jadi
-pemasangan yang terlambat tidak berpengaruh sama sekali.
+#### Jebakan ketiga: hidrasi
+
+`getGlobalDictionaryForPackage()` mengembalikan null bila `window` tidak ada,
+sehingga **server selalu memakai bahasa Inggris**. Memasang kamus sebelum render
+pertama di peramban membuat keduanya berbeda:
+
+```
+aria-valuetext="Empty"    ← server
+aria-valuetext="Kosong"   ← klien
+```
+
+pada segmen tanggal kosong milik DatePicker. React melaporkannya sebagai
+ketidakcocokan hidrasi.
+
+> **Koreksi.** Catatan versi pertama menyatakan teks React Aria hanya muncul di
+> dalam overlay yang dirender setelah hidrasi, sehingga aman. Itu keliru —
+> `DateSegment` dirender sejak SSR. Cacatnya baru terlihat setelah halaman
+> Analytics punya dua DatePicker kosong; halaman sebelumnya selalu punya nilai
+> awal, sehingga segmennya tidak pernah berbunyi "Empty".
+
+Karena itu kamusnya dipasang di dalam **`useEffect`**, sesudah hidrasi. Render
+pertama peramban sama persis dengan server, dan teks yang benar-benar
+bermasalah — tombol Tutup pada Popover, tombol dan sel kalender — seluruhnya
+baru dirender saat pengguna membukanya, jauh sesudah efek itu berjalan.
+
+Pemasangan terlambat tetap berlaku karena `cachedGlobalStrings` **tidak** ikut
+terisi saat simbolnya masih kosong: library mengembalikan null lebih dulu, tanpa
+menyimpan apa pun.
+
+Sisanya berbahasa Inggris hanya `aria-valuetext` pada segmen tanggal yang belum
+tersentuh sama sekali. Memaksa render ulang seluruh pohon setelah pemasangan
+akan menutup itu juga, dengan biaya satu render penuh tiap pemuatan halaman —
+tidak sepadan untuk satu atribut pada isian yang masih kosong.
 
 Bila React Aria kelak menyertakan `id-ID`, kamus ini boleh dibuang — dan salah
 satu test di berkas itu memang akan memberi tahu.
