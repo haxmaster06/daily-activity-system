@@ -1,18 +1,18 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { CalendarRange, Check, X } from 'lucide-react';
+import { Building2, CalendarRange, Check, X } from 'lucide-react';
 
 import { DatePicker } from '@/components/ui/date-picker';
+import { Popover } from '@/components/ui/popover';
 import { cn } from '@/lib/cn';
 import { formatTanggalRingkas } from '@/lib/format';
 
 /** Pintasan rentang yang paling sering dipakai. */
 const PINTASAN = [
-  { label: '7 hari', hari: 7 },
-  { label: '30 hari', hari: 30 },
-  { label: '90 hari', hari: 90 },
+  { label: '7 hari terakhir', hari: 7 },
+  { label: '30 hari terakhir', hari: 30 },
+  { label: '90 hari terakhir', hari: 90 },
 ] as const;
 
 function isoHariIni(mundur = 0): string {
@@ -23,14 +23,20 @@ function isoHariIni(mundur = 0): string {
 }
 
 /**
- * Penyaring bersama seluruh halaman Analytics: rentang tanggal dan departemen.
+ * Penyaring bersama seluruh halaman Analytics.
  *
- * Nilainya disimpan di URL, bukan di state. Itu yang membuat penyaringan dapat
- * dibagikan lewat tautan, bertahan saat halaman dimuat ulang, dan ikut terbawa
- * saat berpindah tab.
+ * Dirancang **satu baris**. Bentuk sebelumnya memakai tiga baris — dua pemilih
+ * tanggal, tiga tombol pintasan, lalu satu pil per departemen — dan pada dua
+ * puluh departemen deretan pilnya sendiri sudah menghabiskan setengah layar
+ * sebelum satu angka pun terlihat.
  *
- * Departemen yang ditawarkan sudah dibatasi jangkauan pengguna di server;
- * backend tetap membuang yang di luar jangkauan bila diminta lewat URL.
+ * Yang tampil sepanjang waktu hanya **kesimpulannya**: rentang yang berlaku dan
+ * berapa departemen yang dipilih. Isiannya baru muncul saat dibutuhkan. Tombol
+ * Bersihkan pun hanya ada saat ada yang perlu dibersihkan.
+ *
+ * Nilainya disimpan di URL, bukan di state — supaya penyaringan dapat dibagikan
+ * lewat tautan, bertahan saat halaman dimuat ulang, dan ikut terbawa saat
+ * berpindah tab.
  */
 export function PenyaringAnalitik({
   departemen,
@@ -43,13 +49,8 @@ export function PenyaringAnalitik({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [dari, setDari] = useState<string | null>(searchParams.get('dari'));
-  const [sampai, setSampai] = useState<string | null>(searchParams.get('sampai'));
-
-  useEffect(() => {
-    setDari(searchParams.get('dari'));
-    setSampai(searchParams.get('sampai'));
-  }, [searchParams]);
+  const dari = searchParams.get('dari');
+  const sampai = searchParams.get('sampai');
 
   const terpilih = (searchParams.get('departemen') ?? '')
     .split(',')
@@ -64,137 +65,177 @@ export function PenyaringAnalitik({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
-  function pilihPintasan(hari: number) {
-    terapkan((params) => {
-      params.set('dari', isoHariIni(hari - 1));
-      params.set('sampai', isoHariIni());
-    });
-  }
-
   function alihkanDepartemen(id: number) {
     const berikutnya = terpilih.includes(id)
       ? terpilih.filter((satu) => satu !== id)
       : [...terpilih, id];
 
     terapkan((params) => {
-      if (berikutnya.length === 0) {
-        params.delete('departemen');
-      } else {
-        params.set('departemen', berikutnya.join(','));
-      }
+      if (berikutnya.length === 0) params.delete('departemen');
+      else params.set('departemen', berikutnya.join(','));
     });
   }
+
+  /** Pintasan yang sedang berlaku, bila rentangnya persis salah satunya. */
+  const pintasanAktif = PINTASAN.find(
+    (satu) => dari === isoHariIni(satu.hari - 1) && sampai === isoHariIni(),
+  );
+
+  const ringkasRentang =
+    dari === null && sampai === null
+      ? '30 hari terakhir'
+      : (pintasanAktif?.label ??
+        `${formatTanggalRingkas(dari ?? '')} – ${formatTanggalRingkas(sampai ?? '')}`);
+
+  const ringkasDepartemen =
+    terpilih.length === 0
+      ? 'Semua departemen'
+      : terpilih.length === 1
+        ? (departemen.find((satu) => satu.id === terpilih[0])?.nama ?? '1 departemen')
+        : `${terpilih.length} departemen`;
 
   const adaPenyaring = dari !== null || sampai !== null || terpilih.length > 0;
 
   return (
     <section
       aria-label="Penyaring analitik"
-      className="rounded-card border border-line bg-surface p-3"
+      className="flex flex-wrap items-center gap-2"
     >
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex items-end gap-2">
-          <DatePicker
-            label="Dari"
-            ukuran="sm"
-            nilai={dari}
-            onUbah={(nilai) => terapkan((params) => {
-              if (nilai) params.set('dari', nilai);
-              else params.delete('dari');
-            })}
-          />
-          <DatePicker
-            label="Sampai"
-            ukuran="sm"
-            nilai={sampai}
-            onUbah={(nilai) => terapkan((params) => {
-              if (nilai) params.set('sampai', nilai);
-              else params.delete('sampai');
-            })}
-          />
-        </div>
-
-        <div className="flex items-center gap-1">
+      <Popover
+        label="Ubah rentang tanggal"
+        ringkasan={ringkasRentang}
+        Ikon={CalendarRange}
+        aktif={dari !== null || sampai !== null}
+        lebar="w-72"
+      >
+        <p className="field-label">Pintasan</p>
+        <div className="mt-1 flex flex-col gap-1">
           {PINTASAN.map((satu) => (
             <button
               key={satu.hari}
               type="button"
-              onClick={() => pilihPintasan(satu.hari)}
-              className="btn-ghost btn-sm"
+              onClick={() =>
+                terapkan((params) => {
+                  params.set('dari', isoHariIni(satu.hari - 1));
+                  params.set('sampai', isoHariIni());
+                })
+              }
+              className={cn(
+                'flex items-center justify-between rounded-control px-2 py-1.5 text-left text-body transition-colors duration-fast',
+                pintasanAktif?.hari === satu.hari
+                  ? 'bg-primary-subtle font-medium text-primary-text'
+                  : 'text-ink-muted hover:bg-surface-muted',
+              )}
             >
-              <CalendarRange aria-hidden="true" className="size-3.5" />
               {satu.label}
+              {pintasanAktif?.hari === satu.hari && (
+                <Check aria-hidden="true" className="size-3.5" />
+              )}
             </button>
           ))}
         </div>
 
-        {adaPenyaring && (
-          <button
-            type="button"
-            onClick={() => router.push(pathname)}
-            className="btn-ghost btn-sm text-danger-text"
-          >
-            <X aria-hidden="true" className="size-3.5" />
-            Bersihkan
-          </button>
-        )}
-      </div>
+        <div className="mt-3 border-t border-line pt-3">
+          <p className="field-label">Rentang sendiri</p>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <DatePicker
+              label="Dari"
+              ukuran="sm"
+              nilai={dari}
+              onUbah={(nilai) =>
+                terapkan((params) => {
+                  if (nilai) params.set('dari', nilai);
+                  else params.delete('dari');
+                })
+              }
+            />
+            <DatePicker
+              label="Sampai"
+              ukuran="sm"
+              nilai={sampai}
+              onUbah={(nilai) =>
+                terapkan((params) => {
+                  if (nilai) params.set('sampai', nilai);
+                  else params.delete('sampai');
+                })
+              }
+            />
+          </div>
+
+          <p className="mt-2 text-caption text-ink-soft">
+            Paling panjang {batasHari} hari.
+          </p>
+        </div>
+      </Popover>
 
       {/*
-        Departemen ditampilkan sebagai tombol berjajar, bukan dropdown bertumpuk.
-        Pilihannya sedikit dan sering diganti-ganti; dropdown menuntut dua klik
-        untuk pekerjaan satu klik.
+        Pemilih departemen hanya muncul bila memang ada yang bisa dipilih.
+        Pemantau satu departemen tidak perlu ditawari pilihan yang jawabannya
+        sudah pasti.
       */}
       {departemen.length > 1 && (
-        <div className="mt-3">
-          <span className="field-label">Departemen</span>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => terapkan((params) => params.delete('departemen'))}
-              aria-pressed={terpilih.length === 0}
-              className={cn(
-                'inline-flex items-center gap-1 rounded-control border px-2 py-1 text-caption transition-colors duration-fast',
-                terpilih.length === 0
-                  ? 'border-primary bg-primary-subtle font-medium text-primary-text'
-                  : 'border-line text-ink-muted hover:bg-surface-muted',
-              )}
-            >
-              {terpilih.length === 0 && <Check aria-hidden="true" className="size-3" />}
-              Semua
-            </button>
+        <Popover
+          label="Pilih departemen"
+          ringkasan={ringkasDepartemen}
+          Ikon={Building2}
+          aktif={terpilih.length > 0}
+          lebar="w-64"
+        >
+          <button
+            type="button"
+            onClick={() => terapkan((params) => params.delete('departemen'))}
+            className={cn(
+              'flex w-full items-center justify-between rounded-control px-2 py-1.5 text-left text-body transition-colors duration-fast',
+              terpilih.length === 0
+                ? 'bg-primary-subtle font-medium text-primary-text'
+                : 'text-ink-muted hover:bg-surface-muted',
+            )}
+          >
+            Semua departemen
+            {terpilih.length === 0 && <Check aria-hidden="true" className="size-3.5" />}
+          </button>
 
+          {/*
+            Daftarnya menggulir di dalam dirinya sendiri. Dua puluh departemen
+            yang ditampilkan sekaligus membuat popover lebih tinggi dari layar.
+          */}
+          <ul className="mt-1 flex max-h-64 flex-col gap-0.5 overflow-y-auto border-t border-line pt-1">
             {departemen.map((satu) => {
               const aktif = terpilih.includes(satu.id);
 
               return (
-                <button
-                  key={satu.id}
-                  type="button"
-                  onClick={() => alihkanDepartemen(satu.id)}
-                  aria-pressed={aktif}
-                  className={cn(
-                    'inline-flex items-center gap-1 rounded-control border px-2 py-1 text-caption transition-colors duration-fast',
-                    aktif
-                      ? 'border-primary bg-primary-subtle font-medium text-primary-text'
-                      : 'border-line text-ink-muted hover:bg-surface-muted',
-                  )}
-                >
-                  {aktif && <Check aria-hidden="true" className="size-3" />}
-                  {satu.nama}
-                </button>
+                <li key={satu.id}>
+                  <button
+                    type="button"
+                    onClick={() => alihkanDepartemen(satu.id)}
+                    aria-pressed={aktif}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-2 rounded-control px-2 py-1.5 text-left text-body transition-colors duration-fast',
+                      aktif
+                        ? 'bg-primary-subtle font-medium text-primary-text'
+                        : 'text-ink-muted hover:bg-surface-muted',
+                    )}
+                  >
+                    {satu.nama}
+                    {aktif && <Check aria-hidden="true" className="size-3.5 shrink-0" />}
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </div>
+          </ul>
+        </Popover>
       )}
 
-      <p className="mt-2 text-caption text-ink-soft">
-        {dari || sampai
-          ? `Menampilkan ${formatTanggalRingkas(dari ?? '')} sampai ${formatTanggalRingkas(sampai ?? '')}.`
-          : 'Tanpa pilihan tanggal, yang ditampilkan 30 hari terakhir.'}{' '}
-        Rentang paling panjang {batasHari} hari.
-      </p>
+      {adaPenyaring && (
+        <button
+          type="button"
+          onClick={() => router.push(pathname)}
+          className="inline-flex h-input-sm items-center gap-1 rounded-control px-2 text-body text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-danger-text"
+        >
+          <X aria-hidden="true" className="size-3.5" />
+          Bersihkan
+        </button>
+      )}
     </section>
   );
 }

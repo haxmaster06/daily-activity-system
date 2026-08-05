@@ -22,6 +22,7 @@ import {
 } from 'react-aria-components';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { useWadahOverlay } from '@/components/ui/wadah-overlay';
 import { cn } from '@/lib/cn';
 
 interface DatePickerProps {
@@ -71,6 +72,8 @@ export function DatePicker({
   tanpaLabel = false,
   ukuran = 'md',
 }: DatePickerProps) {
+  const wadahOverlay = useWadahOverlay();
+
   return (
     <AriaDatePicker
       value={keCalendarDate(nilai)}
@@ -133,6 +136,16 @@ export function DatePicker({
       <FieldError className="field-error">{galat}</FieldError>
 
       <Popover
+        /*
+         * Kalender ikut ditaruh di wadah overlay yang sedang berlaku, bila ada.
+         *
+         * Tanpa ini, kalender dipasang ke `document.body` — di luar popover
+         * Radix yang mungkin membungkusnya — dan Radix membaca klik pada
+         * tanggal sebagai klik di luar lalu menutup dirinya sendiri, tepat saat
+         * pengguna memilih. Cacat yang sama bentuknya pernah terjadi pada arah
+         * sebaliknya: Radix Select di dalam Modal React Aria.
+         */
+        UNSTABLE_portalContainer={wadahOverlay}
         className={cn(
           'rounded-card border border-line bg-surface p-3 shadow-modal',
           'data-[entering]:animate-popover-masuk',
