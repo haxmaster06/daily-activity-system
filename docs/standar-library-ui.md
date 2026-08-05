@@ -240,23 +240,20 @@ ia jatuh ke Inggris:
 
 Kalimat itulah satu-satunya penjelasan yang diterima pengguna pembaca layar —
 justru pengguna yang paling bergantung padanya. CLAUDE.md mewajibkan seluruh
-teks yang dilihat, atau didengar, pengguna memakai Bahasa Indonesia. React Aria
-tidak menyediakan API publik untuk menyuntikkan kamus locale sendiri ke paket
-internalnya.
+teks yang dilihat, atau didengar, pengguna memakai Bahasa Indonesia.
 
 `@dnd-kit` menyerahkan seluruh kalimatnya kepada pemanggil lewat
 `accessibility={{ announcements, screenReaderInstructions }}`. Teksnya ada di
 `papan-kanban.tsx` dan berbahasa Indonesia seluruhnya, dijaga oleh test
 `papan-kanban.test.tsx`.
 
-**Jangan mengganti ini kembali ke React Aria** sebelum `id-ID` benar-benar ada
-di paket `react-aria`. Penggantiannya akan lulus seluruh test tampilan dan
-diam-diam mengembalikan petunjuk berbahasa Inggris.
-
-Catatan yang lebih luas, dan belum ditindaklanjuti: ketiadaan `id-ID` juga
-berlaku bagi seluruh komponen React Aria lain yang sudah dipakai — teks bantuan
-internal ComboBox, DatePicker, dan Modal tetap berbahasa Inggris bagi pembaca
-layar. Perlu diaudit tersendiri.
+> **Koreksi.** Versi pertama catatan ini menyatakan React Aria tidak menyediakan
+> jalan apa pun untuk mengganti kamus internalnya. Itu keliru: ada kamus global
+> yang menang atas kamus bawaan, dan sekarang DAMS memakainya — lihat §9.3.
+> Artinya tarik-lepas React Aria **kini layak dipertimbangkan ulang**, dan
+> pilihan `@dnd-kit` berdiri di atas alasan yang lebih sempit: ia sudah
+> terbangun, teruji, dan terbukti di peramban, sementara menggantinya kembali
+> tidak menambah apa pun bagi pengguna. Bukan lagi karena tidak ada jalan lain.
 
 ### 9.2 `chart.js` — grafik Executive Analytics
 
@@ -310,6 +307,49 @@ menahan model posisi di kepalanya, sedangkan menu menyebut kolom tujuannya
 dengan kata dan cukup satu penekanan. Jalur itu juga yang membuat perpindahan
 kartu dapat diuji tanpa tata letak — jsdom tidak punya ukuran elemen, sehingga
 sensor papan ketik `@dnd-kit` tidak dapat menghitung arah di dalam test.
+
+---
+
+### 9.3 Kamus Bahasa Indonesia untuk React Aria
+
+`src/lib/react-aria-bahasa.ts`. Bukan library baru — kamus milik sendiri yang
+menambal lubang bahasa di library yang sudah dipakai.
+
+React Aria menyertakan 34 locale dan **`id-ID` bukan salah satunya**. Sebagian
+teks yang dibangkitkannya tidak dapat dijangkau lewat prop apa pun. Yang
+terbukti muncul di DAMS, diperiksa langsung di peramban sebelum kamus ini ada:
+
+| Teks | Asal | Terlihat di |
+|---|---|---|
+| `Dismiss` | `@react-aria/overlays` | tombol tersembunyi di tiap Popover |
+| `Next` | `@react-aria/calendar` | tombol internal kalender |
+| `Today, …, selected, Last available date` | `@react-aria/calendar` | tiap sel tanggal |
+
+Sisanya sudah Bahasa Indonesia karena komponen kita mengisi `aria-label`-nya
+sendiri — itu sebabnya kebocorannya hanya tiga, bukan puluhan.
+
+**Cara kerjanya.** `LocalizedStringDictionary.getGlobalDictionaryForPackage()`
+memeriksa dua simbol global lebih dulu; bila ada, kamus global menang atas kamus
+bawaan. Jalur yang sama dipakai React Spectrum untuk menyuntikkan terjemahan.
+
+**Dua jebakannya, dan keduanya berbahaya:**
+
+1. Begitu simbol global terisi, paket yang **tidak terdaftar melempar galat** —
+   bukan jatuh ke bahasa Inggris. Karena itu seluruh 18 paket dicantumkan,
+   termasuk yang belum dipakai satu komponen pun.
+2. Kunci yang tidak ada **juga melempar galat**. Menaikkan versi React Aria yang
+   menambah satu kunci saja dapat menjatuhkan halaman di hadapan pengguna.
+
+Jebakan kedua ditutup `react-aria-bahasa.test.ts`: ia membaca kamus bawaan
+React Aria langsung dari `node_modules` dan membandingkan kunci per paket.
+Upgrade yang menambah kunci **menggagalkan test**, bukan menjatuhkan halaman.
+
+Kamusnya dipasang saat modul `ui-provider.tsx` dimuat, bukan di dalam efek:
+React Aria menghitung daftar paketnya sekali lalu menyimpannya selamanya, jadi
+pemasangan yang terlambat tidak berpengaruh sama sekali.
+
+Bila React Aria kelak menyertakan `id-ID`, kamus ini boleh dibuang — dan salah
+satu test di berkas itu memang akan memberi tahu.
 
 ---
 
