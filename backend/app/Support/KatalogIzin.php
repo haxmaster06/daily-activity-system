@@ -38,6 +38,12 @@ final class KatalogIzin
 
     public const MONITORING_KIRIM_PENGINGAT = 'monitoring.kirim-pengingat';
 
+    public const TUGAS_LIHAT = 'tugas.lihat';
+
+    public const TUGAS_KELOLA = 'tugas.kelola';
+
+    public const ANALITIK_LIHAT = 'analitik.lihat';
+
     public const DEPARTEMEN_LIHAT = 'departemen.lihat';
 
     public const DEPARTEMEN_KELOLA = 'departemen.kelola';
@@ -89,6 +95,9 @@ final class KatalogIzin
 
             ['monitoring', self::MONITORING_LIHAT, 'Melihat kepatuhan tim', 'Membuka ringkasan siapa yang sudah dan belum melapor.'],
             ['monitoring', self::MONITORING_KIRIM_PENGINGAT, 'Mengirim pengingat', 'Mengingatkan anggota yang belum mengisi laporan.'],
+            ['monitoring', self::TUGAS_LIHAT, 'Melihat papan progres', 'Membuka papan progres harian beserta kartunya.'],
+            ['monitoring', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
+            ['monitoring', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
 
             ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
@@ -152,6 +161,9 @@ final class KatalogIzin
             // Diperlukan saat mengisi laporan: kolom yang mengambil pilihannya
             // dari daftar master tidak dapat dibuka tanpa membaca daftarnya.
             self::MASTER_LIHAT,
+            // Memasukkan progres harian memang pekerjaan staf.
+            self::TUGAS_LIHAT,
+            self::TUGAS_KELOLA,
         ];
 
         $supervisor = [
@@ -164,10 +176,35 @@ final class KatalogIzin
         return [
             // Manager berbeda dari Supervisor pada jangkauan datanya, bukan
             // pada hak aksesnya.
-            Role::STAFF => $staff,
-            Role::SUPERVISOR => $supervisor,
-            Role::MANAGER => $supervisor,
+            Role::STAFF => self::urutKatalog($staff),
+            Role::SUPERVISOR => self::urutKatalog($supervisor),
+            Role::MANAGER => self::urutKatalog($supervisor),
             Role::ADMINISTRATOR => self::kunci(),
         ];
+    }
+
+    /**
+     * Mengurutkan sekumpulan izin mengikuti urutan katalog.
+     *
+     * Izin yang dibaca kembali dari basis data selalu berurut `sort_order`,
+     * yaitu urutan `semua()`. Daftar bawaan di atas ditulis manusia dan
+     * dikelompokkan menurut nalar, bukan menurut urutan itu — sehingga
+     * membandingkan keduanya secara langsung akan gagal begitu ada izin baru
+     * disisipkan di tengah katalog.
+     *
+     * Diurutkan di sini supaya penambahan izin berikutnya tidak menggagalkan
+     * test yang sebenarnya tidak mempersoalkan urutan.
+     *
+     * @param  list<string>  $izin
+     * @return list<string>
+     */
+    private static function urutKatalog(array $izin): array
+    {
+        $dimiliki = array_flip($izin);
+
+        return array_values(array_filter(
+            self::kunci(),
+            fn (string $kunci) => isset($dimiliki[$kunci]),
+        ));
     }
 }
