@@ -10,6 +10,38 @@
 #
 # `migrate:fresh` / `migrate:refresh` / `db:wipe` dilarang tanpa izin —
 # lihat docs/adr/ADR-008-larangan-fresh-migrate.md
+#
+# ---------------------------------------------------------------------------
+# Berkas unggahan berada di luar Docker
+# ---------------------------------------------------------------------------
+#
+# Lampiran laporan, foto profil, berkas export, dan cadangan basis data tersimpan
+# di `DAMS_STORAGE_PATH` pada host — bawaannya
+# `/mnt/raw-backup/app_data_storage/hbm-daily-activity`.
+#
+# **Bind mount, bukan named volume.** Named volume hidup di dalam wilayah Docker
+# (`/var/lib/docker/volumes`), yang tidak ikut tersalin oleh pencadangan server
+# dan lenyap bersama `docker volume prune` yang dijalankan orang lain. Lampiran
+# laporan tidak dapat dibuat ulang dari mana pun.
+#
+# **Bind mount, bukan symbolic link di dalam container.** Symlink di dalam
+# container tetap menunjuk ke jalur di dalam container; sasarannya baru ada bila
+# jalur itu sendiri sudah di-mount. Dengan bind mount, satu baris di sini sudah
+# menjadi keduanya.
+#
+# Direktorinya wajib dapat ditulis uid 82 (`www-data` pada image Alpine ini).
+# Sekali saja, di server:
+#
+#     sudo mkdir -p /mnt/raw-backup/app_data_storage/hbm-daily-activity/{storage-app,backup}
+#     sudo chown -R 82:82 /mnt/raw-backup/app_data_storage/hbm-daily-activity
+#
+# Rincian dan pemeriksaannya di docs/panduan-deployment.md.
+
+x-storage-unggahan: &storage-unggahan
+  # Lampiran, foto profil, dan berkas export — bertahan lintas deployment.
+  - ${DAMS_STORAGE_PATH:-/mnt/raw-backup/app_data_storage/hbm-daily-activity}/storage-app:/var/www/html/storage/app
+  # Cadangan basis data, ditulis `dams:backup` lewat scheduler.
+  - ${DAMS_STORAGE_PATH:-/mnt/raw-backup/app_data_storage/hbm-daily-activity}/backup:/var/backup/dams
 
 services:
   db:
@@ -70,9 +102,7 @@ services:
       REVERB_SCHEME: http
     ports:
       - '13002:8000'
-    volumes:
-      # Lampiran dan berkas export bertahan lintas deployment
-      - backend_storage:/var/www/html/storage/app
+    volumes: *storage-unggahan
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -91,8 +121,7 @@ services:
       REDIS_PORT: '6379'
     # Proses berat (export Excel/PDF) dikerjakan di sini, bukan di request utama
     entrypoint: ['php', 'artisan', 'queue:work', '--tries=3', '--timeout=300', '--sleep=3']
-    volumes:
-      - backend_storage:/var/www/html/storage/app
+    volumes: *storage-unggahan
     depends_on:
       backend: { condition: service_started }
       db: { condition: service_healthy }
@@ -166,7 +195,6 @@ services:
 volumes:
   db_data:
   redis_data:
-  backend_storage:
 
 networks:
   dams:

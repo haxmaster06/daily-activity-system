@@ -14,6 +14,7 @@ yang lama.
 | [ADR-006](ADR-006-preview-first.md) | Export dan import selalu preview-first | Diterima |
 | [ADR-007](ADR-007-deployment-docker-compose.md) | Deployment dengan Docker Compose | Diterima, **belum diverifikasi di server** |
 | [ADR-008](ADR-008-larangan-fresh-migrate.md) | Larangan fresh migrate tanpa izin | Diterima |
+| [ADR-009](ADR-009-penyimpanan-unggahan-di-luar-docker.md) | Berkas unggahan dan cadangan disimpan di luar Docker | Diterima |
 
 ## Cara menambah
 

@@ -299,9 +299,47 @@ berbeda dari yang sudah dilihat.
 | GET | `/notifikasi` |
 | POST | `/notifikasi/{notifikasi}/baca` |
 | POST | `/notifikasi/baca-semua` |
+| DELETE | `/notifikasi/{notifikasi}` |
+| DELETE | `/notifikasi/bersihkan` |
 
 Satu pengingat per orang per hari, dari siapa pun — tanpa batas itu seorang
 anggota dapat menerima belasan notifikasi yang sama dari beberapa atasan.
+
+Seluruhnya bekerja lewat relasi `notifications()` milik pengguna yang sedang
+masuk, sehingga tidak ada jalan menyentuh kotak orang lain. Notifikasi milik
+orang lain dijawab **404, bukan 403** — menolak dengan "bukan milik Anda" tetap
+memberi tahu bahwa notifikasi itu ada.
+
+`DELETE /notifikasi/bersihkan` membuang **hanya yang sudah dibaca**. Menghapus
+seluruhnya sekaligus berarti membuang pemberitahuan yang belum sempat dilihat
+pemiliknya, dan tidak ada jalan mengembalikannya; yang menghendaki seluruhnya
+mengirim `?semua=1` — pilihan yang dibuat sadar, bukan akibat sampingan dari
+menekan tombol bersihkan.
+
+### Siaran seketika
+
+Dua channel privat, keduanya lewat Reverb.
+
+| Channel | Isi |
+|---|---|
+| `App.Models.User.{id}` | Notifikasi pribadi. Muatannya lengkap, sehingga lonceng menyisipkannya tanpa memanggil server lagi |
+| `departemen.{id}` | Kabar bahwa data sebuah departemen berubah — `{ departemen_id, jenis }`, dengan `jenis` berisi `laporan` atau `tugas` |
+
+Channel departemen **hanya membawa kabarnya, bukan datanya.** Angka Executive
+Analytics bergantung pada jangkauan data tiap penonton; satu muatan yang sama
+tidak dapat benar bagi Direktur korporat dan supervisor satu departemen
+sekaligus. Penerimanya memuat ulang halamannya lewat jalur biasa, yang sudah
+menegakkan `scopeVisibleTo()` beserta seluruh penyaring yang sedang berlaku.
+
+Otorisasinya memakai aturan jangkauan yang sama dengan Analytics, dipusatkan di
+`App\Support\IzinChannel`. Siarannya dikirim `App\Events\DataBerubah` dari
+**model**, bukan controller: laporan dan kartu berubah dari banyak tempat —
+controller, import berkas, perintah artisan — dan menyiarkannya per controller
+berarti import massal, satu-satunya jalur yang tidak dilalui pengguna biasa,
+tidak pernah menyiarkan apa pun.
+
+> ⚠️ Siarannya melewati antrean. **Tanpa `queue:work` yang hidup, notifikasi dan
+> pembaruan Analytics diam tanpa satu pun pesan galat.**
 
 ### Kesehatan
 

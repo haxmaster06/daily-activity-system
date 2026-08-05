@@ -22,6 +22,45 @@ dapat dipakai orang berikutnya.
 
 Lupa kata sandi? Hubungi admin — kata sandi diatur ulang dari sisi mereka.
 
+### Foto profil
+
+**Menu akun → Profil Saya → Foto Profil.**
+
+Pilih foto, lalu **atur sendiri bagian yang dipakai**: seret fotonya untuk
+menggeser, pakai penggeser di bawahnya untuk memperbesar. Yang tampak di dalam
+lingkaran itulah yang tersimpan. Tanpa tetikus: tekan Tab sampai kotaknya
+terfokus, lalu pakai tombol panah.
+
+Tekan **Simpan Foto**. Fotonya langsung tampil di bilah navigasi dan pada kartu
+identitas Anda.
+
+JPG, PNG, atau WebP, paling besar 5 MB. Belum ada foto? Inisial nama Anda yang
+tampil — bukan gambar orang generik.
+
+---
+
+## Notifikasi
+
+Lonceng di kanan atas. Angka merah pada lonceng adalah jumlah yang belum dibaca.
+
+Notifikasi **datang sendiri**, tanpa memuat ulang halaman: laporan yang baru
+dikirim anggota tim, laporan Anda yang baru ditinjau, dan pengingat dari atasan.
+
+| Yang ingin dilakukan | Caranya |
+|---|---|
+| Membuka isinya | Tekan notifikasinya — sekaligus menandainya sudah dibaca |
+| Menandai semua dibaca | **Tandai semua dibaca** di bagian atas daftar |
+| Menghapus satu | Tanda **×** di kanan barisnya |
+| Membuang yang lama | **Bersihkan** di bagian atas daftar |
+
+**Bersihkan hanya membuang yang sudah dibaca.** Yang belum sempat Anda lihat
+tetap tinggal — dan itu disengaja, sebab notifikasi yang terhapus tidak dapat
+dikembalikan. Yang belum dibaca dihapus satu per satu bila memang dikehendaki.
+
+Satu orang hanya menerima **satu pengingat per hari**, dari siapa pun. Beberapa
+atasan yang menekan tombolnya bersamaan tidak membuat Anda menerima beberapa
+pengingat.
+
 ---
 
 ## Mengisi laporan harian
@@ -139,9 +178,27 @@ Penyaring juga dapat dipilih sendiri lewat bilah itu: rentang tanggal,
 departemen, status, orang, dan template. Beberapa penyaring berlaku bersamaan —
 misalnya Produksi **dan** status Selesai.
 
+Grafiknya pun dapat ditekan. Menekan satu juring pada lingkaran status menyaring
+seluruh halaman ke status itu; menekan satu segmen pada batang bertumpuk
+menyaring departemen **sekaligus** statusnya; menekan satu titik pada grafik
+harian mempersempit rentangnya ke hari itu.
+
+Yang memakai papan ketik memakai tautan pada tabel di sebelah grafiknya — isinya
+sama persis. Grafik digambar pada kanvas dan tidak dapat difokus sama sekali,
+sehingga tabel itu bukan pelengkap.
+
 Penyaringan tersimpan di alamat halaman, sehingga dapat **dibagikan lewat
 tautan**, bertahan saat halaman dimuat ulang, dan ikut terbawa saat Anda
 berpindah tab.
+
+### Angkanya memperbarui diri
+
+Halaman ini tidak perlu dimuat ulang. Begitu ada laporan masuk atau kartu
+progres berpindah, angkanya menyesuaikan sendiri dan muncul keterangan singkat
+*"Angkanya baru saja diperbarui."*
+
+Papan yang dibiarkan terbuka di layar besar karena itu tetap benar sepanjang
+hari.
 
 ### Membaca satu laporan
 

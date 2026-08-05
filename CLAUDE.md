@@ -13,7 +13,7 @@ Dokumen acuan yang wajib dibaca sebelum mengubah apa pun:
 | `docs/standar-ui-ux.md` | **Standar UI/UX mengikat** — input, tab, wizard, animasi, navigasi, tabel, form. Menang atas standarisasi bila bertentangan |
 | `docs/standar-library-ui.md` | Library tiap komponen: Radix, React Aria, shadcn, React Bits |
 | `docs/template-departemen.md` | Skema kolom template laporan per departemen |
-| `docs/adr/README.md` | Keputusan arsitektur yang mengikat, ADR-001..008 |
+| `docs/adr/README.md` | Keputusan arsitektur yang mengikat, ADR-001..009 |
 | `docs/api.md` | 70 endpoint, envelope, dua lapis penjagaan, format data |
 | `docs/panduan-pengguna.md` | Panduan pemakaian untuk karyawan |
 | `docs/tinjauan-index.md` | Hasil EXPLAIN dan alasan tiap index |
@@ -122,6 +122,7 @@ Menjalankan per bagian:
 # Backend
 cd backend
 php artisan serve --port=13002
+php artisan queue:work        # notifikasi dan siaran realtime
 php artisan test
 ./vendor/bin/pint
 

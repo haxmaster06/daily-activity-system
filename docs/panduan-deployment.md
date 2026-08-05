@@ -88,6 +88,66 @@ satu asal, dan tidak ada port tambahan yang harus dibuka di firewall. Port
 
 ---
 
+## 3b. Penyimpanan berkas unggahan
+
+Lampiran laporan, foto profil, berkas export, dan cadangan basis data disimpan
+**di host**, bukan di dalam Docker:
+
+```
+/mnt/raw-backup/app_data_storage/hbm-daily-activity/
+├── storage-app/   → /var/www/html/storage/app   (lampiran, foto profil, export)
+└── backup/        → /var/backup/dams            (cadangan basis data)
+```
+
+Jalurnya diatur `DAMS_STORAGE_PATH` di `.env`.
+
+**Mengapa bind mount, bukan named volume.** Named volume hidup di
+`/var/lib/docker/volumes`. Isinya tidak ikut tersalin oleh pencadangan server
+yang menyalin `/mnt/raw-backup`, dan lenyap bersama `docker volume prune` yang
+dijalankan orang lain di server yang dipakai bersama. Lampiran laporan tidak
+dapat dibuat ulang dari mana pun.
+
+**Mengapa bukan symbolic link.** Symlink yang dibuat di dalam container tetap
+menunjuk ke jalur di dalam container — sasarannya baru ada bila jalur itu
+sendiri sudah di-mount. Bind mount sudah menjadi keduanya sekaligus, dalam satu
+baris.
+
+Disiapkan sekali, sebelum `docker compose up`:
+
+```bash
+sudo mkdir -p /mnt/raw-backup/app_data_storage/hbm-daily-activity/{storage-app,backup}
+
+# uid 82 = www-data pada image Alpine yang dipakai backend.
+sudo chown -R 82:82 /mnt/raw-backup/app_data_storage/hbm-daily-activity
+sudo chmod -R 775 /mnt/raw-backup/app_data_storage/hbm-daily-activity
+```
+
+Diperiksa sesudah container berjalan — dan **wajib diperiksa**, sebab
+kegagalannya tidak terlihat sampai seseorang mengunggah lampiran dan
+kehilangannya:
+
+```bash
+# Dapat ditulis dari dalam container?
+docker compose exec backend sh -c 'touch storage/app/uji && rm storage/app/uji && echo OK'
+
+# Benar-benar mendarat di host, bukan di lapisan container?
+docker compose exec backend sh -c 'echo uji > storage/app/uji'
+ls -l /mnt/raw-backup/app_data_storage/hbm-daily-activity/storage-app/uji
+docker compose exec backend rm storage/app/uji
+
+# Cadangan menulis ke tempat yang benar
+docker compose exec backend php artisan dams:backup
+ls -lh /mnt/raw-backup/app_data_storage/hbm-daily-activity/backup/
+```
+
+Bila `chown` terlewat, container gagal menulis dan lampiran ditolak dengan galat
+yang menyebut izin berkas. Itu kegagalan yang **terlihat** — yang berbahaya
+adalah kebalikannya: `DAMS_STORAGE_PATH` salah tulis membuat Docker membuat
+direktori baru yang kosong, aplikasinya berjalan normal, dan berkasnya tersimpan
+di tempat yang tidak pernah dicadangkan.
+
+---
+
 ## 4. Deployment pertama
 
 ```bash
