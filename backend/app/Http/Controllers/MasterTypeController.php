@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MasterTypeRequest;
 use App\Http\Resources\MasterTypeResource;
 use App\Models\MasterType;
+use App\Models\TemplateField;
 use App\Support\ApiResponse;
 use App\Support\Audit;
 use App\Support\KodeOtomatis;
@@ -23,7 +24,7 @@ class MasterTypeController extends Controller
         $this->authorize('viewAny', MasterType::class);
 
         $jenis = MasterType::query()
-            ->with('induk')
+            ->with(['induk', 'departemenPengelola'])
             ->withCount('isi')
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -45,6 +46,7 @@ class MasterTypeController extends Controller
         );
 
         $jenis = MasterType::create($data);
+        $this->selaraskanPengelola($request, $jenis);
 
         Audit::catat(
             Audit::AKSI_DIBUAT,
@@ -55,7 +57,7 @@ class MasterTypeController extends Controller
         );
 
         return ApiResponse::created(
-            new MasterTypeResource($jenis->load('induk')->loadCount('isi')),
+            new MasterTypeResource($jenis->load(['induk', 'departemenPengelola'])->loadCount('isi')),
             'Daftar master berhasil ditambahkan.',
         );
     }
@@ -66,6 +68,7 @@ class MasterTypeController extends Controller
 
         // `slug` tidak ikut berubah — sudah menjadi rujukan kolom template (§1.3).
         $jenis->update($request->validated());
+        $this->selaraskanPengelola($request, $jenis);
 
         $perubahan = Audit::selisih($sebelum, $jenis->only(array_keys($sebelum)));
 
@@ -80,7 +83,7 @@ class MasterTypeController extends Controller
         }
 
         return ApiResponse::ok(
-            new MasterTypeResource($jenis->load('induk')->loadCount('isi')),
+            new MasterTypeResource($jenis->load(['induk', 'departemenPengelola'])->loadCount('isi')),
             'Daftar master berhasil diperbarui.',
         );
     }
@@ -92,16 +95,32 @@ class MasterTypeController extends Controller
      * daftarnya tidak punya arti. Laporan yang sudah tercatat tidak terpengaruh
      * karena yang tersimpan di sana salinan `{kode, nama}`, bukan kunci asing.
      *
-     * Yang ditolak: jenis bawaan, dan jenis yang masih menjadi induk jenis lain
-     * — barisnya dipakai menyaring daftar turunannya.
+     * Yang ditolak: jenis yang masih dirujuk kolom template, dan jenis yang masih
+     * menjadi induk jenis lain — barisnya dipakai menyaring daftar turunannya.
+     *
+     * Tanda `is_system` TIDAK lagi menghalangi penghapusan. Tanda itu hanya
+     * menyatakan bahwa daftarnya dibuat seeder, dan itu bukan alasan yang dapat
+     * dijelaskan kepada administrator: perusahaan yang tidak memakai daftar
+     * Produk berhak membuangnya. Yang benar-benar perlu dijaga adalah rujukan
+     * yang masih hidup, dan itulah yang diperiksa di bawah.
      */
     public function destroy(MasterType $jenis): JsonResponse
     {
         $this->authorize('delete', $jenis);
 
-        if ($jenis->is_system) {
+        /*
+         * Kunci asing `template_fields.master_type_id` memang RESTRICT,
+         * sehingga basis data pun menahannya. Tetapi yang keluar dari sana
+         * galat SQL mentah — pesan teknis tidak boleh sampai ke layar (standar
+         * §25). Diperiksa lebih dulu supaya alasannya dapat dibaca, lengkap
+         * dengan berapa kolom yang menahannya.
+         */
+        $jumlahKolom = TemplateField::where('master_type_id', $jenis->getKey())->count();
+
+        if ($jumlahKolom > 0) {
             return ApiResponse::error(
-                "Daftar {$jenis->name} adalah daftar bawaan sistem dan tidak dapat dihapus.",
+                "Daftar {$jenis->name} masih dipakai {$jumlahKolom} kolom template. "
+                .'Ubah kolom itu menjadi tipe lain terlebih dahulu.',
                 422,
             );
         }
@@ -130,5 +149,26 @@ class MasterTypeController extends Controller
         );
 
         return ApiResponse::ok(null, "Daftar {$nama} berhasil dihapus.");
+    }
+
+    /**
+     * Menyelaraskan daftar departemen pengelola, bila pemintanya berwenang.
+     *
+     * Dilewati diam-diam bagi yang tidak berwenang — bukan ditolak. Bidang ini
+     * memang tidak tampil pada layar mereka, sehingga permintaannya tidak
+     * pernah memuatnya; menolak seluruh permintaan hanya karena bidang yang
+     * tidak mereka kirim akan menggagalkan penyuntingan nama yang sah.
+     */
+    private function selaraskanPengelola(MasterTypeRequest $request, MasterType $jenis): void
+    {
+        if (! $request->has('departemen_id')) {
+            return;
+        }
+
+        if ($request->user()->cannot('aturPengelola', MasterType::class)) {
+            return;
+        }
+
+        $jenis->departemenPengelola()->sync($request->validated('departemen_id', []));
     }
 }

@@ -12,9 +12,10 @@ interface IsiForm {
   name: string;
   description: string;
   is_active: boolean;
+  wajib_lapor: boolean;
 }
 
-const KOSONG: IsiForm = { name: '', description: '', is_active: true };
+const KOSONG: IsiForm = { name: '', description: '', is_active: true, wajib_lapor: true };
 
 /** Form departemen berisi 4 kolom, sehingga memakai modal (standar §22.1). */
 export function DepartmentDialog({
@@ -45,6 +46,7 @@ export function DepartmentDialog({
             name: departemen.nama,
             description: departemen.keterangan ?? '',
             is_active: departemen.aktif,
+            wajib_lapor: departemen.wajib_lapor,
           }
         : KOSONG,
     );
@@ -59,6 +61,7 @@ export function DepartmentDialog({
       name: isi.name.trim(),
       description: isi.description.trim() || null,
       is_active: isi.is_active,
+      wajib_lapor: isi.wajib_lapor,
     };
 
     const hasil = sedangUbah
@@ -158,6 +161,22 @@ export function DepartmentDialog({
             className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
           />
           Departemen aktif
+        </label>
+
+        {/*
+          Departemen yang tidak menyusun laporan harian — Management membaca
+          laporan, bukan menulisnya. Selama tercentang wajib, anggotanya terus
+          muncul di "Belum Melapor Hari Ini" dan pada pengingat, dan peringatan
+          yang tidak dapat diselesaikan siapa pun lambat laun berhenti dibaca.
+        */}
+        <label className="flex w-fit items-center gap-2 text-body text-ink-muted">
+          <input
+            type="checkbox"
+            checked={isi.wajib_lapor}
+            onChange={(e) => setIsi({ ...isi, wajib_lapor: e.target.checked })}
+            className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+          />
+          Anggotanya wajib mengisi laporan harian
         </label>
       </form>
     </Modal>

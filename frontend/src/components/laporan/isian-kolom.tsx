@@ -4,8 +4,10 @@ import { Calculator } from 'lucide-react';
 
 import { ButtonGroup } from '@/components/ui/button-group';
 import { DatePicker } from '@/components/ui/date-picker';
+import { EditorKaya } from '@/components/ui/editor-kaya';
 import { InputAngka } from '@/components/ui/input-angka';
 import { Select } from '@/components/ui/select';
+import { TampilKaya } from '@/components/ui/tampil-kaya';
 import { IsianMaster } from '@/components/laporan/isian-master';
 import { cn } from '@/lib/cn';
 import { formatAngka } from '@/lib/format';
@@ -87,6 +89,15 @@ export function IsianKolom({
   }
 
   if (terkunci) {
+    /*
+     * Kolom keterangan menyimpan HTML sejak diisi lewat editor teks kaya.
+     * Menampilkannya sebagai teks biasa membuat `<p>` dan `<li>` terbaca
+     * sebagai tulisan di dalam sel — kode program bocor ke layar pembaca.
+     */
+    if (kolom.tipe === 'textarea') {
+      return <TampilKaya isi={typeof isi === 'string' ? isi : null} className="px-1 py-1 text-body text-ink" kosong="—" />;
+    }
+
     return (
       <span className="block px-1 py-1 text-body text-ink">
         {tampilkanNilai(kolom, isi)}
@@ -295,20 +306,13 @@ export function IsianKolom({
 
     case 'textarea':
       return (
-        <textarea
+        <EditorKaya
           id={id}
-          rows={2}
-          value={typeof isi === 'string' ? isi : ''}
-          onChange={(e) => onUbah(kolom.kunci, e.target.value || null)}
+          nilai={typeof isi === 'string' ? isi : null}
+          onUbah={(html) => onUbah(kolom.kunci, html)}
+          label={kolom.label}
           placeholder={kolom.placeholder ?? undefined}
-          aria-label={kolom.label}
-          aria-invalid={Boolean(galat)}
-          className={cn(
-            'w-full rounded-input border border-line bg-surface px-2 py-1.5 text-body text-ink',
-            'transition-colors duration-fast placeholder:text-ink-soft',
-            'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25',
-            galat && 'border-danger',
-          )}
+          galat={Boolean(galat)}
         />
       );
 

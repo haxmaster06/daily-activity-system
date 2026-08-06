@@ -26,7 +26,10 @@ class DailyReportResource extends JsonResource
             'dikirim_pada' => $this->submitted_at?->toIso8601String(),
             'ditinjau_pada' => $this->reviewed_at?->toIso8601String(),
             'catatan_tinjauan' => $this->review_note,
-            'dapat_disunting' => $this->masihDraf(),
+            // Mencerminkan kebijakan, bukan status: sejak penyuntingan tidak
+            // lagi dikunci status, satu-satunya sumber kebenaran adalah
+            // DailyReportPolicy::update().
+            'dapat_disunting' => $request->user()?->can('update', $this->resource) ?? false,
 
             'penyusun' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,

@@ -45,13 +45,26 @@ final class AngkaProduktivitas
             ->whereNotNull('unit')
             ->where('unit', '!=', '')
             ->with('template:id,name')
-            ->get(['id', 'key', 'label', 'unit', 'type', 'report_template_id'])
+            ->get(['id', 'key', 'label', 'unit', 'type', 'group_label', 'report_template_id'])
             ->groupBy(fn (TemplateField $satu) => $satu->key.'|'.$satu->unit)
             ->map(fn ($kelompok, string $penanda) => [
                 'penanda' => $penanda,
                 'kunci' => $kelompok->first()->key,
                 'label' => $kelompok->first()->label,
                 'satuan' => $kelompok->first()->unit,
+                /*
+                 * Grup kolomnya ikut dibawa, dan itu yang paling sering
+                 * membedakan. Satu template dapat memuat beberapa kolom
+                 * berlabel sama — "Box" pada QTY Dibutuhkan, QTY Selesai, dan
+                 * Kekurangan — sehingga label dan satuannya saja menghasilkan
+                 * tiga pilihan yang tidak dapat dibedakan pembacanya.
+                 */
+                'grup' => $kelompok
+                    ->map(fn (TemplateField $satu) => $satu->group_label)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
                 'desimal' => $kelompok->contains(
                     fn (TemplateField $satu) => $satu->type === TemplateField::TIPE_DECIMAL,
                 ),

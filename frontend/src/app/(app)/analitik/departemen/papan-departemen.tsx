@@ -154,6 +154,19 @@ function KartuDepartemen({
           {keadaan.sorotan.map((satu, index) => (
             <BarisSorotan key={`${satu.label}-${index}`} sorotan={satu} />
           ))}
+
+          {/*
+            Kuota sorotan menjaga tiap jenis kolom kebagian tempat, tetapi
+            pemotongannya tidak boleh sunyi: kolom yang baru ditambahkan ke
+            template lalu tidak muncul membuat yang menambahkannya menyimpulkan
+            fiturnya rusak — padahal ia hanya kalah kuota.
+          */}
+          {keadaan.sorotan_tersembunyi > 0 && (
+            <p className="text-caption text-ink-soft">
+              + {formatAngka(keadaan.sorotan_tersembunyi)} kolom lain tidak ditampilkan di
+              sini. Bukalah salah satu laporan di bawah untuk membaca seluruhnya.
+            </p>
+          )}
         </div>
       )}
 

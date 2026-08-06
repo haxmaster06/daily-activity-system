@@ -11,6 +11,14 @@ export interface DataJenis {
   name: string;
   parent_type_id: number | null;
   description: string | null;
+  /**
+   * Departemen yang berwenang mengelola isinya.
+   *
+   * Hanya dikirim oleh yang berwenang menetapkannya — server mengabaikannya
+   * dari yang lain, dan tidak menolak permintaannya, supaya penyuntingan nama
+   * yang sah tidak ikut gagal.
+   */
+  departemen_id?: number[];
 }
 
 export interface DataBaris {

@@ -7,6 +7,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { motion } from 'motion/react';
 import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 
+import { LogoDams } from '@/components/brand/logo-dams';
 import { Avatar } from '@/components/ui/avatar';
 
 import { Dock } from '@/components/layout/dock';
@@ -26,6 +27,8 @@ export interface PenggunaHeader {
   /** Jumlah peran tambahan di luar peran utama. */
   peranLain: number;
   izin: string[];
+  /** Benar-benar mengelola setidaknya satu daftar master (bukan sekadar izinnya). */
+  bolehKelolaMaster: boolean;
   departemen: string;
 }
 
@@ -40,7 +43,9 @@ export interface PenggunaHeader {
 export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
   const pathname = usePathname();
   const router = useRouter();
-  const menu = menuUntukIzin(pengguna.izin);
+  const menu = menuUntukIzin(pengguna.izin, {
+    bolehKelolaMaster: pengguna.bolehKelolaMaster,
+  });
   const [keluarSedangDiproses, setKeluarSedangDiproses] = useState(false);
 
   /*
@@ -61,11 +66,12 @@ export function AppHeader({ pengguna }: { pengguna: PenggunaHeader }) {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex h-nav max-w-container items-center justify-between gap-4 px-4 lg:px-8">
-        <Link
-          href="/dashboard"
-          className="font-heading text-page-title font-bold tracking-tight text-primary-text"
-        >
-          DAMS
+        {/*
+          Logo menggantikan tulisan "DAMS" — wordmark-nya sudah ada di dalam
+          gambar, jadi menampilkan keduanya berarti menyebut nama dua kali.
+        */}
+        <Link href="/dashboard" aria-label="Ke Dashboard" className="shrink-0">
+          <LogoDams className="h-8 w-auto" prioritas />
         </Link>
 
         <div className="flex min-w-0 items-center gap-1">

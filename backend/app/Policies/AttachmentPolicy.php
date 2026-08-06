@@ -44,14 +44,14 @@ class AttachmentPolicy
     /**
      * Menghapus lampiran.
      *
-     * Hanya selagi laporannya masih draf. Setelah dikirim, lampiran ikut menjadi
-     * catatan — menghilangkan bukti dari laporan yang sudah dibaca supervisor
-     * membuat riwayat tidak dapat dipercaya.
+     * Mengikuti aturan penyuntingan laporannya: hanya pemiliknya, tanpa
+     * batasan status. Membiarkan isian laporan dapat diperbaiki sesudah dikirim
+     * sementara lampirannya terkunci hanya menghasilkan penyuntingan setengah —
+     * berkas yang salah unggah tetap menempel di sana selamanya.
      */
     public function delete(User $user, Attachment $attachment): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_HAPUS_SENDIRI)
-            && $attachment->report->user_id === $user->getKey()
-            && $attachment->report->masihDraf();
+            && $attachment->report->user_id === $user->getKey();
     }
 }

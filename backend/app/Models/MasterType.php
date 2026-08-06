@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -57,6 +58,39 @@ class MasterType extends Model
     /**
      * @return HasMany<MasterData, $this>
      */
+    /**
+     * Departemen yang berwenang mengelola isi jenis ini.
+     *
+     * Kosong berarti terbuka: siapa pun pemegang `master.kelola` boleh
+     * mengelolanya. Aturan lengkapnya ada di `MasterDataPolicy`.
+     *
+     * @return BelongsToMany<Department, $this>
+     */
+    public function departemenPengelola(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class)->withTimestamps();
+    }
+
+    /**
+     * Apakah departemen ini berwenang mengelola isinya.
+     *
+     * Memakai koleksi yang sudah dimuat bila ada, supaya pemeriksaan pada
+     * daftar panjang tidak menembak basis data sekali per baris.
+     */
+    public function dikelolaDepartemen(?int $departemenId): bool
+    {
+        $pengelola = $this->relationLoaded('departemenPengelola')
+            ? $this->departemenPengelola
+            : $this->departemenPengelola()->get();
+
+        if ($pengelola->isEmpty()) {
+            return true;
+        }
+
+        return $departemenId !== null
+            && $pengelola->contains(fn (Department $satu) => $satu->getKey() === $departemenId);
+    }
+
     public function isi(): HasMany
     {
         return $this->hasMany(MasterData::class);

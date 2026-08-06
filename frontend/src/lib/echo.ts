@@ -16,11 +16,24 @@ import Pusher from 'pusher-js';
  */
 let sambungan: Echo<'reverb'> | null = null;
 
-function bacaEnv(nama: string, bawaan: string): string {
-  const nilai = process.env[nama];
-
-  return nilai === undefined || nilai === '' ? bawaan : nilai;
-}
+/*
+ * Nilai NEXT_PUBLIC_* WAJIB ditulis sebagai `process.env.NAMA_PENUH`.
+ *
+ * Next.js menanamkannya saat build dengan mengganti teks ekspresi itu satu per
+ * satu — bukan dengan menyediakan objek `process.env` di peramban. Membacanya
+ * lewat pembungkus, `process.env[nama]`, membuat webpack tidak punya apa pun
+ * untuk diganti: tidak ada yang tertanam, `process.env` di peramban kosong, dan
+ * seluruh nilai diam-diam jatuh ke bawaan di bawah ini.
+ *
+ * Kegagalannya tidak terlihat di mesin pengembang justru karena bawaan itu
+ * kebetulan alamat pengembangan lokal. Di server, peramban akan menyambung ke
+ * 127.0.0.1 miliknya sendiri, dan lonceng notifikasi diam selamanya tanpa satu
+ * pun pesan galat.
+ */
+const KUNCI = process.env.NEXT_PUBLIC_REVERB_KEY || 'dams-lokal';
+const HOST = process.env.NEXT_PUBLIC_REVERB_HOST || '127.0.0.1';
+const PORT = process.env.NEXT_PUBLIC_REVERB_PORT || '13003';
+const SKEMA = process.env.NEXT_PUBLIC_REVERB_SCHEME || 'http';
 
 export function echoDams(): Echo<'reverb'> | null {
   // Hanya di peramban. Di server tidak ada WebSocket, dan memanggilnya dari
@@ -33,16 +46,14 @@ export function echoDams(): Echo<'reverb'> | null {
     return sambungan;
   }
 
-  const kunci = bacaEnv('NEXT_PUBLIC_REVERB_KEY', 'dams-lokal');
-  const host = bacaEnv('NEXT_PUBLIC_REVERB_HOST', '127.0.0.1');
-  const port = Number(bacaEnv('NEXT_PUBLIC_REVERB_PORT', '13003'));
-  const aman = bacaEnv('NEXT_PUBLIC_REVERB_SCHEME', 'http') === 'https';
+  const port = Number(PORT);
+  const aman = SKEMA === 'https';
 
   sambungan = new Echo({
     broadcaster: 'reverb',
     Pusher,
-    key: kunci,
-    wsHost: host,
+    key: KUNCI,
+    wsHost: HOST,
     wsPort: port,
     wssPort: port,
     forceTLS: aman,

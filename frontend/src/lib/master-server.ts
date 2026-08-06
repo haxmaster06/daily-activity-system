@@ -11,6 +11,10 @@ export interface JenisMaster {
   urutan: number;
   induk_id: number | null;
   induk: { id: number; slug: string; nama: string } | null;
+  /** Departemen yang berwenang mengelola isinya. Kosong berarti terbuka. */
+  departemen_pengelola?: { id: number; nama: string }[];
+  /** Pengguna saat ini boleh mengelola isi daftar ini. */
+  boleh_kelola_isi?: boolean;
   jumlah_isi?: number;
 }
 

@@ -44,7 +44,15 @@ const LEBAR: Partial<Record<KolomTemplate['tipe'], string>> = {
   date: 'min-w-32',
   select: 'min-w-32',
   master: 'min-w-40',
-  textarea: 'min-w-56',
+  /*
+   * Batas atas, bukan hanya batas bawah.
+   *
+   * Tanpa `max-w`, sel keterangan melebar mengikuti kalimat terpanjang — satu
+   * paragraf panjang menyeret seluruh tabel keluar layar, dan halaman mulai
+   * menggulir mendatar. Dengan batas atas, lebarnya tetap dan teksnya yang
+   * turun ke baris berikutnya (§6.5).
+   */
+  textarea: 'min-w-56 max-w-[24rem]',
 };
 
 /** Lebar kolom nomor baris, dan lebar tiap kolom beku. Dipakai menghitung `left`. */

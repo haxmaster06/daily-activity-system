@@ -1,6 +1,7 @@
 'use client';
 
 import { useSortable } from '@dnd-kit/sortable';
+import { TampilKaya } from '@/components/ui/tampil-kaya';
 import { CSS } from '@dnd-kit/utilities';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
@@ -53,7 +54,7 @@ export function IsiKartu({ tugas, kendali, pegangan, className }: IsiKartuProps)
       </div>
 
       {tugas.keterangan && (
-        <p className="mt-1 text-body text-ink-muted">{tugas.keterangan}</p>
+        <TampilKaya isi={tugas.keterangan} className="mt-1 text-body text-ink-muted" kosong="" />
       )}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-soft">

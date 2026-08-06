@@ -109,10 +109,22 @@ const config: Config = {
           from: { opacity: '0' },
           to: { opacity: '1' },
         },
+        /*
+         * Sapuan cahaya yang melintasi logo saat kursor melewatinya.
+         *
+         * Tanpa `both`: sesudah animasi selesai pitanya kembali ke posisi awal
+         * di luar bingkai, jadi tidak ada gradient yang menetap di layar.
+         * Kilaunya umpan balik interaksi, bukan hiasan permanen.
+         */
+        kilau: {
+          from: { transform: 'translateX(-120%) skewX(-12deg)' },
+          to: { transform: 'translateX(320%) skewX(-12deg)' },
+        },
       },
       animation: {
         'masuk-halus': 'masuk-halus 260ms cubic-bezier(0.16, 1, 0.3, 1) both',
         'memudar-masuk': 'memudar-masuk 220ms cubic-bezier(0.16, 1, 0.3, 1) both',
+        kilau: 'kilau 700ms cubic-bezier(0.16, 1, 0.3, 1)',
       },
       maxWidth: {
         container: '1280px',

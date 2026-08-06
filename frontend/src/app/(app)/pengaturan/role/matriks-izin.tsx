@@ -173,7 +173,7 @@ export function MatriksIzin({ peran, katalog, bolehKelola }: MatriksIzinProps) {
               <tr className="border-b border-line">
                 <th
                   scope="col"
-                  className="sticky left-0 z-30 min-w-64 bg-surface-muted px-3 py-2 text-left text-caption font-semibold text-ink-muted"
+                  className="sticky left-0 z-30 w-[22rem] min-w-[16rem] max-w-[22rem] bg-surface-muted px-3 py-2 text-left text-caption font-semibold text-ink-muted"
                 >
                   Hak Akses
                 </th>
@@ -282,12 +282,19 @@ export function MatriksIzin({ peran, katalog, bolehKelola }: MatriksIzinProps) {
                     <tr key={izin.kunci} className="hover:bg-surface-muted/40">
                       <th
                         scope="row"
-                        className="sticky left-0 z-10 bg-surface px-3 py-2 text-left font-normal"
+                        /*
+                         * Lebarnya dipatok, bukan dibiarkan mengikuti isi.
+                         * Tabel ini `min-w-max`, sehingga satu keterangan
+                         * panjang saja akan menarik seluruh tabel melebar dan
+                         * mendorong kolom peran keluar layar — yang tersisa
+                         * hanya satu kolom yang dapat dilihat sekaligus.
+                         */
+                        className="sticky left-0 z-10 w-[22rem] min-w-[16rem] max-w-[22rem] bg-surface px-3 py-2 text-left font-normal"
                       >
                         {/* Yang tampil namanya, bukan kunci teknisnya. */}
                         <span className="block text-body-lg text-ink">{izin.nama}</span>
                         {izin.keterangan && (
-                          <span className="block text-caption text-ink-soft">
+                          <span className="block text-balance text-caption leading-4 text-ink-soft">
                             {izin.keterangan}
                           </span>
                         )}

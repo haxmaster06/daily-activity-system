@@ -250,7 +250,21 @@ export function PanelExport({
                 pratinjau.baris.map((baris, index) => (
                   <tr key={index} className="hover:bg-surface-muted/60">
                     {pratinjau.kolom.map((kolom) => (
-                      <td key={kolom.kunci} className="px-2.5 py-1.5 align-top text-ink">
+                      <td
+                        key={kolom.kunci}
+                        /*
+                         * Lebar sel dibatasi, teksnya yang turun ke baris
+                         * berikutnya. Tanpa batas atas, satu kolom keterangan
+                         * berisi satu paragraf menyeret seluruh tabel keluar
+                         * layar dan sisanya terpotong tanpa dapat dibaca.
+                         *
+                         * `whitespace-pre-line` mempertahankan baris baru yang
+                         * dibuat `HtmlAman::keTeks()` saat melucuti daftar
+                         * berpoin — tanpanya butir-butirnya menempel menjadi
+                         * satu kalimat panjang.
+                         */
+                        className="max-w-[26rem] whitespace-pre-line break-words px-2.5 py-1.5 align-top text-ink"
+                      >
                         {baris[kolom.kunci] === null || baris[kolom.kunci] === ''
                           ? '—'
                           : String(baris[kolom.kunci])}

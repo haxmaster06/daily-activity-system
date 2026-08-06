@@ -81,7 +81,9 @@ class DashboardController extends Controller
             'id' => $laporan->id,
             'status' => $laporan->status,
             'label_status' => DailyReport::LABEL_STATUS[$laporan->status] ?? $laporan->status,
-            'dapat_disunting' => $laporan->masihDraf(),
+            // Sama seperti DailyReportResource: kebijakan yang menentukan,
+            // bukan status. Laporan sendiri kini dapat disunting kapan pun.
+            'dapat_disunting' => $pengguna->can('update', $laporan),
         ];
     }
 

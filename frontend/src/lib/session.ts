@@ -30,6 +30,8 @@ export interface PenggunaSesi {
   /** Gabungan izin dari seluruh peran yang dipegang. */
   izin: string[];
   jangkauan: Jangkauan;
+  /** Benar-benar mengelola setidaknya satu daftar master. */
+  bolehKelolaMaster: boolean;
   departemenId: number | null;
   departemen: string;
 }
@@ -50,6 +52,7 @@ interface PenggunaApi {
   }[];
   izin?: string[];
   jangkauan?: { level: number; label: string; departemen_id: number[] };
+  boleh_kelola_master?: boolean;
   departemen: { id: number | null; kode: string | null; nama: string | null };
 }
 
@@ -89,6 +92,8 @@ export const penggunaSaatIni = cache(async (): Promise<PenggunaSesi | null> => {
         departemenId: satu.department_id,
       })),
       izin: data.izin ?? [],
+      // Kemampuan yang tidak dapat disimpulkan dari izin saja.
+      bolehKelolaMaster: data.boleh_kelola_master ?? false,
       jangkauan: {
         level: (data.jangkauan?.level ?? JANGKAUAN_PRIBADI) as Jangkauan['level'],
         departemenId: data.jangkauan?.departemen_id ?? [],
@@ -119,7 +124,7 @@ export async function wajibAkses(href: string): Promise<PenggunaSesi> {
     redirect(RUTE_SESI_BERAKHIR);
   }
 
-  if (!bolehAkses(pengguna.izin, href)) {
+  if (!bolehAkses(pengguna.izin, href, { bolehKelolaMaster: pengguna.bolehKelolaMaster })) {
     redirect('/dashboard');
   }
 

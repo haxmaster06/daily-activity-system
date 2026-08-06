@@ -1,6 +1,7 @@
 'use client';
 
 import { StatusBadge } from '@/components/ui/status-badge';
+import { TampilKaya } from '@/components/ui/tampil-kaya';
 import { cn } from '@/lib/cn';
 import {
   formatAngka,
@@ -204,9 +205,11 @@ function NilaiTampil({
 
   if (kolom.tipe === 'textarea') {
     return (
-      <span className="mt-0.5 block whitespace-pre-line break-words rounded-input bg-surface-muted/60 px-2 py-1 text-body leading-5 text-ink">
-        {teks}
-      </span>
+      <TampilKaya
+        isi={teks}
+        className="mt-0.5 block rounded-input bg-surface-muted/60 px-2 py-1 text-body leading-5 text-ink"
+        kosong=""
+      />
     );
   }
 

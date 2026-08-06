@@ -14,6 +14,8 @@ interface Props {
   /** Kosong berarti membuat daftar baru. */
   jenis: JenisMaster | null;
   pilihanInduk: JenisMaster[];
+  /** Seluruh departemen, untuk memilih pengelola. Kosong bila tidak berwenang. */
+  pilihanDepartemen?: { id: number; nama: string }[];
   onSelesai: (pesan: string) => void;
 }
 
@@ -25,10 +27,18 @@ const TANPA_INDUK = '__tanpa__';
  *
  * Tiga isian — modal, bukan halaman (`docs/standar-ui-ux.md` §7.1).
  */
-export function JenisDialog({ terbuka, onTutup, jenis, pilihanInduk, onSelesai }: Props) {
+export function JenisDialog({
+  terbuka,
+  onTutup,
+  jenis,
+  pilihanInduk,
+  pilihanDepartemen = [],
+  onSelesai,
+}: Props) {
   const [nama, setNama] = useState('');
   const [induk, setInduk] = useState(TANPA_INDUK);
   const [keterangan, setKeterangan] = useState('');
+  const [pengelola, setPengelola] = useState<number[]>([]);
   const [galat, setGalat] = useState<string | null>(null);
   const [memproses, setMemproses] = useState(false);
 
@@ -38,6 +48,7 @@ export function JenisDialog({ terbuka, onTutup, jenis, pilihanInduk, onSelesai }
     setNama(jenis?.nama ?? '');
     setInduk(jenis?.induk_id ? String(jenis.induk_id) : TANPA_INDUK);
     setKeterangan(jenis?.keterangan ?? '');
+    setPengelola((jenis?.departemen_pengelola ?? []).map((satu) => satu.id));
     setGalat(null);
   }, [terbuka, jenis]);
 
@@ -67,6 +78,9 @@ export function JenisDialog({ terbuka, onTutup, jenis, pilihanInduk, onSelesai }
       name: nama.trim(),
       parent_type_id: induk === TANPA_INDUK ? null : Number(induk),
       description: keterangan.trim() || null,
+      // Hanya disertakan bila bidangnya memang tampil. Mengirim array kosong
+      // dari layar yang tidak menampilkannya akan mencabut seluruh pengelola.
+      ...(pilihanDepartemen.length > 0 ? { departemen_id: pengelola } : {}),
     };
 
     const hasil = jenis ? await perbaruiJenis(jenis.slug, muatan) : await buatJenis(muatan);
@@ -142,6 +156,52 @@ export function JenisDialog({ terbuka, onTutup, jenis, pilihanInduk, onSelesai }
             className="field"
           />
         </div>
+
+        {/*
+          Departemen pengelola. Yang mengenal isi sebuah daftar adalah unit
+          kerja yang memakainya sehari-hari — daftar Supplier dipegang
+          Purchasing, Produk dipegang Produksi. Daftar master yang salah tidak
+          berhenti di satu layar: seluruh laporan yang memilih dari sana ikut
+          membawanya.
+
+          Bidang ini hanya tampil bagi yang berwenang menetapkannya. Bila
+          tampil bagi yang dibatasinya, batas itu terbuka sendiri — cukup
+          menambahkan departemennya sendiri ke daftar.
+        */}
+        {pilihanDepartemen.length > 0 && (
+          <fieldset>
+            <legend className="field-label">Departemen pengelola</legend>
+            <p className="mb-1.5 text-caption text-ink-soft">
+              Tanpa satu pun dipilih, daftar ini dapat dikelola siapa pun yang punya izin
+              kelola data master.
+            </p>
+
+            <div className="max-h-40 overflow-y-auto rounded-input border border-line px-2 py-1.5">
+              <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                {pilihanDepartemen.map((satu) => (
+                  <label
+                    key={satu.id}
+                    className="flex items-center gap-2 text-body text-ink-muted"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={pengelola.includes(satu.id)}
+                      onChange={(e) =>
+                        setPengelola((sekarang) =>
+                          e.target.checked
+                            ? [...sekarang, satu.id]
+                            : sekarang.filter((id) => id !== satu.id),
+                        )
+                      }
+                      className="size-3.5 shrink-0 rounded-sm border-line text-primary focus:ring-primary"
+                    />
+                    {satu.nama}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </fieldset>
+        )}
       </div>
     </Modal>
   );

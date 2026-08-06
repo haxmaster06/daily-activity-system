@@ -38,6 +38,15 @@
             padding: 1.5mm;
             border: 0.2mm solid #D9DDE5;
             vertical-align: top;
+            /*
+             * Isian teks kaya sampai ke sini sudah dilucuti menjadi teks polos
+             * oleh `HtmlAman::keTeks()`, dan strukturnya tinggal berupa baris
+             * baru: tiap butir daftar diawali penanda pada barisnya sendiri.
+             * Tanpa `pre-line`, HTML meluruhkan baris baru itu dan seluruh
+             * butir menempel menjadi satu kalimat panjang.
+             */
+            white-space: pre-line;
+            word-break: break-word;
         }
 
         /* Baris berselang-seling memudahkan mata mengikuti satu baris pada

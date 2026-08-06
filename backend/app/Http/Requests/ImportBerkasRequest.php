@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\DailyReport;
 use App\Models\MasterData;
+use App\Models\MasterType;
 use App\Models\ReportTemplate;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -26,11 +27,19 @@ class ImportBerkasRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $kelas = $this->route('template') instanceof ReportTemplate
-            ? DailyReport::class
-            : MasterData::class;
+        if ($this->route('template') instanceof ReportTemplate) {
+            return $this->user()->can('create', DailyReport::class);
+        }
 
-        return $this->user()->can('create', $kelas);
+        /*
+         * Import daftar master menciptakan isi pada satu jenis tertentu, jadi
+         * ia tunduk pada batas yang sama dengan menambah satu per satu:
+         * jenisnya ikut ditimbang, bukan hanya izinnya. Tanpa ini, pembatasan
+         * departemen dapat ditembus cukup dengan mengunggah berkas.
+         */
+        $jenis = $this->route('jenis');
+
+        return $this->user()->can('create', [MasterData::class, $jenis instanceof MasterType ? $jenis : null]);
     }
 
     /**

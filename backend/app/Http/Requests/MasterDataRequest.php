@@ -14,9 +14,19 @@ class MasterDataRequest extends FormRequest
     {
         $baris = $this->route('item');
 
-        return $baris instanceof MasterData
-            ? $this->user()->can('update', $baris)
-            : $this->user()->can('create', MasterData::class);
+        if ($baris instanceof MasterData) {
+            return $this->user()->can('update', $baris);
+        }
+
+        /*
+         * Jenisnya ikut disertakan, bukan hanya kelasnya. Pembatasan
+         * pengelolaan bergantung pada departemen pengelola jenis itu — tanpa
+         * menyebutkannya, `create` tidak punya apa pun untuk ditimbang selain
+         * izin, dan seluruh pembatasan departemen menguap pada jalur tambah.
+         */
+        $jenis = $this->route('jenis');
+
+        return $this->user()->can('create', [MasterData::class, $jenis instanceof MasterType ? $jenis : null]);
     }
 
     /**

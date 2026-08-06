@@ -69,9 +69,19 @@ final class KatalogIzin
     public const ROLE_KELOLA = 'role.kelola';
 
     /** Nama kelompok untuk pengelompokan di layar. */
+    /**
+     * Kelompok izin, berurut sesuai tampilnya di layar Manajemen Peran.
+     *
+     * Papan progres dan Executive Analytics berdiri sendiri, tidak menumpang
+     * "Monitoring Tim". Keduanya fitur tersendiri dengan halamannya sendiri,
+     * dan administrator yang mencari izinnya akan mencari nama fiturnya —
+     * bukan menebak bahwa ia bersembunyi di bawah kelompok bernama lain.
+     */
     public const GRUP = [
         'laporan' => 'Laporan Harian',
         'monitoring' => 'Monitoring Tim',
+        'progres' => 'Papan Progres',
+        'analitik' => 'Executive Analytics',
         'master' => 'Data Master',
         'pengguna' => 'Pengguna & Hak Akses',
     ];
@@ -95,16 +105,17 @@ final class KatalogIzin
 
             ['monitoring', self::MONITORING_LIHAT, 'Melihat kepatuhan tim', 'Membuka ringkasan siapa yang sudah dan belum melapor.'],
             ['monitoring', self::MONITORING_KIRIM_PENGINGAT, 'Mengirim pengingat', 'Mengingatkan anggota yang belum mengisi laporan.'],
-            ['monitoring', self::TUGAS_LIHAT, 'Melihat papan progres', 'Membuka papan progres harian beserta kartunya.'],
-            ['monitoring', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
-            ['monitoring', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
+            ['progres', self::TUGAS_LIHAT, 'Melihat papan progres', 'Membuka papan progres harian beserta kartunya.'],
+            ['progres', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
+
+            ['analitik', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
 
             ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
             ['master', self::TEMPLATE_LIHAT, 'Melihat template', 'Membaca daftar template laporan.'],
             ['master', self::TEMPLATE_KELOLA, 'Mengelola template', 'Menambah, mengubah, dan menghapus template laporan.'],
             ['master', self::MASTER_LIHAT, 'Melihat daftar master', 'Membaca daftar pilihan seperti supplier, produk, dan satuan.'],
-            ['master', self::MASTER_KELOLA, 'Mengelola daftar master', 'Menambah, mengubah, dan menghapus daftar pilihan beserta isinya.'],
+            ['master', self::MASTER_KELOLA, 'Mengelola isi daftar master', 'Mengisi daftar pilihan yang departemennya ditetapkan sebagai pengelola.'],
 
             ['pengguna', self::PENGGUNA_LIHAT, 'Melihat daftar pengguna', 'Membuka daftar akun beserta perannya.'],
             ['pengguna', self::PENGGUNA_KELOLA, 'Menambah & mengubah pengguna', 'Membuat akun baru dan mengubah datanya, termasuk penetapan peran.'],
@@ -161,6 +172,20 @@ final class KatalogIzin
             // Diperlukan saat mengisi laporan: kolom yang mengambil pilihannya
             // dari daftar master tidak dapat dibuka tanpa membaca daftarnya.
             self::MASTER_LIHAT,
+            /*
+             * Mengelola ISI daftar master — dan hanya daftar yang departemennya
+             * ditetapkan sebagai pengelola (MasterDataPolicy).
+             *
+             * Yang mengenal isi sebuah daftar adalah unit kerja yang memakainya
+             * sehari-hari, bukan administrator. Tanpa izin ini di tangan mereka,
+             * penetapan departemen pengelola tidak berarti apa-apa: satu-satunya
+             * yang dapat mengelola justru pemegang jangkauan korporat, yang
+             * batas departemennya memang tidak berlaku.
+             *
+             * Menyusun dan menghapus JENIS daftarnya tetap tertutup — itu
+             * perubahan struktur, dan dijaga MasterTypePolicy.
+             */
+            self::MASTER_KELOLA,
             // Memasukkan progres harian memang pekerjaan staf.
             self::TUGAS_LIHAT,
             self::TUGAS_KELOLA,
@@ -173,12 +198,28 @@ final class KatalogIzin
             self::MONITORING_KIRIM_PENGINGAT,
         ];
 
+        /*
+         * Management: memantau, bukan menyusun.
+         *
+         * Executive Analytics dibuka di sini — halaman itu memang dibuat untuk
+         * pembacanya, dan angkanya tetap dibatasi `scopeVisibleTo()` sehingga
+         * jangkauan datanya tidak melebar sedikit pun.
+         *
+         * Mengelola kartu progres sengaja TIDAK diberikan. Karena itu daftarnya
+         * ditulis dari `$staff`, bukan dari `$supervisor` — `IzinRoleSeeder`
+         * memakai `syncWithoutDetaching`, jadi apa pun yang tercantum di sini
+         * akan dipasang kembali tiap kali seeder berjalan, termasuk izin yang
+         * sengaja dicabut operator lewat layar Manajemen Peran.
+         */
+        $management = array_values(array_diff(
+            [...$staff, self::LAPORAN_TINJAU, self::MONITORING_LIHAT, self::MONITORING_KIRIM_PENGINGAT, self::ANALITIK_LIHAT],
+            [self::TUGAS_KELOLA],
+        ));
+
         return [
-            // Manager berbeda dari Supervisor pada jangkauan datanya, bukan
-            // pada hak aksesnya.
             Role::STAFF => self::urutKatalog($staff),
             Role::SUPERVISOR => self::urutKatalog($supervisor),
-            Role::MANAGER => self::urutKatalog($supervisor),
+            Role::MANAGER => self::urutKatalog($management),
             Role::ADMINISTRATOR => self::kunci(),
         ];
     }

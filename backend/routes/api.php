@@ -259,6 +259,9 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::put('/laporan/{laporan}', [DailyReportController::class, 'update'])->name('laporan.update');
     Route::delete('/laporan/{laporan}', [DailyReportController::class, 'destroy'])
         ->name('laporan.destroy');
+    Route::post('/laporan/{sumber}/duplikat', [DailyReportController::class, 'duplikat'])
+        ->middleware('izin:laporan.buat')
+        ->name('laporan.duplikat');
     Route::post('/laporan/{laporan}/kirim', [DailyReportController::class, 'kirim'])
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])

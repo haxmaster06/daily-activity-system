@@ -6,7 +6,6 @@ import {
   DataTable,
   DataTableBody,
   DataTableHead,
-  DataTableKosong,
   Td,
   Th,
 } from '@/components/ui/data-table';
@@ -15,8 +14,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { DataRingkasan } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
 import { formatAngka, formatTanggal } from '@/lib/format';
-import { TautanDepartemen, TautanStatus, TautanTanggal } from '../dapat-disaring';
-import { GrafikSebaranStatus, GrafikStatusDepartemen, GrafikTrenKepatuhan } from '../grafik';
+import { TautanStatus, TautanTanggal } from '../dapat-disaring';
+import { GrafikSebaranStatus, GrafikTrenKepatuhan } from '../grafik';
 import { KartuAngka } from '../kartu-kpi';
 import { PanelGrafik } from '../panel-grafik';
 import { usePenyaring } from '../use-penyaring';
@@ -30,7 +29,7 @@ import { usePenyaring } from '../use-penyaring';
  * pertanyaannya tanpa satu pun grafik dibaca.
  */
 export function PapanRingkasan({ data }: { data: DataRingkasan }) {
-  const { saring, saringGabungan, saringTanggal } = usePenyaring();
+  const { saring, saringTanggal } = usePenyaring();
 
   return (
     <TooltipProvider>
@@ -143,42 +142,6 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
           }
         />
 
-        <PanelGrafik
-          dapatDisaring
-          judul="Kartu progres per departemen"
-          keterangan="Rinciannya, beserta yang lewat target, ada di tab Progres."
-          grafik={
-            <GrafikStatusDepartemen
-              data={data.status_per_departemen}
-              onPilih={(departemen, status) => saringGabungan({ departemen, status })}
-            />
-          }
-          tabel={
-            <DataTable>
-              <DataTableHead>
-                <Th>Departemen</Th>
-                <Th align="right">Belum Mulai</Th>
-                <Th align="right">Dalam Proses</Th>
-                <Th align="right">Selesai</Th>
-              </DataTableHead>
-              <DataTableBody>
-                {data.status_per_departemen.length === 0 && (
-                  <DataTableKosong kolom={4} pesan="Belum ada kartu progres." />
-                )}
-                {data.status_per_departemen.map((satu) => (
-                  <tr key={satu.departemen_id} className="border-b border-line last:border-0">
-                    <Td>
-                      <TautanDepartemen id={satu.departemen_id} nama={satu.departemen} />
-                    </Td>
-                    <Td align="right">{formatAngka(satu.belum_mulai)}</Td>
-                    <Td align="right">{formatAngka(satu.dalam_proses)}</Td>
-                    <Td align="right">{formatAngka(satu.selesai)}</Td>
-                  </tr>
-                ))}
-              </DataTableBody>
-            </DataTable>
-          }
-        />
       </div>
     </TooltipProvider>
   );

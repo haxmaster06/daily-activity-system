@@ -20,6 +20,18 @@ class ScrambleServiceProvider extends ServiceProvider
             return ! app()->isProduction();
         });
 
+        /*
+         * Scramble adalah dependency dev — pembangkit dokumentasi API, bukan
+         * bagian dari aplikasi yang berjalan. Image produksi dibangun dengan
+         * `composer install --no-dev`, sehingga kelasnya memang tidak ada di
+         * sana, dan memanggilnya tanpa penjagaan membuat `package:discover`
+         * berhenti dengan "Class Dedoc\Scramble\Scramble not found" — aplikasi
+         * gagal dibangun, bukan sekadar kehilangan dokumentasinya.
+         */
+        if (! class_exists(Scramble::class)) {
+            return;
+        }
+
         Scramble::configure()
             ->withDocumentTransformers(function ($openApi): void {
                 $openApi->secure(

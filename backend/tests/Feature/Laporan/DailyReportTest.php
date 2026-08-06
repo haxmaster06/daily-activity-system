@@ -183,7 +183,15 @@ it('menolak template milik departemen lain', function (): void {
     expect($qc->id)->not->toBe($produksi->id);
 });
 
-it('mengirim laporan dan menguncinya dari penyuntingan', function (): void {
+/*
+ * Laporan yang sudah dikirim tetap dapat diperbaiki pemiliknya.
+ *
+ * Penguncian sesudah kirim dicabut atas keputusan pemilik project: ini catatan
+ * aktivitas harian, bukan pengajuan yang mengikat. Yang tetap terkunci hanyalah
+ * MENGHAPUS — memperbaiki isian dan menghilangkan catatannya sama sekali adalah
+ * dua hal yang berbeda.
+ */
+it('membiarkan laporan yang sudah dikirim tetap dapat disunting pemiliknya', function (): void {
     $template = siapkanMaster();
     $pengguna = User::factory()->staff()->create();
     Sanctum::actingAs($pengguna);
@@ -193,11 +201,31 @@ it('mengirim laporan dan menguncinya dari penyuntingan', function (): void {
     $this->postJson("/api/laporan/{$id}/kirim")
         ->assertOk()
         ->assertJsonPath('data.status', 'dikirim')
-        ->assertJsonPath('data.dapat_disunting', false);
+        ->assertJsonPath('data.dapat_disunting', true);
 
-    // Setelah dikirim, laporan adalah catatan.
-    $this->putJson("/api/laporan/{$id}", muatanLaporan($template))->assertForbidden();
+    $this->putJson("/api/laporan/{$id}", muatanLaporan($template))->assertOk();
+});
+
+it('tetap menolak menghapus laporan yang sudah dikirim', function (): void {
+    $template = siapkanMaster();
+    $pengguna = User::factory()->staff()->create();
+    Sanctum::actingAs($pengguna);
+
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
     $this->deleteJson("/api/laporan/{$id}")->assertForbidden();
+});
+
+it('menolak mengirim ulang laporan yang sudah dikirim', function (): void {
+    $template = siapkanMaster();
+    $pengguna = User::factory()->staff()->create();
+    Sanctum::actingAs($pengguna);
+
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
+    $this->postJson("/api/laporan/{$id}/kirim")->assertForbidden();
 });
 
 it('menolak pengguna lain menyunting laporan yang bukan miliknya', function (): void {

@@ -38,6 +38,7 @@ class DepartmentRequest extends FormRequest
             ],
             'description' => ['nullable', 'string', 'max:255'],
             'is_active' => ['sometimes', 'boolean'],
+            'wajib_lapor' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -50,6 +51,7 @@ class DepartmentRequest extends FormRequest
             'name' => 'nama departemen',
             'description' => 'keterangan',
             'is_active' => 'status',
+            'wajib_lapor' => 'kewajiban mengisi laporan',
         ];
     }
 }

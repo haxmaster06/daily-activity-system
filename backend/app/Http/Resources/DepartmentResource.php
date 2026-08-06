@@ -22,6 +22,7 @@ class DepartmentResource extends JsonResource
             'nama' => $this->name,
             'keterangan' => $this->description,
             'aktif' => $this->is_active,
+            'wajib_lapor' => $this->wajib_lapor,
             'jumlah_anggota' => $this->whenCounted('users'),
         ];
     }

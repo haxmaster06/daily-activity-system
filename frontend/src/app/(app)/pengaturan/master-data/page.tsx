@@ -8,8 +8,9 @@ import {
   ambilPilihanInduk,
   type JenisMaster,
 } from '@/lib/master-server';
+import { ambilDepartemen } from '@/lib/master-data';
 import { denganPenyaringanAman } from '@/lib/penyaringan';
-import { wajibAkses } from '@/lib/session';
+import { penggunaSaatIni, wajibAkses } from '@/lib/session';
 import { PanelMaster } from './panel-master';
 
 export const metadata = { title: 'Data Master — DAMS' };
@@ -30,6 +31,17 @@ export default async function MasterDataPage({
   const filter = await searchParams;
   const jenis = await ambilJenisMaster();
 
+  /*
+   * Daftar departemen hanya diambil untuk yang berwenang menetapkan pengelola
+   * — jangkauan korporat. Bagi yang lain bidangnya tidak tampil sama sekali,
+   * dan mengambil datanya pun tidak ada gunanya.
+   */
+  const pengguna = await penggunaSaatIni();
+  const bolehAturPengelola = pengguna?.jangkauan.level === 3;
+  const pilihanDepartemen = bolehAturPengelola
+    ? (await ambilDepartemen()).map((satu) => ({ id: satu.id, nama: satu.nama }))
+    : [];
+
   if (jenis.length === 0) {
     return (
       <>
@@ -37,7 +49,7 @@ export default async function MasterDataPage({
           jejak={[{ label: 'Pengaturan', href: '/pengaturan' }, { label: 'Data Master' }]}
         />
         <PageHeader judul="Data Master" />
-        <PanelMaster jenis={[]} terpilih={null} isi={[]} meta={null} pilihanInduk={[]} />
+        <PanelMaster bolehKelolaJenis={bolehAturPengelola} pilihanDepartemen={pilihanDepartemen} jenis={[]} terpilih={null} isi={[]} meta={null} pilihanInduk={[]} />
       </>
     );
   }
@@ -72,7 +84,7 @@ export default async function MasterDataPage({
       />
       <PageHeader judul="Data Master" />
 
-      <PanelMaster
+      <PanelMaster bolehKelolaJenis={bolehAturPengelola} pilihanDepartemen={pilihanDepartemen}
         jenis={jenis}
         terpilih={terpilih}
         isi={halaman.data.data}
