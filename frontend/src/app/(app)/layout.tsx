@@ -54,6 +54,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           peranLain: Math.max(0, pengguna.penetapan.length - 1),
           // Array, bukan Set — nilainya menyeberang batas Server ke Client.
           izin: pengguna.izin,
+          bolehKelolaMaster: pengguna.bolehKelolaMaster,
           departemen: pengguna.departemen,
         }}
       />

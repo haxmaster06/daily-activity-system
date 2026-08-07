@@ -15,7 +15,7 @@ import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 import type { DataProgres } from '@/lib/analitik';
 import { formatAngka, formatTanggalRingkas } from '@/lib/format';
 import { TautanDepartemen, TautanPengguna, TautanStatus } from '../dapat-disaring';
-import { GrafikBeban, GrafikSebaranStatus, GrafikStatusDepartemen } from '../grafik';
+import { GrafikBeban, GrafikStatusDepartemen } from '../grafik';
 import { usePenyaring } from '../use-penyaring';
 import { PanelGrafik } from '../panel-grafik';
 
@@ -27,7 +27,7 @@ import { PanelGrafik } from '../panel-grafik';
  * bebannya menumpuk, dan berapa yang belum punya penanggung jawab.
  */
 export function PapanProgres({ data }: { data: DataProgres }) {
-  const { saring, saringGabungan } = usePenyaring();
+  const { saringGabungan } = usePenyaring();
 
   const kartuRingkas = [
     {
@@ -105,45 +105,6 @@ export function PapanProgres({ data }: { data: DataProgres }) {
                     <Td align="right">{formatAngka(satu.belum_mulai)}</Td>
                     <Td align="right">{formatAngka(satu.dalam_proses)}</Td>
                     <Td align="right">{formatAngka(satu.selesai)}</Td>
-                  </tr>
-                ))}
-              </DataTableBody>
-            </DataTable>
-          }
-        />
-
-        <PanelGrafik
-          dapatDisaring
-          judul="Sebaran status baris laporan"
-          keterangan="Dari baris aktivitas pada laporan, memakai kosakata status yang sama dengan papan progres."
-          grafik={
-            <GrafikSebaranStatus
-              data={data.sebaran_status_baris}
-              onPilihStatus={(status) => saring('status', status)}
-            />
-          }
-          tabel={
-            <DataTable>
-              <DataTableHead>
-                <Th>Status</Th>
-                <Th align="right">Jumlah</Th>
-                <Th align="right">Bagian</Th>
-              </DataTableHead>
-              <DataTableBody>
-                {data.sebaran_status_baris.map((satu) => (
-                  <tr key={satu.status} className="border-b border-line last:border-0">
-                    <Td>
-                      {/*
-                        Badge status ikut menyaring. Statusnya sama persis dengan
-                        status kartu progres, sehingga satu klik menyempitkan
-                        kedua sumber sekaligus.
-                      */}
-                      <TautanStatus status={satu.status} label={satu.label}>
-                        <StatusBadge status={satu.status} />
-                      </TautanStatus>
-                    </Td>
-                    <Td align="right">{formatAngka(satu.jumlah)}</Td>
-                    <Td align="right">{formatAngka(satu.persen)}%</Td>
                   </tr>
                 ))}
               </DataTableBody>

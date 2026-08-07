@@ -40,10 +40,7 @@ class DepartmentSeeder extends Seeder
         ];
 
         foreach ($departments as $department) {
-            Department::updateOrCreate(
-                ['code' => $department['code']],
-                $department + ['is_active' => true],
-            );
+            self::simpan($department['code'], $department);
         }
 
         /*
@@ -52,13 +49,42 @@ class DepartmentSeeder extends Seeder
          * kerja mana pun, dan menempatkannya di salah satunya membuat ia ikut
          * terhitung pada monitoring departemen itu.
          */
-        Department::updateOrCreate(
-            ['code' => Department::KODE_SISTEM],
+        self::simpan(
+            Department::KODE_SISTEM,
             [
                 'name' => 'Sistem',
                 'description' => 'Departemen khusus akun administrator awal.',
-                'is_active' => true,
             ],
         )->forceFill(['is_system' => true])->save();
+    }
+
+    /**
+     * Menyimpan satu departemen tanpa menimpa keputusan operator.
+     *
+     * `is_active` hanya disetel saat baris pertama kali dibuat.
+     *
+     * Sebelumnya nilainya ikut ditulis pada tiap update — dan seeder ini
+     * dijalankan ulang tiap deployment. Akibatnya departemen yang sengaja
+     * dinonaktifkan administrator hidup kembali dengan sendirinya, tanpa galat
+     * dan tanpa jejak; satu-satunya cara mengetahuinya adalah menyadari sendiri
+     * bahwa ia muncul lagi di daftar pilihan.
+     *
+     * Nama dan keterangan tetap diperbarui: keduanya memang milik seeder, dan
+     * perbaikan ejaan di sana harus sampai ke basis data.
+     *
+     * @param  array<string, mixed>  $atribut
+     */
+    private static function simpan(string $kode, array $atribut): Department
+    {
+        $departemen = Department::firstOrNew(['code' => $kode]);
+
+        if (! $departemen->exists) {
+            $departemen->is_active = true;
+        }
+
+        $departemen->fill($atribut + ['code' => $kode]);
+        $departemen->save();
+
+        return $departemen;
     }
 }

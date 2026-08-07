@@ -7,7 +7,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { Popover } from '@/components/ui/popover';
 import type { OpsiAnalitik } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
-import { formatTanggalRingkas } from '@/lib/format';
+import { formatTanggalRingkas, geserHariApi } from '@/lib/format';
 import { usePenyaring, type KunciDaftar } from './use-penyaring';
 
 /** Pintasan rentang yang paling sering dipakai. */
@@ -21,10 +21,7 @@ const PINTASAN = [
 const AMBANG_CARI = 8;
 
 function isoHariIni(mundur = 0): string {
-  const tanggal = new Date();
-  tanggal.setDate(tanggal.getDate() - mundur);
-
-  return tanggal.toISOString().slice(0, 10);
+  return geserHariApi(-mundur);
 }
 
 interface Pilihan {

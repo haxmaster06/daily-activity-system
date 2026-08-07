@@ -28,6 +28,8 @@ class MasterTypeRequest extends FormRequest
 
         // `slug` tidak diterima dari klien — dibuat controller dari nama (§1.3).
         return [
+            'departemen_id' => ['sometimes', 'array'],
+            'departemen_id.*' => ['integer', 'exists:departments,id'],
             'name' => [
                 'required', 'string', 'max:64',
                 Rule::unique('master_types', 'name')->ignore($id),

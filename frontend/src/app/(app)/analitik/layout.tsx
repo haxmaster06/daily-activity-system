@@ -4,7 +4,7 @@ import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
 import { ambilOpsiAnalitik } from '@/lib/analitik-server';
 import { wajibAkses } from '@/lib/session';
-import { PemantauSiaran } from './pemantau-siaran';
+import { PemantauSiaran } from '@/components/layout/pemantau-siaran';
 import { PenyaringAnalitik } from './penyaring';
 import { TabAnalitik } from './tab';
 

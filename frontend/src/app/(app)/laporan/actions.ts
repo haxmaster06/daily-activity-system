@@ -61,6 +61,33 @@ export async function kirimLaporan(id: number): Promise<HasilAksi> {
   }
 }
 
+/**
+ * Menduplikat laporan menjadi draf baru pada tanggal lain.
+ *
+ * Mengembalikan id laporan barunya supaya pemanggilnya dapat langsung membuka
+ * halamannya — isian angka masih kosong dan memang perlu segera dilengkapi.
+ */
+export async function duplikatLaporan(
+  id: number,
+  tanggal: string,
+): Promise<HasilAksi & { idBaru?: number }> {
+  try {
+    const { message, data } = await panggilApi<{ id: number }>(`/laporan/${id}/duplikat`, {
+      method: 'POST',
+      body: { report_date: tanggal },
+    });
+
+    revalidatePath(HALAMAN);
+
+    return {
+      ...hasilBerhasil(message || 'Laporan berhasil diduplikat.'),
+      idBaru: data?.id,
+    };
+  } catch (galat) {
+    return hasilGalat(galat);
+  }
+}
+
 export async function tinjauLaporan(id: number, catatan: string): Promise<HasilAksi> {
   try {
     const { message } = await panggilApi(`/laporan/${id}/tinjau`, {

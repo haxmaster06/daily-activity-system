@@ -50,32 +50,109 @@ function duaDigit(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
+/**
+ * Zona waktu tunggal seluruh tampilan.
+ *
+ * Dipatok, bukan diwarisi dari runtime. `getHours()` dan kerabatnya membaca
+ * zona waktu tempat kode itu kebetulan berjalan, dan pada aplikasi ini ada tiga
+ * tempat yang berbeda-beda:
+ *
+ * | Tempat                  | Zona                                    |
+ * |-------------------------|-----------------------------------------|
+ * | Peramban pengguna       | zona sistem pengguna — biasanya WIB     |
+ * | Server Next.js          | zona container — UTC                    |
+ * | Test                    | apa pun isi TZ saat itu                 |
+ *
+ * Akibatnya halaman yang dirender di server menuliskan jam UTC lalu menempelkan
+ * label "WIB" di belakangnya, meleset tujuh jam. Yang terjadi antara 00.00 dan
+ * 07.00 WIB bahkan tertulis pada tanggal kemarin — dan karena angkanya tetap
+ * masuk akal, tidak ada yang menyadarinya.
+ *
+ * Menyetel TZ container memperbaiki gejalanya di server, tetapi tidak pada
+ * peramban seseorang yang jam sistemnya tidak WIB. Yang benar-benar menjaga
+ * adalah pematokan di sini.
+ */
+const ZONA_TAMPILAN = 'Asia/Jakarta';
+
+const BAGIAN_ZONA = new Intl.DateTimeFormat('en-US', {
+  timeZone: ZONA_TAMPILAN,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
+type BagianWaktu = {
+  tahun: number;
+  /** 0-11, sepadan dengan indeks `NAMA_BULAN`. */
+  bulan: number;
+  tanggal: number;
+  /** 0-6, Minggu = 0, sepadan dengan indeks `NAMA_HARI`. */
+  hari: number;
+  jam: number;
+  menit: number;
+};
+
+/** Memecah satu instan menjadi bagian-bagiannya menurut waktu Jakarta. */
+function bagianWaktu(d: Date): BagianWaktu {
+  const bagian: Record<string, string> = {};
+
+  for (const { type, value } of BAGIAN_ZONA.formatToParts(d)) {
+    if (type !== 'literal') bagian[type] = value;
+  }
+
+  const tahun = Number(bagian.year);
+  const bulan = Number(bagian.month) - 1;
+  const tanggal = Number(bagian.day);
+
+  return {
+    tahun,
+    bulan,
+    tanggal,
+    /*
+     * Nama hari dihitung sendiri dari tanggal Jakarta, bukan diminta ke Intl.
+     * Bagian `weekday` keluar sebagai nama berbahasa Inggris yang harus
+     * dipetakan balik ke indeks, dan pemetaan itu ikut berubah bila locale
+     * runtime berubah. Aritmetika tanggal tidak.
+     */
+    hari: new Date(Date.UTC(tahun, bulan, tanggal)).getUTCDay(),
+    // `hour12: false` menghasilkan "24" untuk tengah malam pada sebagian runtime.
+    jam: Number(bagian.hour) % 24,
+    menit: Number(bagian.minute),
+  };
+}
+
 /** "30 Juli 2026" */
 export function formatTanggal(nilai: TanggalMasukan, fallback = '—'): string {
   const d = keDate(nilai);
   if (!d) return fallback;
-  return `${d.getDate()} ${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}`;
+  const { tanggal, bulan, tahun } = bagianWaktu(d);
+  return `${tanggal} ${NAMA_BULAN[bulan]} ${tahun}`;
 }
 
 /** "Kamis, 30 Juli 2026" */
 export function formatTanggalLengkap(nilai: TanggalMasukan, fallback = '—'): string {
   const d = keDate(nilai);
   if (!d) return fallback;
-  return `${NAMA_HARI[d.getDay()]}, ${formatTanggal(d)}`;
+  return `${NAMA_HARI[bagianWaktu(d).hari]}, ${formatTanggal(d)}`;
 }
 
 /** "30 Jul 2026" — untuk sel tabel yang padat */
 export function formatTanggalRingkas(nilai: TanggalMasukan, fallback = '—'): string {
   const d = keDate(nilai);
   if (!d) return fallback;
-  return `${d.getDate()} ${NAMA_BULAN[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
+  const { tanggal, bulan, tahun } = bagianWaktu(d);
+  return `${tanggal} ${NAMA_BULAN[bulan].slice(0, 3)} ${tahun}`;
 }
 
 /** "08.15" — 24 jam, pemisah titik */
 export function formatWaktu(nilai: TanggalMasukan, fallback = '—'): string {
   const d = keDate(nilai);
   if (!d) return fallback;
-  return `${duaDigit(d.getHours())}.${duaDigit(d.getMinutes())}`;
+  const { jam, menit } = bagianWaktu(d);
+  return `${duaDigit(jam)}.${duaDigit(menit)}`;
 }
 
 /** "30 Juli 2026, 08.15 WIB" */
@@ -89,22 +166,67 @@ export function formatTanggalWaktu(nilai: TanggalMasukan, fallback = '—'): str
 export function formatBulanTahun(nilai: TanggalMasukan, fallback = '—'): string {
   const d = keDate(nilai);
   if (!d) return fallback;
-  return `${NAMA_BULAN[d.getMonth()]} ${d.getFullYear()}`;
+  const { bulan, tahun } = bagianWaktu(d);
+  return `${NAMA_BULAN[bulan]} ${tahun}`;
 }
 
-/** "YYYY-MM-DD" — untuk payload API dan atribut `value` pada `<input type="date">`. */
+/**
+ * "YYYY-MM-DD" — untuk payload API dan atribut `value` pada `<input type="date">`.
+ *
+ * Dikecualikan dari Bahasa Indonesia, bukan dari zona waktunya: tanggal yang
+ * meleset sehari di sini membuat laporan tersimpan pada hari yang bukan hari
+ * kerjanya.
+ */
 export function toApiDate(nilai: TanggalMasukan): string {
   const d = keDate(nilai);
   if (!d) return '';
-  return `${d.getFullYear()}-${duaDigit(d.getMonth() + 1)}-${duaDigit(d.getDate())}`;
+  const { tanggal, bulan, tahun } = bagianWaktu(d);
+  return `${tahun}-${duaDigit(bulan + 1)}-${duaDigit(tanggal)}`;
+}
+
+/**
+ * "YYYY-MM-DD" hari ini menurut waktu Jakarta.
+ *
+ * Menggantikan `new Date().toISOString().slice(0, 10)`, yang menghasilkan
+ * tanggal UTC — dan antara 00.00 sampai 07.00 WIB itu tanggal KEMARIN. Dipakai
+ * sebagai nilai awal maupun batas atas isian tanggal, akibatnya laporan pagi
+ * hari terisi tanggal kemarin, lalu tanggal hari ini ditolak sebagai "belum
+ * terjadi".
+ */
+export function hariIniApi(): string {
+  return toApiDate(new Date());
+}
+
+/**
+ * "YYYY-MM-DD" sekian hari dari suatu tanggal, dihitung dalam waktu Jakarta.
+ *
+ * Bilangan negatif berarti mundur. Penambahannya dilakukan pada tanggal
+ * Jakarta, bukan pada instannya, sehingga jumlah hari yang diminta selalu sama
+ * dengan jumlah hari yang didapat.
+ */
+export function geserHariApi(jumlahHari: number, dari: TanggalMasukan = new Date()): string {
+  const d = keDate(dari) ?? new Date();
+  const { tahun, bulan, tanggal } = bagianWaktu(d);
+  const geser = new Date(Date.UTC(tahun, bulan, tanggal + jumlahHari));
+
+  return `${geser.getUTCFullYear()}-${duaDigit(geser.getUTCMonth() + 1)}-${duaDigit(
+    geser.getUTCDate(),
+  )}`;
+}
+
+/** "YYYY-MM-01" — tanggal pertama bulan berjalan menurut waktu Jakarta. */
+export function awalBulanApi(dari: TanggalMasukan = new Date()): string {
+  const d = keDate(dari) ?? new Date();
+  const { tahun, bulan } = bagianWaktu(d);
+
+  return `${tahun}-${duaDigit(bulan + 1)}-01`;
 }
 
 /** "20260730-0815" — untuk nama berkas export. Sengaja tetap teknis. */
 export function toFileStamp(nilai: TanggalMasukan = new Date()): string {
   const d = keDate(nilai) ?? new Date();
-  return `${d.getFullYear()}${duaDigit(d.getMonth() + 1)}${duaDigit(d.getDate())}-${duaDigit(
-    d.getHours(),
-  )}${duaDigit(d.getMinutes())}`;
+  const { tanggal, bulan, tahun, jam, menit } = bagianWaktu(d);
+  return `${tahun}${duaDigit(bulan + 1)}${duaDigit(tanggal)}-${duaDigit(jam)}${duaDigit(menit)}`;
 }
 
 /** "1.234,5" — pemisah ribuan titik, desimal koma. */

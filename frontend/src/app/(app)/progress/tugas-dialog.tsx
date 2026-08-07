@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 
+import { EditorKaya } from '@/components/ui/editor-kaya';
 import { Alert } from '@/components/ui/alert';
 import { Combobox, type OpsiCombobox } from '@/components/ui/combobox';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -197,13 +198,11 @@ export function TugasDialog({
           <label htmlFor="keterangan-tugas" className="field-label">
             Keterangan
           </label>
-          <textarea
+          <EditorKaya
             id="keterangan-tugas"
-            value={keterangan}
-            onChange={(e) => setKeterangan(e.target.value)}
-            maxLength={500}
-            rows={2}
-            className="field h-auto py-1.5"
+            nilai={keterangan || null}
+            onUbah={(html) => setKeterangan(html ?? '')}
+            label="Keterangan"
           />
         </div>
 

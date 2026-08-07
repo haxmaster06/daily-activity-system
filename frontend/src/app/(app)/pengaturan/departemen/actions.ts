@@ -11,6 +11,7 @@ export interface DataDepartemen {
   name: string;
   description: string | null;
   is_active: boolean;
+  wajib_lapor: boolean;
 }
 
 export async function buatDepartemen(data: DataDepartemen): Promise<HasilAksi> {

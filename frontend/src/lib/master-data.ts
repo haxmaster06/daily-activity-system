@@ -10,6 +10,8 @@ export interface Departemen {
   nama: string;
   keterangan: string | null;
   aktif: boolean;
+  /** Anggotanya wajib mengisi laporan harian. */
+  wajib_lapor: boolean;
   jumlah_anggota?: number;
 }
 

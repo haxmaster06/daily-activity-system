@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use App\Models\Tugas;
+use App\Rules\PanjangTeksKaya;
+use App\Support\HtmlAman;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,11 +23,30 @@ class TugasRequest extends FormRequest
     /**
      * @return array<string, array<int, mixed>>
      */
+    /**
+     * Membersihkan HTML sebelum divalidasi, bukan sesudahnya.
+     *
+     * Dibersihkan lebih dulu berarti yang divalidasi — dan yang tersimpan —
+     * adalah bentuk yang sama persis. Membersihkan sesudah validasi membuka
+     * celah bahwa panjang yang lolos pemeriksaan bukan panjang yang benar-benar
+     * masuk ke basis data.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('description')) {
+            $this->merge([
+                'description' => HtmlAman::bersihkan($this->input('description')),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'title' => ['required', 'string', 'max:150'],
-            'description' => ['nullable', 'string', 'max:500'],
+            // Panjangnya dihitung dari teksnya, bukan dari HTML pemformatannya
+            // — lihat App\Rules\PanjangTeksKaya.
+            'description' => ['nullable', 'string', new PanjangTeksKaya(500)],
             'department_id' => ['required', 'integer', 'exists:departments,id'],
             'penanggung_jawab_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['sometimes', 'string', Rule::in(array_keys(Tugas::STATUS))],

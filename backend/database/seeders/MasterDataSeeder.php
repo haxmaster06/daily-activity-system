@@ -23,10 +23,22 @@ class MasterDataSeeder extends Seeder
         $satuan = $this->jenis(self::SATUAN);
 
         foreach (self::ISI_SATUAN as $urutan => [$kode, $nama]) {
-            MasterData::updateOrCreate(
-                ['master_type_id' => $satuan->id, 'code' => $kode],
-                ['name' => $nama, 'sort_order' => $urutan, 'is_active' => true],
-            );
+            /*
+             * `is_active` hanya saat dibuat — lihat alasan lengkapnya di
+             * DepartmentSeeder::simpan(). Baris daftar master yang sengaja
+             * dinonaktifkan tidak boleh hidup kembali tiap deployment.
+             */
+            $baris = MasterData::firstOrNew([
+                'master_type_id' => $satuan->id,
+                'code' => $kode,
+            ]);
+
+            if (! $baris->exists) {
+                $baris->is_active = true;
+            }
+
+            $baris->fill(['name' => $nama, 'sort_order' => $urutan]);
+            $baris->save();
         }
 
         // Jenis yang dirujuk penyusun template sejak sebelum ada master data.

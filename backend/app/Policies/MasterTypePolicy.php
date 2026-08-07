@@ -26,16 +26,29 @@ class MasterTypePolicy
 
     public function create(User $user): bool
     {
-        return $user->boleh(KatalogIzin::MASTER_KELOLA);
+        return $user->boleh(KatalogIzin::MASTER_KELOLA) && $user->jangkauan()->korporat();
     }
 
     public function update(User $user, MasterType $jenis): bool
     {
-        return $user->boleh(KatalogIzin::MASTER_KELOLA);
+        return $user->boleh(KatalogIzin::MASTER_KELOLA) && $user->jangkauan()->korporat();
     }
 
     public function delete(User $user, MasterType $jenis): bool
     {
-        return $user->boleh(KatalogIzin::MASTER_KELOLA);
+        return $user->boleh(KatalogIzin::MASTER_KELOLA) && $user->jangkauan()->korporat();
+    }
+
+    /**
+     * Menetapkan departemen mana yang berwenang mengelola isi jenis ini.
+     *
+     * Hanya pemegang jangkauan korporat. Membiarkannya ikut `master.kelola`
+     * membuat pembatasannya tidak berarti apa-apa: siapa pun yang dibatasi
+     * cukup menambahkan departemennya sendiri ke daftar pengelola, dan batas
+     * itu terbuka sendiri.
+     */
+    public function aturPengelola(User $user): bool
+    {
+        return $user->boleh(KatalogIzin::MASTER_KELOLA) && $user->jangkauan()->korporat();
     }
 }

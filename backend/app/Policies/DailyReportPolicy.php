@@ -48,15 +48,23 @@ class DailyReportPolicy
     /**
      * Menyunting laporan.
      *
-     * Hanya pemiliknya, dan hanya selama masih draf. Laporan yang sudah
-     * dikirim adalah catatan — mengubahnya setelah dibaca supervisor membuat
-     * riwayat tidak dapat dipercaya.
+     * Hanya pemiliknya — tetapi tidak dibatasi statusnya.
+     *
+     * Sebelumnya penyuntingan berhenti begitu laporan dikirim, dengan alasan
+     * menjaga riwayat tetap dapat dipercaya. Aturan itu dicabut atas keputusan
+     * pemilik project: ini catatan aktivitas harian, bukan pengajuan yang
+     * mengikat. Yang terjadi di lapangan adalah pengisi menemukan salah ketik
+     * satu jam kemudian dan tidak punya jalan memperbaikinya, lalu membuat
+     * laporan kedua di hari yang sama — dan justru itu yang membuat riwayatnya
+     * tidak dapat dipercaya.
+     *
+     * Yang menjaga ketelusuran kini catatan audit, bukan penguncian: tiap
+     * perubahan tercatat beserta pelakunya dan waktunya.
      */
     public function update(User $user, DailyReport $report): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_UBAH_SENDIRI)
-            && $report->user_id === $user->getKey()
-            && $report->masihDraf();
+            && $report->user_id === $user->getKey();
     }
 
     public function delete(User $user, DailyReport $report): bool
@@ -86,5 +94,21 @@ class DailyReportPolicy
             && $report->user_id !== $user->getKey()
             && $report->status === DailyReport::STATUS_DIKIRIM
             && $this->view($user, $report);
+    }
+
+    /**
+     * Menduplikat laporan menjadi laporan baru miliknya sendiri.
+     *
+     * Hanya laporan sendiri. Menyalin isi laporan orang lain akan menempatkan
+     * tulisan yang ditulis orang itu di bawah nama penggunanya — dan pada
+     * catatan aktivitas harian, siapa yang menulis apa adalah seluruh isinya.
+     *
+     * Statusnya tidak dibatasi: laporan lama yang sudah dikirim justru yang
+     * paling sering ingin ditiru.
+     */
+    public function duplikat(User $user, DailyReport $report): bool
+    {
+        return $user->boleh(KatalogIzin::LAPORAN_BUAT)
+            && $report->user_id === $user->getKey();
     }
 }

@@ -237,6 +237,21 @@ final class DataExport
                     ))
                     : (string) $nilai,
                 $field->type === TemplateField::TIPE_TIME => (string) $nilai,
+                /*
+                 * Gerbang keluar untuk isian teks kaya.
+                 *
+                 * Kolom keterangan menyimpan HTML sejak diisi lewat editor.
+                 * Berkas export dibuka di Excel dan pembaca PDF, dan keduanya
+                 * menampilkan `<ul>` serta `<strong>` apa adanya sebagai
+                 * tulisan — kode program bocor ke berkas yang beredar ke luar.
+                 *
+                 * Dilucuti di sini, bukan di pembuat Excel maupun pembuat PDF
+                 * masing-masing: satu tempat berarti tidak ada gerbang kedua
+                 * yang bisa terlupa saat format export ketiga ditambahkan.
+                 */
+                $field->type === TemplateField::TIPE_TEXTAREA => HtmlAman::keTeks(
+                    is_string($nilai) ? $nilai : null,
+                ),
                 default => $nilai,
             };
         }

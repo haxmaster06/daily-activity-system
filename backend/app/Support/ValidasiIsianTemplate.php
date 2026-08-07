@@ -213,7 +213,20 @@ final class ValidasiIsianTemplate
                 continue;
             }
 
-            $bersih[$kolom->key] = $isi[$kolom->key] ?? null;
+            $nilai = $isi[$kolom->key] ?? null;
+
+            /*
+             * Kolom keterangan diisi lewat editor teks kaya, sehingga yang
+             * masuk adalah HTML buatan pengguna — dan HTML itu dirender kembali
+             * di layar peninjau. Dibersihkan di sini, pada satu-satunya jalur
+             * yang dilalui seluruh penyimpanan isian laporan: baris tunggal,
+             * mode grid, maupun hasil import.
+             */
+            if ($kolom->type === TemplateField::TIPE_TEXTAREA) {
+                $nilai = HtmlAman::bersihkan(is_string($nilai) ? $nilai : null);
+            }
+
+            $bersih[$kolom->key] = $nilai;
         }
 
         // Dihitung setelah kolom biasa terkumpul, karena rumusnya merujuk

@@ -226,7 +226,14 @@ it('menghapus lampiran beserta berkasnya selagi laporan masih draf', function ()
     Storage::disk('local')->assertMissing($jalur);
 });
 
-it('menolak menghapus lampiran setelah laporan dikirim', function (): void {
+/*
+ * Lampiran mengikuti aturan penyuntingan laporannya.
+ *
+ * Sejak isian laporan dapat diperbaiki sesudah dikirim, mengunci lampirannya
+ * hanya menghasilkan penyuntingan setengah: berkas yang salah unggah akan
+ * menempel di sana selamanya sementara isian di sebelahnya bebas diperbaiki.
+ */
+it('membiarkan pemilik menghapus lampiran setelah laporan dikirim', function (): void {
     $pengguna = penyusun();
     $laporan = DailyReport::factory()->milik($pengguna)->create();
 
@@ -236,10 +243,9 @@ it('menolak menghapus lampiran setelah laporan dikirim', function (): void {
 
     $laporan->forceFill(['status' => DailyReport::STATUS_DIKIRIM])->save();
 
-    // Laporan yang sudah dikirim adalah catatan; buktinya tidak boleh hilang.
-    $this->deleteJson("/api/lampiran/{$id}")->assertStatus(403);
+    $this->deleteJson("/api/lampiran/{$id}")->assertOk();
 
-    expect(Attachment::count())->toBe(1);
+    expect(Attachment::count())->toBe(0);
 });
 
 it('mencatat unggah dan hapus lampiran di jejak audit', function (): void {

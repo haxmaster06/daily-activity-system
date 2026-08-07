@@ -40,7 +40,12 @@ export function bolehBukaPengaturan(izin: readonly string[]): boolean {
     'role.lihat',
     'departemen.kelola',
     'template.kelola',
-    'master.kelola',
+    /*
+     * `master.kelola` sengaja TIDAK di sini, sama seperti pada MENU_UTAMA.
+     * Izin itu dipegang staf dan supervisor departemen; memasukkannya membuat
+     * setiap staf melihat pintu ke wilayah administrator. Data Master kini
+     * punya menunya sendiri.
+     */
   ].some((satu) => izin.includes(satu));
 }
 

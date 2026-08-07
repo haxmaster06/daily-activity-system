@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 
-import { useSiaranData } from './use-siaran-data';
+import { useSiaranData } from '@/lib/use-siaran-data';
 
 /**
  * Membuat halaman Analytics mengikuti perubahan data tanpa dimuat ulang.

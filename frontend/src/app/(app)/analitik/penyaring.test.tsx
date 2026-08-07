@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { OpsiAnalitik } from '@/lib/analitik';
+import { geserHariApi } from '@/lib/format';
 
 import { PenyaringAnalitik } from './penyaring';
 
@@ -94,13 +95,13 @@ describe('yang tampil sepanjang waktu hanya kesimpulannya', () => {
   });
 
   it('mengenali rentang yang persis sama dengan pintasannya', () => {
-    const hariIni = new Date();
-    const tujuhHari = new Date();
-    tujuhHari.setDate(tujuhHari.getDate() - 6);
-
-    const iso = (t: Date) => t.toISOString().slice(0, 10);
-
-    render_(`dari=${iso(tujuhHari)}&sampai=${iso(hariIni)}`);
+    /*
+     * Rentangnya dibangun dengan helper yang sama dipakai komponennya.
+     * Sebelumnya dihitung sendiri lewat `toISOString().slice(0, 10)` — cara
+     * yang sama kelirunya dengan yang diuji, sehingga test ini lulus justru
+     * karena kedua sisi salah bersama-sama.
+     */
+    render_(`dari=${geserHariApi(-6)}&sampai=${geserHariApi(0)}`);
 
     // Bukan "1 Agu 2026 – 7 Agu 2026": pintasannya lebih cepat dibaca.
     expect(screen.getByText('7 hari terakhir')).toBeInTheDocument();

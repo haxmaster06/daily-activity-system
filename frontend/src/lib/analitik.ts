@@ -81,7 +81,33 @@ export interface Metrik {
   label: string;
   satuan: string;
   desimal: boolean;
+  /** Grup kolom asalnya, mis. "QTY Selesai". Yang paling sering membedakan. */
+  grup: string[];
   template: string[];
+}
+
+/**
+ * Label metrik yang benar-benar dapat dibedakan.
+ *
+ * Satu template dapat memuat beberapa kolom berlabel sama — "Box" pada QTY
+ * Dibutuhkan, QTY Selesai, dan Kekurangan — sehingga `label (satuan)` saja
+ * menghasilkan tiga pilihan yang identik di layar.
+ *
+ * Pembeda ditambahkan HANYA pada label yang memang berulang. Menambahkannya ke
+ * semua metrik membuat pilihan yang sebetulnya sudah jelas ikut memanjang, dan
+ * daftar yang panjang justru lebih sulit dibaca.
+ */
+export function labelMetrik(metrik: Metrik, semua: readonly Metrik[]): string {
+  const dasar = `${metrik.label} (${metrik.satuan})`;
+
+  const berulang =
+    semua.filter((satu) => `${satu.label} (${satu.satuan})` === dasar).length > 1;
+
+  if (!berulang) return dasar;
+
+  const pembeda = metrik.grup.length > 0 ? metrik.grup : metrik.template;
+
+  return pembeda.length > 0 ? `${dasar} — ${pembeda.join(', ')}` : dasar;
 }
 
 export interface DataProduktivitas {
@@ -242,6 +268,8 @@ export interface KeadaanDepartemen {
   terakhir: { tanggal: string; penyusun_id: number | null; penyusun: string } | null;
   status_baris: Record<string, number>;
   sorotan: SorotanDepartemen[];
+  /** Kolom yang tidak kebagian tempat pada sorotan, karena kuota per jenis. */
+  sorotan_tersembunyi: number;
   laporan: RingkasLaporan[];
 }
 

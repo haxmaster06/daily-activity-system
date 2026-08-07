@@ -174,7 +174,14 @@ final class AngkaDepartemen
                 'penyusun' => $terakhir->user?->name ?? '—',
             ],
             'status_baris' => self::sebaranStatus($barisnya),
-            'sorotan' => self::sorotan($barisnya, $kolom),
+            ...(function () use ($barisnya, $kolom): array {
+                $hasil = self::sorotan($barisnya, $kolom);
+
+                return [
+                    'sorotan' => $hasil['sorotan'],
+                    'sorotan_tersembunyi' => $hasil['tersembunyi'],
+                ];
+            })(),
             'laporan' => $miliknya
                 ->take(self::BATAS_LAPORAN)
                 ->map(fn (DailyReport $satu) => [
@@ -209,12 +216,12 @@ final class AngkaDepartemen
      *
      * @param  Collection<int, object>  $baris
      * @param  Collection<int, TemplateField>  $kolom
-     * @return list<array<string, mixed>>
+     * @return array{sorotan: list<array<string, mixed>>, tersembunyi: int}
      */
     private static function sorotan(Collection $baris, Collection $kolom): array
     {
         if ($baris->isEmpty()) {
-            return [];
+            return ['sorotan' => [], 'tersembunyi' => 0];
         }
 
         $terpakai = $baris->pluck('template_id')->unique()->flip();
@@ -262,7 +269,20 @@ final class AngkaDepartemen
             }
         }
 
-        return self::seimbangkan($sorotan);
+        $terpilih = self::seimbangkan($sorotan);
+
+        /*
+         * Jumlah kolom yang tidak kebagian tempat ikut dilaporkan.
+         *
+         * Kuota di atas menjaga sorotan tetap seimbang, tetapi pemotongannya
+         * sunyi: kolom yang baru ditambahkan ke template tidak muncul, dan
+         * tidak ada satu pun tanda bahwa ia ada. Yang menambahkannya menyimpulkan
+         * fiturnya rusak — padahal ia hanya kalah kuota.
+         */
+        return [
+            'sorotan' => $terpilih,
+            'tersembunyi' => count($sorotan) - count($terpilih),
+        ];
     }
 
     /**

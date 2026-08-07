@@ -37,15 +37,6 @@ vi.mock('../grafik', () => ({
       juring sebaran
     </button>
   ),
-  GrafikStatusDepartemen: ({
-    onPilih,
-  }: {
-    onPilih?: (departemen: number, status: string) => void;
-  }) => (
-    <button type="button" onClick={() => onPilih?.(3, 'selesai')}>
-      segmen departemen
-    </button>
-  ),
 }));
 
 const CONTOH: DataRingkasan = {
@@ -119,7 +110,7 @@ describe('tabel pendamping wajib', () => {
   it('menyertakan tabel di dalam panel yang sama dengan tiap grafik', () => {
     render(<PapanRingkasan data={CONTOH} />);
 
-    const grafik = ['titik tren', 'juring sebaran', 'segmen departemen'].map((nama) =>
+    const grafik = ['titik tren', 'juring sebaran'].map((nama) =>
       screen.getByRole('button', { name: nama }),
     );
 
@@ -153,33 +144,6 @@ describe('grafik menyaring seluruh halaman', () => {
     await pengguna.click(screen.getByRole('button', { name: 'juring sebaran' }));
 
     expect(push).toHaveBeenCalledWith('/analitik/ringkasan?status=dalam_proses');
-  });
-
-  /*
-   * Segmen pada batang bertumpuk memuat dua keterangan sekaligus: departemennya
-   * dan statusnya. Menerapkan salah satunya saja menampilkan angka yang bukan
-   * angka yang barusan ditekan pengguna.
-   */
-  it('menyaring departemen dan status sekaligus dari satu segmen', async () => {
-    const pengguna = userEvent.setup();
-    render(<PapanRingkasan data={CONTOH} />);
-
-    await pengguna.click(screen.getByRole('button', { name: 'segmen departemen' }));
-
-    const alamat = push.mock.calls[0][0] as string;
-
-    expect(alamat).toContain('departemen=3');
-    expect(alamat).toContain('status=selesai');
-  });
-
-  it('melepaskan penyaringnya saat segmen yang sama ditekan ulang', async () => {
-    const pengguna = userEvent.setup();
-    params = new URLSearchParams('departemen=3&status=selesai');
-    render(<PapanRingkasan data={CONTOH} />);
-
-    await pengguna.click(screen.getByRole('button', { name: 'segmen departemen' }));
-
-    expect(push).toHaveBeenCalledWith('/analitik/ringkasan');
   });
 
   it('mempersempit rentang ke satu hari saat titik tren ditekan', async () => {

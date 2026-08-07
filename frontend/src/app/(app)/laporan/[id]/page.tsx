@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { TampilKaya } from '@/components/ui/tampil-kaya';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -93,10 +94,10 @@ export default async function DetailLaporanPage({
         </dl>
 
         {laporan.catatan_tinjauan && (
-          <p className="mt-3 rounded-input border border-secondary/25 bg-secondary-subtle px-3 py-2 text-body text-secondary-text">
+          <div className="mt-3 rounded-input border border-secondary/25 bg-secondary-subtle px-3 py-2 text-body text-secondary-text">
             <span className="font-medium">Catatan peninjau: </span>
-            {laporan.catatan_tinjauan}
-          </p>
+            <TampilKaya isi={laporan.catatan_tinjauan} kosong="" />
+          </div>
         )}
       </section>
 

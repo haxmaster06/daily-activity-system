@@ -23,6 +23,18 @@ class MasterTypeResource extends JsonResource
             'keterangan' => $this->description,
             'sistem' => $this->is_system,
             'urutan' => $this->sort_order,
+            /*
+             * Departemen yang berwenang mengelola isinya. Kosong berarti
+             * terbuka bagi seluruh pemegang `master.kelola` — lihat
+             * MasterDataPolicy.
+             */
+            'departemen_pengelola' => $this->whenLoaded(
+                'departemenPengelola',
+                fn () => $this->departemenPengelola
+                    ->map(fn ($satu) => ['id' => $satu->id, 'nama' => $satu->name])
+                    ->values(),
+            ),
+            'boleh_kelola_isi' => $request->user()?->can('create', [\App\Models\MasterData::class, $this->resource]) ?? false,
             'induk' => $this->whenLoaded(
                 'induk',
                 fn () => $this->induk === null

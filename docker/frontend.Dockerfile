@@ -29,10 +29,49 @@ ENV NEXT_PUBLIC_REVERB_HOST=${NEXT_PUBLIC_REVERB_HOST}
 ENV NEXT_PUBLIC_REVERB_PORT=${NEXT_PUBLIC_REVERB_PORT}
 ENV NEXT_PUBLIC_REVERB_SCHEME=${NEXT_PUBLIC_REVERB_SCHEME}
 
+# `public/` belum ada di repositori — aplikasi ini tidak memakai satu pun aset
+# statis dari sana. Tahap runtime tetap menyalinnya, dan COPY yang sumbernya
+# tidak ada menggagalkan build. Dibuat kosong di sini supaya build tetap jalan
+# sekarang, dan berkasnya ikut tersalin dengan sendirinya bila kelak ditambahkan.
+RUN mkdir -p public
+
 RUN npm run build
+
+# ---------------------------------------------------------------------------
+# Penjagaan: nilai NEXT_PUBLIC_* wajib benar-benar mendarat di bundel
+# ---------------------------------------------------------------------------
+#
+# Menyediakan build arg tidak menjamin nilainya tertanam. Bila kode membaca
+# environment lewat pembungkus, webpack tidak punya ekspresi statis untuk
+# diganti: build tetap berhasil, image tetap terbentuk, dan barulah di peramban
+# pengguna ketahuan bahwa seluruh nilai jatuh ke bawaan pengembangan lokal.
+#
+# Gagal di sini jauh lebih murah daripada gagal di sana. Dilewati bila arg-nya
+# memang tidak diberikan, supaya build lokal tanpa Reverb tetap bisa jalan.
+RUN if [ -n "$NEXT_PUBLIC_REVERB_KEY" ]; then \
+        grep -rq "$NEXT_PUBLIC_REVERB_KEY" .next/static || { \
+            echo '' >&2; \
+            echo 'GAGAL: NEXT_PUBLIC_REVERB_KEY diberikan sebagai build arg, tetapi' >&2; \
+            echo 'nilainya tidak ditemukan di dalam bundel .next/static.' >&2; \
+            echo '' >&2; \
+            echo 'Artinya nilai itu tidak tertanam saat build, dan peramban akan' >&2; \
+            echo 'memakai nilai bawaan — WebSocket menyambung ke alamat yang salah' >&2; \
+            echo 'tanpa satu pun pesan galat.' >&2; \
+            echo '' >&2; \
+            echo 'Periksa src/lib/echo.ts: NEXT_PUBLIC_* wajib dibaca sebagai' >&2; \
+            echo 'process.env.NAMA_PENUH, bukan lewat indeks variabel.' >&2; \
+            echo '' >&2; \
+            exit 1; \
+        }; \
+    fi
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
+
+# Basis data zona waktu; lihat alasannya di docker/backend.Dockerfile. Node
+# memakai data zona bawaan ICU sehingga `Date` dan `Intl` sudah benar tanpa
+# paket ini — yang dibetulkan hanyalah `date` dan stempel waktu shell.
+RUN apk add --no-cache tzdata
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

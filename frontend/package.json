@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:zona": "for z in UTC Asia/Jakarta America/New_York; do echo \"--- TZ=$z ---\"; TZ=$z vitest run src/lib/format.test.ts || exit 1; done",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -34,6 +35,9 @@
     "@react-three/fiber": "^9.6.1",
     "@react-three/rapier": "^2.2.0",
     "@tanstack/react-query": "^5.66.0",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

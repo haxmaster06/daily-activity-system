@@ -1,4 +1,4 @@
-import { DamsMark } from '@/components/brand/dams-mark';
+import { LogoDams } from '@/components/brand/logo-dams';
 import { Alert } from '@/components/ui/alert';
 import { LoginForm } from './login-form';
 
@@ -20,9 +20,9 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col md:flex-row">
       {/* Panel identitas */}
       <section className="relative hidden bg-primary-text px-8 py-12 text-white md:flex md:w-1/2 md:flex-col md:items-center md:justify-center">
-        <DamsMark className="size-20 text-white" />
-        <p className="mt-5 font-heading text-[2rem] font-bold leading-none">DAMS</p>
-        <p className="mt-2 max-w-xs text-center text-body-lg text-white/85">
+        {/* Varian putih: panel ini berlatar gelap. */}
+        <LogoDams varian="putih" className="w-64" prioritas />
+        <p className="mt-4 max-w-xs text-center text-body-lg text-white/85">
           Pantau aktivitas harian setiap departemen dalam satu tempat.
         </p>
         <p className="absolute bottom-6 text-caption text-white/60">
@@ -34,8 +34,7 @@ export default async function LoginPage({
       <section className="flex w-full items-center justify-center bg-surface px-4 py-10 md:w-1/2 md:px-10">
         <div className="w-full max-w-sm">
           <div className="mb-6 flex flex-col items-center md:hidden">
-            <DamsMark className="size-12 text-primary-text" />
-            <p className="mt-2 font-heading text-page-title font-bold text-primary-text">DAMS</p>
+            <LogoDams className="w-44" prioritas />
           </div>
 
           <h1 className="text-page-title text-ink">Selamat Datang</h1>

@@ -30,13 +30,39 @@ export interface OpsiCookieToken {
   maxAge?: number;
 }
 
+/**
+ * Menentukan flag `secure` pada cookie token.
+ *
+ * Peramban menolak menyimpan cookie ber-flag `Secure` yang datang lewat http
+ * polos — dan menolaknya tanpa suara. Yang terlihat pengguna adalah login yang
+ * membalas berhasil, lalu tiap halaman melempar balik ke halaman masuk.
+ *
+ * `NODE_ENV` tidak cukup untuk memutuskannya. Build produksi selalu bernilai
+ * `production`, sedangkan skema yang melayaninya bisa http — fase QA berjalan
+ * di atas IP publik tanpa TLS. Yang menentukan adalah skema, bukan jenis build,
+ * sehingga nilainya diambil dari environment.
+ *
+ * Tanpa awalan `NEXT_PUBLIC_`, jadi dibaca saat container berjalan: naik ke
+ * https cukup mengubah nilainya lalu restart, tanpa membangun ulang bundel.
+ *
+ * Bila variabelnya tidak diisi, perilaku lama tetap berlaku — pengembangan
+ * lokal dan deployment yang sudah ada tidak berubah.
+ */
+function cookieHarusSecure(): boolean {
+  const disetel = process.env.DAMS_COOKIE_SECURE;
+
+  if (disetel === undefined || disetel === '') {
+    return process.env.NODE_ENV === 'production';
+  }
+
+  return disetel === 'true';
+}
+
 export function opsiCookieToken(kedaluwarsaPada?: string): OpsiCookieToken {
   const opsi: OpsiCookieToken = {
     httpOnly: true,
     sameSite: 'lax',
-    // Di pengembangan lokal aplikasi berjalan melalui http, sehingga flag
-    // secure hanya dipasang pada produksi.
-    secure: process.env.NODE_ENV === 'production',
+    secure: cookieHarusSecure(),
     path: '/',
   };
 

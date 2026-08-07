@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
-import type { DataProduktivitas } from '@/lib/analitik';
+import { labelMetrik, type DataProduktivitas } from '@/lib/analitik';
 import { formatAngka, formatTanggal } from '@/lib/format';
 import { TautanDepartemen, TautanPengguna, TautanTanggal } from '../dapat-disaring';
 import { GrafikProduktivitas, GrafikProduktivitasDepartemen } from '../grafik';
@@ -70,7 +70,7 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
               onUbah={pilihMetrik}
               opsi={data.metrik_tersedia.map((satu) => ({
                 nilai: satu.penanda,
-                label: `${satu.label} (${satu.satuan})`,
+                label: labelMetrik(satu, data.metrik_tersedia),
               }))}
               className="min-w-64"
             />

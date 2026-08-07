@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { panggilApi } from '@/lib/api';
+import { geserHariApi } from '@/lib/format';
 import type { Laporan } from '@/lib/laporan';
 import type { KolomPapan } from '@/lib/tugas';
 
@@ -29,11 +30,8 @@ export async function ambilPapan(query: URLSearchParams): Promise<KolomPapan[]> 
  * penyaringan tanggal di sini hanya soal panjang daftar.
  */
 export async function ambilLaporanTertaut(): Promise<Laporan[]> {
-  const dari = new Date();
-  dari.setDate(dari.getDate() - 30);
-
   const query = new URLSearchParams({
-    dari: dari.toISOString().slice(0, 10),
+    dari: geserHariApi(-30),
     per_halaman: '50',
   });
 

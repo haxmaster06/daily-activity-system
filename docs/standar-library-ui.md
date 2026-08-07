@@ -413,6 +413,47 @@ satu test di berkas itu memang akan memberi tahu.
 
 ---
 
+### 9.5 `@tiptap/react` — editor teks kaya
+
+Dipakai oleh `src/components/ui/editor-kaya.tsx`, pada kolom laporan bertipe
+`textarea`, keterangan tugas, dan catatan tinjauan.
+
+| Pertanyaan §9 | Jawaban |
+|---|---|
+| Radix punya? | Tidak. Radix tidak menyediakan editor teks sama sekali. |
+| React Aria punya? | Tidak. React Aria berhenti pada `TextField` — sebuah `textarea` biasa. |
+| Cukup ditulis sendiri? | Tidak. |
+
+Yang membuat "tulis sendiri" gugur bukan bilah alatnya — lima tombol memang
+sederhana. Yang tidak sederhana ada di bawahnya: menjaga rentang seleksi tetap
+benar saat teks berubah, riwayat undo yang tidak memotong satu ketikan menjadi
+puluhan langkah, dan penempelan dari Word yang membawa serta puluhan tag
+beserta atribut `style` panjang. Menulis ketiganya sendiri berarti menulis
+ulang `contenteditable`, dan `contenteditable` yang ditulis sendiri adalah
+sumber bug yang tidak pernah selesai.
+
+**Headless, jadi tidak menambah sumber gaya kedua.** Ini yang membuatnya lolos
+kekhawatiran pokok §9. Tiptap tidak membawa CSS apa pun; seluruh tampilannya —
+bilah alat, jarak daftar, gaya fokus — ditulis dengan token DAMS di
+`globals.css` pada kelas `.dams-kaya`. Tidak ada tema pihak ketiga yang harus
+dijaga agar tetap serupa dengan sisa aplikasi.
+
+**Formatnya dibatasi lima**, dan batas itu keputusan keamanan, bukan
+kekurangan: tebal, miring, garis bawah, daftar berpoin, daftar bernomor. Tiap
+tag yang diizinkan adalah satu lagi bentuk yang harus dijamin aman saat
+dirender kembali di layar orang lain. Judul, tautan, tabel, dan gambar
+dimatikan — tautan menuntut penyaring skema agar `javascript:` tidak lolos,
+gambar menuntut jalur unggahan tersendiri.
+
+Daftar izin yang sama ditegakkan di tiga tempat, dan ketiganya harus tetap
+sama bila kelak berubah:
+
+| Lapis | Berkas |
+|---|---|
+| Editor | `frontend/src/components/ui/editor-kaya.tsx` |
+| Gerbang render | `frontend/src/components/ui/tampil-kaya.tsx` |
+| Pembersih saat simpan | `backend/app/Support/HtmlAman.php` |
+
 ## 10. Checklist tinjau kode
 
 * [ ] Komponen baru memakai Radix atau React Aria, sesuai peta §2

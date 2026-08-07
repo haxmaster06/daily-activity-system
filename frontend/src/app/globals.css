@@ -407,3 +407,81 @@
     }
   }
 }
+
+/*
+ * Editor teks kaya dan tampilan bacanya.
+ *
+ * Gayanya ditulis di sini, bukan diambil dari tema bawaan Tiptap: yang dipasang
+ * adalah paket headless, tepat supaya tidak ada sumber gaya kedua yang harus
+ * dijaga konsisten (standar library UI §9).
+ *
+ * Keduanya sengaja berbagi aturan daftar yang sama, sehingga apa yang diketik
+ * pengisi laporan tampil persis seperti itu pula saat dibaca peninjaunya.
+ */
+@layer components {
+  .dams-kaya,
+  .dams-kaya-baca {
+    @apply text-body leading-5 text-ink;
+  }
+
+  .dams-kaya p,
+  .dams-kaya-baca p {
+    @apply min-h-[1.25rem];
+  }
+
+  /* Jarak hanya di antara paragraf, bukan sesudah yang terakhir. */
+  .dams-kaya p + p,
+  .dams-kaya-baca p + p {
+    @apply mt-1.5;
+  }
+
+  .dams-kaya ul,
+  .dams-kaya-baca ul {
+    @apply my-1 list-disc pl-5;
+  }
+
+  .dams-kaya ol,
+  .dams-kaya-baca ol {
+    @apply my-1 list-decimal pl-5;
+  }
+
+  .dams-kaya li,
+  .dams-kaya-baca li {
+    @apply my-0.5;
+  }
+
+  .dams-kaya strong,
+  .dams-kaya-baca strong {
+    @apply font-semibold;
+  }
+
+  .dams-kaya u,
+  .dams-kaya-baca u {
+    @apply underline underline-offset-2;
+  }
+
+  /*
+   * Placeholder pada editor kosong. Tiptap tidak menuliskannya sendiri tanpa
+   * ekstensi tambahan, dan satu baris CSS lebih murah daripada satu dependensi.
+   */
+  .dams-kaya.ProseMirror p.is-editor-empty:first-child::before,
+  .dams-kaya[data-placeholder]:has(> p:only-child:empty)::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none float-left h-0 text-ink-soft;
+  }
+
+  /*
+   * Tidak boleh menjebol lebarnya, sekalipun ditempel dari Word atau berisi
+   * satu kata yang sangat panjang. Berlaku pada editornya juga: sel tabel yang
+   * melebar mengikuti isi akan menyeret halaman menggulir mendatar (§6.5).
+   */
+  .dams-kaya,
+  .dams-kaya-baca {
+    @apply break-words;
+  }
+
+  .dams-kaya .ProseMirror,
+  .dams-kaya {
+    @apply max-w-full;
+  }
+}

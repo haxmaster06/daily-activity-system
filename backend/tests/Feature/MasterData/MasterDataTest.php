@@ -47,15 +47,22 @@ it('tidak mengubah slug ketika namanya diperbaiki', function (): void {
         ->assertJsonPath('data.nama', 'Mesin Pabrik');
 });
 
-it('menolak menghapus daftar bawaan sistem', function (): void {
+/*
+ * Tanda `is_system` tidak lagi menghalangi penghapusan.
+ *
+ * Tanda itu hanya menyatakan daftarnya dibuat seeder — bukan alasan yang dapat
+ * dijelaskan kepada administrator perusahaan yang memang tidak memakai daftar
+ * tersebut. Yang menahan penghapusan kini rujukan yang masih hidup: kolom
+ * template yang memakainya, dan daftar turunan yang berinduk padanya. Keduanya
+ * diuji tersendiri — lihat test di bawah dan di Feature/Master.
+ */
+it('mengizinkan menghapus daftar bawaan sistem yang tidak dirujuk siapa pun', function (): void {
     Sanctum::actingAs(User::factory()->administrator()->create());
     $this->seed(MasterDataSeeder::class);
 
-    $this->deleteJson('/api/master/jenis/satuan')
-        ->assertStatus(422)
-        ->assertJsonPath('success', false);
+    $this->deleteJson('/api/master/jenis/satuan')->assertOk();
 
-    expect(MasterType::where('slug', 'satuan')->exists())->toBeTrue();
+    expect(MasterType::where('slug', 'satuan')->exists())->toBeFalse();
 });
 
 it('menolak menghapus daftar yang masih menjadi induk daftar lain', function (): void {

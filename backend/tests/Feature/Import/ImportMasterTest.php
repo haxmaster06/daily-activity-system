@@ -2,7 +2,9 @@
 
 use App\Models\MasterData;
 use App\Models\MasterType;
+use App\Models\Permission;
 use App\Models\User;
+use App\Support\KatalogIzin;
 use App\Support\ImportMaster;
 use App\Support\SelAman;
 use Illuminate\Http\UploadedFile;
@@ -57,10 +59,21 @@ function pengelolaMaster(): User
     return User::factory()->administrator()->create();
 }
 
+/*
+ * Staf kini memegang `master.kelola` secara bawaan — mengisi daftar master
+ * memang pekerjaan unit kerja yang memakainya. Karena itu izinnya dicabut
+ * secara eksplisit di sini: yang diuji adalah penolakan bagi yang TIDAK
+ * memegang izin, bukan kebetulan bahwa perannya belum sempat memilikinya.
+ */
 it('menolak import tanpa izin mengelola', function (): void {
     $jenis = jenisTanpaInduk();
 
-    Sanctum::actingAs(User::factory()->staff()->create());
+    $pengguna = User::factory()->staff()->create();
+    $pengguna->roles->first()?->permissions()->detach(
+        Permission::where('key', KatalogIzin::MASTER_KELOLA)->value('id'),
+    );
+
+    Sanctum::actingAs($pengguna->fresh());
 
     $this->post("/api/master/{$jenis->slug}/import/pratinjau", [
         'berkas' => berkasImport(['Nama *', 'Keterangan', 'Aktif'], [['Kilogram', '', 'Ya']]),

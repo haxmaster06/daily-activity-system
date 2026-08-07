@@ -5,12 +5,16 @@ namespace App\Http\Controllers;
 use App\Http\Requests\DailyReportRequest;
 use App\Http\Resources\DailyReportResource;
 use App\Models\DailyReport;
+use App\Models\DailyReportItem;
 use App\Models\ReportTemplate;
 use App\Models\User;
 use App\Notifications\LaporanDikirim;
 use App\Notifications\LaporanDitinjau;
+use App\Rules\PanjangTeksKaya;
 use App\Support\ApiResponse;
+use App\Support\HtmlAman;
 use App\Support\Audit;
+use App\Support\JangkauanData;
 use App\Support\KatalogIzin;
 use App\Support\ValidasiIsianTemplate;
 use Illuminate\Http\JsonResponse;
@@ -187,8 +191,12 @@ class DailyReportController extends Controller
     {
         $this->authorize('tinjau', $laporan);
 
+        // Dibersihkan sebelum divalidasi, supaya panjang yang diperiksa sama
+        // dengan panjang yang benar-benar tersimpan.
+        $request->merge(['catatan' => HtmlAman::bersihkan($request->input('catatan'))]);
+
         $data = $request->validate(
-            ['catatan' => ['nullable', 'string', 'max:255']],
+            ['catatan' => ['nullable', 'string', new PanjangTeksKaya(255)]],
             attributes: ['catatan' => 'catatan tinjauan'],
         );
 
@@ -232,13 +240,39 @@ class DailyReportController extends Controller
      */
     private function beriTahuAtasan(DailyReport $laporan): void
     {
-        $atasan = User::query()
+        $peninjau = fn () => User::query()
             ->where('is_active', true)
-            ->where('department_id', $laporan->department_id)
             ->whereKeyNot($laporan->user_id)
             ->whereHas('roles.permissions', fn ($query) => $query
-                ->where('key', KatalogIzin::LAPORAN_TINJAU))
+                ->where('key', KatalogIzin::LAPORAN_TINJAU));
+
+        $atasan = $peninjau()
+            ->where('department_id', $laporan->department_id)
             ->get();
+
+        /*
+         * Naik ke jangkauan korporat bila departemennya tidak punya peninjau
+         * lain.
+         *
+         * Departemen berisi satu orang bukan kasus langka — IT, Marketing, dan
+         * beberapa unit lain memang begitu. Bila orang itu sendiri satu-satunya
+         * yang berhak meninjau, penyaringan "sedepartemen dan bukan penulisnya"
+         * menghasilkan daftar kosong, dan laporannya terkirim tanpa satu pun
+         * pemberitahuan ke siapa pun. Tidak ada galat, tidak ada tanda — hanya
+         * laporan yang tidak pernah dibaca.
+         *
+         * Hanya dinaikkan ketika memang kosong. Selalu menyertakan pemegang
+         * korporat akan mengisi lonceng mereka dengan laporan dari delapan belas
+         * departemen setiap hari, dan lonceng yang selalu penuh berhenti dibaca.
+         */
+        if ($atasan->isEmpty()) {
+            $atasan = $peninjau()
+                ->whereHas(
+                    'roles',
+                    fn ($query) => $query->where('role_user.scope_level', JangkauanData::KORPORAT),
+                )
+                ->get();
+        }
 
         Notification::send($atasan, new LaporanDikirim($laporan));
     }
@@ -318,5 +352,111 @@ class DailyReportController extends Controller
             'sections.items',
             'attachments.pengunggah',
         ]);
+    }
+
+    /**
+     * Menduplikat laporan menjadi laporan baru pada tanggal lain.
+     *
+     * ## Angka sengaja dikosongkan
+     *
+     * Yang berulang tiap hari adalah pekerjaannya — nama aktivitas, keterangan,
+     * supplier, produk. Angkanya justru yang wajib berbeda, dan angka kemarin
+     * yang ikut terbawa diam-diam adalah data salah yang paling sulit
+     * terdeteksi: bentuknya benar, letaknya benar, dan tidak ada satu pun
+     * pemeriksaan yang dapat menandainya.
+     *
+     * Status baris ikut dikosongkan dengan alasan yang sama — pekerjaan yang
+     * kemarin selesai belum tentu selesai hari ini.
+     */
+    public function duplikat(Request $request, DailyReport $sumber): JsonResponse
+    {
+        $this->authorize('duplikat', $sumber);
+
+        $pengguna = $request->user();
+
+        $data = $request->validate(
+            ['report_date' => ['required', 'date', 'before_or_equal:today']],
+            [
+                'report_date.before_or_equal' => 'Laporan tidak dapat dibuat untuk tanggal yang belum terjadi.',
+            ],
+            ['report_date' => 'tanggal laporan'],
+        );
+
+        // Penjagaan yang sama dengan `store()`: satu pengguna satu laporan per
+        // tanggal, dan indeks unik tetap menjadi penjaga terakhir.
+        $bentrok = DailyReport::where('user_id', $pengguna->id)
+            ->where('report_date', $data['report_date'])
+            ->exists();
+
+        if ($bentrok) {
+            return ApiResponse::error(
+                'Laporan untuk tanggal tersebut sudah ada. Buka laporan itu untuk melanjutkan.',
+                422,
+            );
+        }
+
+        $sumber->load('sections.template.fields', 'sections.items');
+
+        $laporan = DB::transaction(function () use ($sumber, $pengguna, $data) {
+            $baru = DailyReport::create([
+                'user_id' => $pengguna->id,
+                'department_id' => $pengguna->department_id,
+                'report_date' => $data['report_date'],
+                'status' => DailyReport::STATUS_DRAF,
+            ]);
+
+            foreach ($sumber->sections as $bagian) {
+                $bagianBaru = $baru->sections()->create([
+                    'report_template_id' => $bagian->report_template_id,
+                    'sort_order' => $bagian->sort_order,
+                ]);
+
+                foreach ($bagian->items as $urutan => $isi) {
+                    $nilai = self::tanpaAngka($bagian->template, (array) $isi->data);
+
+                    $bagianBaru->items()->create([
+                        'data' => $nilai,
+                        'progress_status' => null,
+                        'sort_order' => $urutan,
+                    ]);
+                }
+            }
+
+            return $baru;
+        });
+
+        Audit::catat(
+            Audit::AKSI_DIBUAT,
+            Audit::MODUL_LAPORAN,
+            'Menduplikat laporan '.$sumber->report_date->translatedFormat('d F Y'),
+            $laporan,
+            ['sumber_id' => $sumber->id],
+        );
+
+        return ApiResponse::created(
+            new DailyReportResource($this->muatLengkap($laporan)),
+            'Laporan berhasil diduplikat. Periksa dan lengkapi angkanya.',
+        );
+    }
+
+    /**
+     * Menyalin isian satu baris tanpa kolom angka dan tanpa status.
+     *
+     * @param  array<string, mixed>  $nilai
+     * @return array<string, mixed>
+     */
+    private static function tanpaAngka(?ReportTemplate $template, array $nilai): array
+    {
+        if ($template === null) {
+            return $nilai;
+        }
+
+        foreach ($template->fields as $kolom) {
+            if ($kolom->bertipeAngka() || $kolom->key === DailyReportItem::KUNCI_STATUS) {
+                $nilai[$kolom->key] = null;
+            }
+        }
+
+        return $nilai;
     }
 }

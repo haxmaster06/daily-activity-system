@@ -59,9 +59,17 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Seluruh rute kecuali berkas statis, aset Next.js, dan Route Handler
+     * Seluruh rute kecuali aset Next.js, berkas statis, dan Route Handler
      * autentikasi (yang justru dipakai untuk masuk dan keluar).
+     *
+     * Berkas statis dikenali dari akhirannya, bukan didaftar satu per satu.
+     * Menyebut `favicon.ico` saja tidak cukup: apa pun yang diletakkan di
+     * `public/` ikut terjaring middleware dan dialihkan ke halaman masuk.
+     * Untuk gambar akibatnya tidak kentara — pengoptimal Next.js menerima
+     * halaman HTML alih-alih berkas gambar, lalu menolak dengan 400 dan pesan
+     * "isn't a valid image ... received null" yang tidak menyebut pengalihan
+     * sama sekali.
      */
-    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
+    '/((?!_next/static|_next/image|api/auth|.*\\.(?:png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf)$).*)',
   ],
 };

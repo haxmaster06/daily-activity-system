@@ -105,6 +105,20 @@ class UserResource extends JsonResource
             ]),
 
             'izin' => $this->when($sendiri, fn () => $this->daftarIzin()->all()),
+
+            /*
+             * Kemampuan, bukan sekadar izin.
+             *
+             * `master.kelola` berlaku menyeluruh, tetapi daftar mana yang
+             * benar-benar dapat dikelola ditentukan departemen pengelolanya.
+             * Tanpa membedakan keduanya, menu Data Master muncul bagi setiap
+             * pemegang izin — termasuk departemen yang tidak mengelola satu
+             * daftar pun, yang lalu membuka halaman berisi daftar yang seluruhnya
+             * hanya dapat dibaca.
+             *
+             * Dihitung di server karena hanya server yang tahu pemetaannya.
+             */
+            'boleh_kelola_master' => $this->when($sendiri, fn () => $this->bolehKelolaMaster()),
         ];
     }
 }

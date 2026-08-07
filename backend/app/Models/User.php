@@ -95,7 +95,14 @@ class User extends Authenticatable
     {
         $query->where('is_active', true)
             ->where('is_system', false)
-            ->whereHas('department', fn (Builder $sub) => $sub->where('is_system', false));
+            ->whereHas(
+                'department',
+                fn (Builder $sub) => $sub->where('is_system', false)
+                    // Departemen yang memang tidak menyusun laporan harian.
+                    // Membiarkannya terhitung membuat daftar "belum melapor"
+                    // memuat nama yang tidak akan pernah hilang dari sana.
+                    ->where('wajib_lapor', true),
+            );
     }
 
     /**
@@ -303,5 +310,38 @@ class User extends Authenticatable
     public function isAdministrator(): bool
     {
         return $this->hasRole(Role::ADMINISTRATOR);
+    }
+
+    /**
+     * Apakah pengguna ini benar-benar dapat mengelola isi daftar master.
+     *
+     * Bukan sekadar memegang izinnya: yang menentukan daftar mana yang boleh
+     * disentuh adalah departemen pengelola tiap jenis (`MasterDataPolicy`).
+     * Departemen yang tidak ditetapkan sebagai pengelola apa pun tidak punya
+     * satu daftar pun untuk dikelola, dan menampilkan pintu masuknya hanya
+     * menjanjikan sesuatu yang tidak ada di baliknya.
+     *
+     * Jenis tanpa departemen pengelola terbuka bagi semua pemegang izin —
+     * aturan yang sama dengan policy-nya.
+     */
+    public function bolehKelolaMaster(): bool
+    {
+        if (! $this->boleh(\App\Support\KatalogIzin::MASTER_KELOLA)) {
+            return false;
+        }
+
+        if ($this->jangkauan()->korporat()) {
+            return true;
+        }
+
+        return MasterType::query()
+            ->where(function (Builder $query): void {
+                $query->whereDoesntHave('departemenPengelola')
+                    ->orWhereHas(
+                        'departemenPengelola',
+                        fn (Builder $sub) => $sub->whereKey($this->department_id),
+                    );
+            })
+            ->exists();
     }
 }
