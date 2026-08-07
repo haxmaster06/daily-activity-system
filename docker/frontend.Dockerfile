@@ -68,6 +68,11 @@ RUN if [ -n "$NEXT_PUBLIC_REVERB_KEY" ]; then \
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
+# Basis data zona waktu; lihat alasannya di docker/backend.Dockerfile. Node
+# memakai data zona bawaan ICU sehingga `Date` dan `Intl` sudah benar tanpa
+# paket ini — yang dibetulkan hanyalah `date` dan stempel waktu shell.
+RUN apk add --no-cache tzdata
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000

@@ -16,7 +16,7 @@ import {
   simpanDraf,
   type IsiDraf,
 } from '@/lib/draf-laporan';
-import { formatTanggal, formatTanggalWaktu } from '@/lib/format';
+import { formatTanggal, formatTanggalWaktu, hariIniApi } from '@/lib/format';
 import { barisKosong, type NilaiBaris } from '@/lib/laporan';
 import type { Template } from '@/lib/template';
 import { perbaruiLaporan, simpanLaporanBaru, type KiriBagian } from '../actions';
@@ -100,7 +100,7 @@ export function FormLaporan({
   const sedangUbah = laporanId !== undefined;
 
   const [tanggal, setTanggal] = useState<string | null>(
-    tanggalAwal ?? new Date().toISOString().slice(0, 10),
+    tanggalAwal ?? hariIniApi(),
   );
   const [bagian, setBagian] = useState<BagianTerisi[]>(bagianAwal ?? []);
   const [galat, setGalat] = useState<string | null>(null);
@@ -232,7 +232,7 @@ export function FormLaporan({
       return false;
     }
 
-    if (tanggal > new Date().toISOString().slice(0, 10)) {
+    if (tanggal > hariIniApi()) {
       setGalat('Laporan tidak dapat dibuat untuk tanggal yang belum terjadi.');
 
       return false;
@@ -340,7 +340,7 @@ export function FormLaporan({
                     onUbah={setTanggal}
                     wajib
                     nonaktif={sedangUbah}
-                    maksimal={new Date().toISOString().slice(0, 10)}
+                    maksimal={hariIniApi()}
                     bantuan={
                       sedangUbah
                         ? 'Tanggal tidak dapat diubah — laporan tanggal lain adalah laporan yang berbeda.'

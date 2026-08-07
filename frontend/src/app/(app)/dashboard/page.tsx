@@ -7,7 +7,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PemantauSiaran } from '@/components/layout/pemantau-siaran';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
-import { formatAngka, formatTanggal, formatTanggalLengkap } from '@/lib/format';
+import { awalBulanApi, formatAngka, formatTanggal, formatTanggalLengkap } from '@/lib/format';
 import { RAGAM_STATUS } from '@/lib/laporan';
 import { ambilRingkasanDashboard } from '@/lib/ringkasan-server';
 import { penggunaSaatIni } from '@/lib/session';
@@ -123,7 +123,7 @@ export default async function DashboardPage() {
         <KartuStatistik
           label="Laporan bulan ini"
           nilai={kartu.laporan_bulan_ini}
-          keterangan={`sejak ${formatTanggal(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}`}
+          keterangan={`sejak ${formatTanggal(awalBulanApi())}`}
           icon={CalendarRange}
           href="/laporan"
         />

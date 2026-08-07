@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Modal } from '@/components/ui/modal';
 import { SpectacularButton } from '@/components/ui/spectacular-button';
+import { hariIniApi } from '@/lib/format';
 import type { Laporan } from '@/lib/laporan';
 import { DatePicker } from '@/components/ui/date-picker';
 import { duplikatLaporan, kirimLaporan, tinjauLaporan } from '../actions';
@@ -33,7 +34,7 @@ export function TindakanLaporan({ laporan, bolehMeninjau }: TindakanLaporanProps
   const [konfirmasiKirim, setKonfirmasiKirim] = useState(false);
   const [dialogDuplikat, setDialogDuplikat] = useState(false);
   const [tanggalDuplikat, setTanggalDuplikat] = useState<string | null>(
-    new Date().toISOString().slice(0, 10),
+    hariIniApi(),
   );
   const [dialogTinjau, setDialogTinjau] = useState(false);
   const [catatan, setCatatan] = useState('');

@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:zona": "for z in UTC Asia/Jakarta America/New_York; do echo \"--- TZ=$z ---\"; TZ=$z vitest run src/lib/format.test.ts || exit 1; done",
     "test:e2e": "playwright test"
   },
   "dependencies": {

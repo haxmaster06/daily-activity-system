@@ -64,7 +64,12 @@ Referensi: `docs/adr/ADR-008-larangan-fresh-migrate.md`.
 * Tanpa jargon teknis: Kirim (bukan Submit), Hapus (bukan Delete), Perbarui (bukan Update), Batal (bukan Cancel), Setujui (bukan Approve), Draf (bukan Draft).
 * Nama kolom database tidak boleh bocor jadi label layar — `progress_status` ditampilkan sebagai "Status".
 * Tanggal: `30 Juli 2026`. Waktu: 24 jam pemisah titik, `08.15 WIB`.
-  * Frontend lewat `frontend/src/lib/format.ts` — jangan panggil `toLocaleDateString` langsung.
+  * Frontend lewat `frontend/src/lib/format.ts`, yang mematok zona ke `Asia/Jakarta`.
+    Dilarang memanggil `toLocaleDateString`, `getHours()`/`getDate()` dan kerabatnya,
+    atau `toISOString().slice(0, 10)` di luar berkas itu — seluruhnya membaca zona
+    waktu tempat kode kebetulan berjalan, dan server Next.js berjalan pada UTC.
+    Untuk "hari ini" pakai `hariIniApi()`, `geserHariApi()`, `awalBulanApi()`.
+    Ditegakkan ESLint; test tanggal dijalankan di beberapa zona lewat `npm run test:zona`.
   * Backend lewat Carbon `translatedFormat` dengan locale `id`.
   * Dikecualikan (tetap teknis): nama berkas (`Ymd`), payload API (ISO 8601), kunci data (`Y-m`).
 * Pesan error ke user: kalimat ramah + kode referensi (`ERR-20260730-001`). Detail teknis hanya ke log.

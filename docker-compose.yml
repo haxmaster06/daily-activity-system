@@ -146,6 +146,9 @@ services:
     restart: unless-stopped
     env_file: [.env]
     environment:
+      # Jam container. APP_TIMEZONE sudah mengatur PHP; ini menyamakan
+      # `date`, stempel waktu log, dan nama berkas cadangan.
+      TZ: Asia/Jakarta
       DB_HOST: db
       DB_PORT: '3306'
       REDIS_HOST: redis
@@ -179,6 +182,7 @@ services:
     restart: unless-stopped
     env_file: [.env]
     environment:
+      TZ: Asia/Jakarta
       DB_HOST: db
       DB_PORT: '3306'
       REDIS_HOST: redis
@@ -229,6 +233,7 @@ services:
     restart: unless-stopped
     env_file: [.env]
     environment:
+      TZ: Asia/Jakarta
       DB_HOST: db
       DB_PORT: '3306'
       REDIS_HOST: redis
@@ -267,6 +272,7 @@ services:
     restart: unless-stopped
     env_file: [.env]
     environment:
+      TZ: Asia/Jakarta
       DB_HOST: db
       DB_PORT: '3306'
       REDIS_HOST: redis
@@ -307,6 +313,9 @@ services:
     container_name: dams-frontend
     restart: unless-stopped
     environment:
+      # Jam container. Tanpa ini container berjalan pada UTC, dan halaman
+      # yang dirender di server menuliskan jam UTC berlabel "WIB".
+      TZ: Asia/Jakarta
       NODE_ENV: production
       # Dipakai Route Handler Next.js untuk memanggil API di jaringan internal
       BACKEND_INTERNAL_URL: http://backend:8000
@@ -333,6 +342,10 @@ services:
     image: nginx:1.27-alpine
     container_name: dams-proxy
     restart: unless-stopped
+    environment:
+      # Agar stempel waktu access log sepadan dengan log layanan lain saat
+      # menelusuri satu permintaan yang sama.
+      TZ: Asia/Jakarta
     ports:
       - '13001:80'
     volumes:

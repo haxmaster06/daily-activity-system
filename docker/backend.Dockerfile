@@ -29,6 +29,12 @@ FROM php:8.4-fpm-alpine AS base
 RUN apk add --no-cache \
         nginx \
         supervisor \
+        # Alpine tidak membawa basis data zona waktu. Tanpanya, TZ yang disetel
+        # di docker-compose.yml tidak punya apa pun untuk dibaca dan `date`
+        # menjawab UTC — membuat siapa pun yang memeriksa menyimpulkan zona
+        # waktunya salah, padahal PHP memakai basis data zonanya sendiri dan
+        # sudah benar. Stempel waktu supervisor dan nginx ikut dibetulkan.
+        tzdata \
         icu-libs \
         libzip \
         freetype \
