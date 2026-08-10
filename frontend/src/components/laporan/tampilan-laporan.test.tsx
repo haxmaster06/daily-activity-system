@@ -59,6 +59,7 @@ const LAPORAN: Laporan = {
   ditinjau_pada: null,
   catatan_tinjauan: null,
   dapat_disunting: false,
+  dapat_dikirim: false,
   penyusun: { id: 3, nama: 'Penyusun Contoh' },
   departemen: { id: 1, nama: 'Produksi' },
   bagian: [

@@ -53,6 +53,17 @@ export function TabelMonitoring({
     null,
   );
 
+  /**
+   * Sudah diingatkan hari ini — menurut server, maupun karena baru diklik.
+   *
+   * Batas satu pengingat per orang per hari berlaku dari siapa pun, sehingga
+   * penanda server harus ikut dibaca. Tanpa itu tombolnya tampil kembali
+   * sesudah halaman dimuat ulang, atau ketika atasan lain sudah lebih dulu
+   * mengingatkan — lalu ditolak 422 begitu ditekan.
+   */
+  const diingatkan = (item: (typeof anggota)[number]) =>
+    item.sudah_diingatkan_hari_ini || sudahDiingatkan.includes(item.id);
+
   const totalLaporan = anggota.reduce((n, a) => n + a.jumlah_laporan, 0);
   const belumSamaSekali = anggota.filter((a) => a.jumlah_laporan === 0).length;
 
@@ -189,11 +200,19 @@ export function TabelMonitoring({
 
                   <Td>
                     {/*
-                      Pengingat hanya berguna bagi yang belum melapor sama
-                      sekali. Menawarkannya pada semua baris membuat kolom ini
-                      penuh tombol yang tidak seharusnya ditekan.
+                      Syaratnya persis sama dengan yang menerima kiriman di
+                      PengingatController — belum melapor HARI INI, dan bukan
+                      diri sendiri.
+
+                      Sebelumnya dipagari `jumlah_laporan === 0`, yaitu jumlah
+                      laporan sepanjang rentang yang sedang dilihat. Karena
+                      pengingatnya selalu tentang hari ini, keduanya menjawab
+                      pertanyaan berbeda: sejak tanggal 2 tiap bulan tombolnya
+                      hanya muncul untuk yang belum melapor sama sekali sebulan
+                      itu, sementara yang rajin melapor tapi hari ini belum
+                      tidak pernah ditawari.
                     */}
-                    {item.jumlah_laporan === 0 && item.id !== penggunaId ? (
+                    {!item.sudah_melapor_hari_ini && item.id !== penggunaId ? (
                       <button
                         type="button"
                         onClick={(event) => {
@@ -201,11 +220,12 @@ export function TabelMonitoring({
                           event.stopPropagation();
                           void kirimPengingat(item.id);
                         }}
-                        disabled={mengirim !== null || sudahDiingatkan.includes(item.id)}
+                        disabled={mengirim !== null || diingatkan(item)}
+                        title={`${item.nama} belum mengisi laporan hari ini`}
                         className="btn-ghost btn-sm whitespace-nowrap"
                       >
                         <BellRing aria-hidden="true" className="size-3.5" />
-                        {sudahDiingatkan.includes(item.id)
+                        {diingatkan(item)
                           ? 'Sudah diingatkan'
                           : mengirim === item.id
                             ? 'Mengirim...'

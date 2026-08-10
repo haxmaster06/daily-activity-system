@@ -31,6 +31,10 @@ interface TindakanLaporanProps {
 export function TindakanLaporan({ laporan, bolehMeninjau }: TindakanLaporanProps) {
   const router = useRouter();
 
+  // Mengirim laporan yang sudah pernah dikirim menghapus tinjauannya, jadi
+  // tombolnya harus menyebut hal itu sebelum ditekan — bukan sesudah.
+  const sudahDikirim = laporan.status !== 'draf';
+
   const [konfirmasiKirim, setKonfirmasiKirim] = useState(false);
   const [dialogDuplikat, setDialogDuplikat] = useState(false);
   const [tanggalDuplikat, setTanggalDuplikat] = useState<string | null>(
@@ -101,18 +105,23 @@ export function TindakanLaporan({ laporan, bolehMeninjau }: TindakanLaporanProps
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {laporan.dapat_disunting && (
-          <>
-            <Link href={`/laporan/${laporan.id}/ubah`} className="btn-ghost btn-sm">
-              <Pencil aria-hidden="true" className="size-4" />
-              Sunting
-            </Link>
+          <Link href={`/laporan/${laporan.id}/ubah`} className="btn-ghost btn-sm">
+            <Pencil aria-hidden="true" className="size-4" />
+            Sunting
+          </Link>
+        )}
 
-            {/* Aksi utama halaman ini — satu-satunya Spectacular Button. */}
-            <SpectacularButton onClick={() => setKonfirmasiKirim(true)}>
-              <Send aria-hidden="true" className="size-4" />
-              Kirim Laporan
-            </SpectacularButton>
-          </>
+        {/*
+          Dipagari penandanya sendiri, bukan `dapat_disunting`. Keduanya sempat
+          disatukan, sehingga tombol ini tampil pada laporan yang sudah dikirim
+          padahal server pasti menolaknya.
+        */}
+        {laporan.dapat_dikirim && (
+          /* Aksi utama halaman ini — satu-satunya Spectacular Button. */
+          <SpectacularButton onClick={() => setKonfirmasiKirim(true)}>
+            <Send aria-hidden="true" className="size-4" />
+            {sudahDikirim ? 'Kirim Ulang' : 'Kirim Laporan'}
+          </SpectacularButton>
         )}
 
         {/*
@@ -145,9 +154,13 @@ export function TindakanLaporan({ laporan, bolehMeninjau }: TindakanLaporanProps
         terbuka={konfirmasiKirim}
         onTutup={() => setKonfirmasiKirim(false)}
         onSetuju={kirim}
-        judul="Kirim Laporan"
-        pesan="Laporan akan tampil pada monitoring atasan Anda. Masih dapat diperbaiki setelah dikirim bila ada yang keliru."
-        labelAksi="Kirim"
+        judul={sudahDikirim ? 'Kirim Ulang Laporan' : 'Kirim Laporan'}
+        pesan={
+          sudahDikirim
+            ? 'Peninjau diberi tahu bahwa isinya berubah. Tinjauan sebelumnya dihapus, sebab yang dibaca peninjau bukan lagi isi yang sekarang.'
+            : 'Laporan akan tampil pada monitoring atasan Anda. Masih dapat diperbaiki setelah dikirim bila ada yang keliru.'
+        }
+        labelAksi={sudahDikirim ? 'Kirim Ulang' : 'Kirim'}
       />
 
       <Modal

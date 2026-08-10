@@ -217,7 +217,15 @@ it('tetap menolak menghapus laporan yang sudah dikirim', function (): void {
     $this->deleteJson("/api/laporan/{$id}")->assertForbidden();
 });
 
-it('menolak mengirim ulang laporan yang sudah dikirim', function (): void {
+/*
+ * Kirim ulang.
+ *
+ * Menyusul pencabutan penguncian di atas: laporan yang sudah dikirim boleh
+ * disunting, sehingga harus ada cara memberitahukan bahwa isinya berubah.
+ * Tanpa itu suntingan mendarat diam-diam — peninjau tidak pernah tahu, dan
+ * badge "Ditinjau" tetap terpasang pada isi yang bukan itu yang ia setujui.
+ */
+it('mengizinkan pemiliknya mengirim ulang laporan yang sudah dikirim', function (): void {
     $template = siapkanMaster();
     $pengguna = User::factory()->staff()->create();
     Sanctum::actingAs($pengguna);
@@ -225,6 +233,52 @@ it('menolak mengirim ulang laporan yang sudah dikirim', function (): void {
     $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
     $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
 
+    $this->postJson("/api/laporan/{$id}/kirim")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'dikirim');
+});
+
+/*
+ * Tinjauan menyatakan seseorang sudah membaca ISI TERTENTU. Begitu isinya
+ * dikirim ulang, pernyataan itu tidak lagi berlaku atas apa pun — karena itu
+ * dihapus, bukan dibiarkan menempel pada isi yang berbeda.
+ */
+it('menghapus tinjauan lama ketika laporan dikirim ulang', function (): void {
+    $template = siapkanMaster();
+    $departemen = Department::where('code', 'PRODUKSI')->firstOrFail();
+    $pengguna = User::factory()->staff()->create(['department_id' => $departemen->id]);
+    $atasan = User::factory()->supervisor()->create(['department_id' => $departemen->id]);
+
+    Sanctum::actingAs($pengguna);
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
+    Sanctum::actingAs($atasan);
+    $this->postJson("/api/laporan/{$id}/tinjau", ['catatan' => 'Sudah saya baca.'])
+        ->assertOk()
+        ->assertJsonPath('data.status', 'ditinjau');
+
+    Sanctum::actingAs($pengguna);
+    $this->postJson("/api/laporan/{$id}/kirim")
+        ->assertOk()
+        ->assertJsonPath('data.status', 'dikirim');
+
+    $laporan = DailyReport::findOrFail($id);
+
+    expect($laporan->reviewed_by)->toBeNull()
+        ->and($laporan->reviewed_at)->toBeNull()
+        ->and($laporan->review_note)->toBeNull();
+});
+
+it('menolak mengirim ulang laporan milik orang lain', function (): void {
+    $template = siapkanMaster();
+    $pemilik = User::factory()->staff()->create();
+
+    Sanctum::actingAs($pemilik);
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
+    Sanctum::actingAs(User::factory()->staff()->create());
     $this->postJson("/api/laporan/{$id}/kirim")->assertForbidden();
 });
 

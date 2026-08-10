@@ -74,12 +74,21 @@ class DailyReportPolicy
             && $report->masihDraf();
     }
 
-    /** Mengirim laporan: hanya pemiliknya, dan hanya sekali. */
+    /**
+     * Mengirim laporan — hanya pemiliknya, dan boleh berulang kali.
+     *
+     * Batasan "hanya sekali" dicabut menyusul dibukanya penyuntingan sesudah
+     * kirim. Selama laporan masih dapat berubah, harus ada cara menyatakan
+     * bahwa isinya berubah; tanpa itu suntingan mendarat diam-diam dan
+     * peninjau tidak pernah tahu.
+     *
+     * Statusnya karena itu tidak dibatasi. Yang dibatasi tetap kepemilikannya:
+     * mengirim laporan orang lain berarti menyatakan atas nama orang itu.
+     */
     public function kirim(User $user, DailyReport $report): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_KIRIM)
-            && $report->user_id === $user->getKey()
-            && $report->masihDraf();
+            && $report->user_id === $user->getKey();
     }
 
     /**
