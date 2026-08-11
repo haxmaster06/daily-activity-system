@@ -107,9 +107,23 @@ export function PanelExport({
     setMenyiapkanCetak(true);
 
     try {
+      /*
+       * Batas waktu wajib ada. Bila peramban memperlakukan balasannya sebagai
+       * unduhan — pengelola unduhan pihak ketiga sering merampas URL PDF —
+       * `onload` tidak pernah menyala sama sekali, dan tanpa batas ini
+       * tombolnya tersangkut pada "Menyiapkan..." selamanya.
+       */
       await new Promise<void>((selesai, gagal) => {
-        bingkai.onload = () => selesai();
-        bingkai.onerror = () => gagal(new Error('gagal memuat'));
+        const jaga = setTimeout(() => gagal(new Error('waktu habis')), 8000);
+
+        bingkai.onload = () => {
+          clearTimeout(jaga);
+          selesai();
+        };
+        bingkai.onerror = () => {
+          clearTimeout(jaga);
+          gagal(new Error('gagal memuat'));
+        };
         bingkai.src = alamat;
       });
 
