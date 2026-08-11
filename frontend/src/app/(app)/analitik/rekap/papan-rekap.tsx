@@ -1,7 +1,8 @@
 'use client';
 
-import { Fragment, useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 import {
   DataTable,
@@ -11,59 +12,52 @@ import {
   Td,
   Th,
 } from '@/components/ui/data-table';
-import { formatAngka, formatTanggal } from '@/lib/format';
-import type { BarisRekap, DataRekap } from '@/lib/analitik';
-import type { Laporan } from '@/lib/laporan';
-import { cn } from '@/lib/cn';
+import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { RAGAM_STATUS } from '@/lib/laporan';
-import { TautanDepartemen } from '../dapat-disaring';
-import { ambilLaporanDepartemen } from './actions';
+import { TampilanLaporan } from '@/components/laporan/tampilan-laporan';
+import { formatAngka, formatTanggal } from '@/lib/format';
+import { RAGAM_STATUS, type Laporan } from '@/lib/laporan';
+import { ambilLaporanUntukTampilan } from '../departemen/actions';
 
 /**
- * Rekap Daily Activity seluruh departemen dalam satu tabel.
+ * Rekap Daily Activity seluruh departemen — isinya, bukan angkanya.
  *
- * Pertanyaan yang dijawab: departemen mana yang tertinggal. Tab Departemen
- * menjawab pertanyaan lain — seperti apa pekerjaan sebuah departemen — dan
- * kartu memang tidak dapat dibandingkan kolom per kolom.
+ * Satu baris satu laporan, dari departemen mana pun sekaligus. Menekan sebuah
+ * baris membuka rincian lengkapnya di tempat, dirender `TampilanLaporan` yang
+ * sama dipakai halaman laporan — sehingga tiap laporan tampil dengan kolom
+ * templatenya sendiri.
  *
- * Tabelnya berdiri sendiri tanpa grafik, jadi memakai `<section>` biasa dan
- * bukan `PanelGrafik`, yang mewajibkan pasangan grafik + tabel.
+ * Itu pula yang membuat halaman ini dapat menampilkan semua departemen
+ * sekaligus tanpa memaksakan satu bentuk tabel: template Produksi punya 27
+ * kolom dan Warehouse tiga, dan menggabungkannya jadi satu tabel akan
+ * menghasilkan kolom yang tidak cocok satu sama lain (alasan yang sama sudah
+ * ditulis di DataExport.php). Yang seragam hanya baris ringkasnya; rinciannya
+ * dirender per laporan.
  */
-export function PapanRekap({ data }: { data: DataRekap }) {
+export function PapanRekap({ laporan, meta }: { laporan: Laporan[]; meta: MetaHalaman }) {
   const [terbuka, setTerbuka] = useState<number | null>(null);
-  const [isi, setIsi] = useState<Record<number, Laporan[] | 'memuat' | 'galat'>>({});
+  const [isi, setIsi] = useState<Record<number, Laporan | 'memuat' | 'galat'>>({});
 
-  async function alihkan(departemenId: number) {
-    if (terbuka === departemenId) {
+  async function alihkan(id: number) {
+    if (terbuka === id) {
       setTerbuka(null);
 
       return;
     }
 
-    setTerbuka(departemenId);
+    setTerbuka(id);
 
-    // Sekali ambil per departemen; membuka ulang memakai yang sudah ada.
-    if (isi[departemenId] !== undefined && isi[departemenId] !== 'galat') return;
+    // Sekali ambil per laporan; membuka ulang memakai yang sudah ada.
+    if (isi[id] !== undefined && isi[id] !== 'galat') return;
 
-    setIsi((s) => ({ ...s, [departemenId]: 'memuat' }));
+    setIsi((s) => ({ ...s, [id]: 'memuat' }));
 
-    const hasil = await ambilLaporanDepartemen(
-      departemenId,
-      data.rentang.dari,
-      data.rentang.sampai,
-    );
+    const hasil = await ambilLaporanUntukTampilan(id);
 
     setIsi((s) => ({
       ...s,
-      [departemenId]: hasil.berhasil && hasil.laporan ? hasil.laporan : 'galat',
+      [id]: hasil.berhasil && hasil.laporan ? hasil.laporan : 'galat',
     }));
-  }
-
-  const statusKunci = data.total.status.map((satu) => satu.status);
-
-  function jumlahStatus(baris: BarisRekap | DataRekap['total'], kunci: string): number {
-    return baris.status.find((satu) => satu.status === kunci)?.jumlah ?? 0;
   }
 
   return (
@@ -71,180 +65,109 @@ export function PapanRekap({ data }: { data: DataRekap }) {
       <div className="border-b border-line px-3 py-2">
         <h2 className="text-body-lg font-semibold text-ink">Rekap Daily Activity</h2>
         <p className="text-caption text-ink-soft">
-          {formatTanggal(data.rentang.dari)} – {formatTanggal(data.rentang.sampai)} ·{' '}
-          {formatAngka(data.rentang.hari)} hari
+          Isi laporan seluruh departemen. Tekan satu baris untuk membuka rinciannya.
         </p>
       </div>
 
       <DataTable>
-        <DataTableHead
-          grup={
-            <>
-              <Th />
-              <Th colSpan={4} align="center">
-                Laporan
-              </Th>
-              <Th colSpan={statusKunci.length + 1} align="center">
-                Baris kegiatan
-              </Th>
-            </>
-          }
-        >
+        <DataTableHead>
+          <Th>Tanggal</Th>
           <Th>Departemen</Th>
-          <Th align="right">Pelapor</Th>
-          <Th align="right">Masuk</Th>
-          <Th align="right">Seharusnya</Th>
-          <Th align="right">Patuh</Th>
-          <Th align="right">Total</Th>
-          {data.total.status.map((satu) => (
-            <Th key={satu.status} align="right">
-              {satu.label}
-            </Th>
-          ))}
+          <Th>Penyusun</Th>
+          <Th align="right">Bagian</Th>
+          <Th>Status</Th>
+          <Th align="right">Buka</Th>
         </DataTableHead>
 
         <DataTableBody>
-          {data.departemen.length === 0 ? (
+          {laporan.length === 0 ? (
             <DataTableKosong
-              kolom={6 + statusKunci.length}
-              pesan="Belum ada laporan pada rentang ini."
+              kolom={6}
+              pesan="Belum ada laporan yang cocok dengan penyaringan ini."
             />
           ) : (
-            data.departemen.map((baris) => (
-              <Fragment key={baris.departemen_id}>
-              <tr>
+            laporan.flatMap((satu) => [
+              <tr
+                key={satu.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => void alihkan(satu.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    void alihkan(satu.id);
+                  }
+                }}
+                aria-expanded={terbuka === satu.id}
+                aria-label={`Buka rincian laporan ${formatTanggal(satu.tanggal)}`}
+                className="cursor-pointer transition-colors duration-fast hover:bg-surface-muted/60 focus-visible:bg-surface-muted focus-visible:outline-none"
+              >
                 <Td className="font-medium">
-                  <button
-                    type="button"
-                    onClick={() => void alihkan(baris.departemen_id)}
-                    aria-expanded={terbuka === baris.departemen_id}
-                    className="flex items-center gap-1 text-left"
-                  >
-                    {terbuka === baris.departemen_id ? (
+                  <span className="flex items-center gap-1">
+                    {terbuka === satu.id ? (
                       <ChevronDown aria-hidden="true" className="size-3.5 text-ink-soft" />
                     ) : (
                       <ChevronRight aria-hidden="true" className="size-3.5 text-ink-soft" />
                     )}
-                    <TautanDepartemen id={baris.departemen_id} nama={baris.departemen} />
-                  </button>
+                    {formatTanggal(satu.tanggal)}
+                  </span>
                 </Td>
+                <Td className="text-ink-muted">{satu.departemen?.nama ?? '—'}</Td>
+                <Td className="text-ink-muted">{satu.penyusun?.nama ?? '—'}</Td>
                 <Td align="right" className="tabular-nums text-ink-muted">
-                  {formatAngka(baris.anggota)}
+                  {formatAngka(satu.jumlah_bagian ?? satu.bagian?.length ?? 0)}
                 </Td>
-                <Td align="right" className="tabular-nums">
-                  {formatAngka(baris.laporan)}
+                <Td>
+                  <StatusBadge status={RAGAM_STATUS[satu.status]} label={satu.label_status} />
                 </Td>
-                <Td align="right" className="tabular-nums text-ink-muted">
-                  {formatAngka(baris.seharusnya)}
+                <Td align="right">
+                  {/*
+                    Jalan ke halaman laporannya sendiri, untuk yang ingin
+                    menyunting atau meninjau — rincian di sini hanya untuk
+                    dibaca.
+                  */}
+                  <Link
+                    href={`/laporan/${satu.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`Buka halaman laporan ${formatTanggal(satu.tanggal)}`}
+                    title="Buka halaman laporan"
+                    className="grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
+                  >
+                    <ExternalLink aria-hidden="true" className="size-3.5" />
+                  </Link>
                 </Td>
-                <Td
-                  align="right"
-                  className={cn(
-                    'tabular-nums font-medium',
-                    baris.persen < 70 ? 'text-danger-text' : 'text-ink',
-                  )}
-                >
-                  {baris.persen}%
-                </Td>
-                <Td align="right" className="tabular-nums">
-                  {formatAngka(baris.baris)}
-                </Td>
-                {statusKunci.map((kunci) => (
-                  <Td key={kunci} align="right" className="tabular-nums text-ink-muted">
-                    {formatAngka(jumlahStatus(baris, kunci))}
-                  </Td>
-                ))}
-              </tr>
+              </tr>,
 
-              {terbuka === baris.departemen_id && (
-                <tr>
-                  <Td colSpan={6 + statusKunci.length} className="bg-surface-muted/50 p-0">
-                    <DaftarLaporan isi={isi[baris.departemen_id]} />
+              terbuka === satu.id ? (
+                <tr key={`${satu.id}-rincian`}>
+                  <Td colSpan={6} className="bg-surface-muted/40">
+                    <Rincian isi={isi[satu.id]} />
                   </Td>
                 </tr>
-              )}
-              </Fragment>
-            ))
+              ) : null,
+            ])
           )}
         </DataTableBody>
-
-        {data.departemen.length > 0 && (
-          <tfoot className="border-t-2 border-line bg-surface-muted font-medium">
-            <tr>
-              <Td>Total</Td>
-              <Td align="right" className="tabular-nums">
-                {formatAngka(data.total.anggota)}
-              </Td>
-              <Td align="right" className="tabular-nums">
-                {formatAngka(data.total.laporan)}
-              </Td>
-              <Td align="right" className="tabular-nums">
-                {formatAngka(data.total.seharusnya)}
-              </Td>
-              {/*
-                Dihitung ulang dari jumlah, bukan rata-rata persentase tiap
-                departemen — rata-rata memberi bobot sama kepada departemen
-                beranggota dua dan beranggota dua puluh.
-              */}
-              <Td align="right" className="tabular-nums">
-                {data.total.persen}%
-              </Td>
-              <Td align="right" className="tabular-nums">
-                {formatAngka(data.total.baris)}
-              </Td>
-              {statusKunci.map((kunci) => (
-                <Td key={kunci} align="right" className="tabular-nums">
-                  {formatAngka(jumlahStatus(data.total, kunci))}
-                </Td>
-              ))}
-            </tr>
-          </tfoot>
-        )}
       </DataTable>
+
+      <Pagination meta={meta} satuan="laporan" />
     </section>
   );
 }
 
-/** Sepuluh laporan terbaru departemen yang sedang dibuka. */
-function DaftarLaporan({ isi }: { isi: Laporan[] | 'memuat' | 'galat' | undefined }) {
+/** Rincian satu laporan, dirender dengan kolom templatenya sendiri. */
+function Rincian({ isi }: { isi: Laporan | 'memuat' | 'galat' | undefined }) {
   if (isi === 'memuat' || isi === undefined) {
-    return <p className="px-3 py-2 text-caption text-ink-soft">Memuat laporan…</p>;
+    return <p className="py-2 text-caption text-ink-soft">Memuat rincian…</p>;
   }
 
   if (isi === 'galat') {
     return (
-      <p className="px-3 py-2 text-caption text-danger-text">
-        Laporan departemen ini tidak dapat dimuat. Coba buka lagi.
+      <p className="py-2 text-caption text-danger-text">
+        Rincian laporan ini tidak dapat dimuat. Tutup lalu buka lagi.
       </p>
     );
   }
 
-  if (isi.length === 0) {
-    return (
-      <p className="px-3 py-2 text-caption text-ink-soft">
-        Belum ada laporan pada rentang ini.
-      </p>
-    );
-  }
-
-  /*
-   * Hanya kolom yang dimiliki SEMUA template. Kolom khas tiap departemen —
-   * No. LOT, tonase, suhu oven — tidak dapat ikut ke tabel bersama, sebab
-   * templatenya berbeda-beda; alasannya sama yang ditulis di DataExport.php.
-   */
-  return (
-    <ul className="divide-y divide-line/60">
-      {isi.map((satu) => (
-        <li key={satu.id} className="flex items-center gap-3 px-3 py-1.5">
-          <span className="w-32 shrink-0 text-caption text-ink-muted">
-            {formatTanggal(satu.tanggal)}
-          </span>
-          <span className="min-w-0 flex-1 truncate text-body">
-            {satu.penyusun?.nama ?? '—'}
-          </span>
-          <StatusBadge status={RAGAM_STATUS[satu.status]} label={satu.label_status} />
-        </li>
-      ))}
-    </ul>
-  );
+  return <TampilanLaporan laporan={isi} />;
 }

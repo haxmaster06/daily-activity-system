@@ -139,7 +139,6 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
     Route::middleware('izin:analitik.lihat')->prefix('analitik')->group(function (): void {
         Route::get('/opsi', [AnalitikController::class, 'opsi'])->name('analitik.opsi');
         Route::get('/departemen', [AnalitikController::class, 'departemen'])->name('analitik.departemen');
-        Route::get('/rekap', [AnalitikController::class, 'rekap'])->name('analitik.rekap');
         Route::get('/ringkasan', [AnalitikController::class, 'ringkasan'])->name('analitik.ringkasan');
         Route::get('/produktivitas', [AnalitikController::class, 'produktivitas'])
             ->name('analitik.produktivitas');
