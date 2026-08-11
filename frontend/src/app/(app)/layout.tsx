@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppHeader } from '@/components/layout/app-header';
+import { PenjagaVersi } from '@/components/layout/penjaga-versi';
 import { PageTransition } from '@/components/ui/page-transition';
 import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
 import { penggunaSaatIni } from '@/lib/session';
@@ -65,6 +66,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         className="mx-auto max-w-container px-4 pb-20 pt-4 outline-none md:pb-4 lg:px-8"
       >
         <PageTransition>{children}</PageTransition>
+        <PenjagaVersi />
       </main>
     </div>
   );
