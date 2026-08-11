@@ -68,6 +68,23 @@ class UserController extends Controller
                 $request->filled('status'),
                 fn ($query) => $query->where('is_active', $request->string('status')->value() === 'aktif'),
             )
+            /*
+             * Menyaring siapa yang sedang tersambung.
+             *
+             * Hanya berlaku bila pemanggilnya memang berhak melihat kehadiran —
+             * tanpa penjaga ini, siapa pun dapat menyimpulkan siapa yang online
+             * dari panjang daftarnya walau kolomnya tidak ditampilkan.
+             *
+             * `$online` kosong berarti tidak ada yang tersambung, sehingga
+             * penyaring "online" harus menghasilkan daftar kosong pula —
+             * `whereIn` dengan array kosong sudah berperilaku demikian.
+             */
+            ->when(
+                $online !== null && $request->filled('kehadiran'),
+                fn ($query) => $request->string('kehadiran')->value() === 'online'
+                    ? $query->whereIn('id', $online)
+                    : $query->whereNotIn('id', $online ?: [0]),
+            )
             ->orderBy('name')
             ->paginate(perPage: min($request->integer('per_halaman', 25), 100))
             ->withQueryString()

@@ -193,6 +193,37 @@
 
 @layer utilities {
   /*
+   * Titik kehadiran pada Manajemen Pengguna.
+   *
+   * Berdenyut seperti lampu supaya keadaan "sedang online" terbaca sekilas
+   * tanpa harus membaca teksnya. Hanya yang online yang berdenyut — titik mati
+   * yang ikut bergerak justru mengaburkan bedanya.
+   *
+   * Denyutnya lingkaran cahaya lewat `box-shadow`, bukan `transform`: ukuran
+   * titiknya tidak berubah, sehingga baris tabel di sekitarnya tidak ikut
+   * bergoyang.
+   *
+   * Blok `prefers-reduced-motion` global di atas mematikannya menjadi satu kali
+   * — warna dan teksnya tetap menyampaikan keadaan tanpa gerakan sama sekali.
+   */
+  @keyframes dams-denyut {
+    0% {
+      box-shadow: 0 0 0 0 rgb(0 191 165 / 60%);
+    }
+    70% {
+      box-shadow: 0 0 0 5px rgb(0 191 165 / 0%);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(0 191 165 / 0%);
+    }
+  }
+
+  .titik-online {
+    animation: dams-denyut 1.8s ease-out infinite;
+  }
+
+
+  /*
    * Gerakan overlay dan popover.
    *
    * Dipakai lewat atribut `data-entering` / `data-exiting` milik React Aria

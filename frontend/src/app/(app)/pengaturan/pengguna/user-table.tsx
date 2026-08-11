@@ -45,8 +45,12 @@ export function UserTable({
 
   /*
    * Kehadiran dibaca saat halaman dirender, jadi tanpa penyegaran titiknya
-   * membeku pada keadaan waktu halaman dibuka. 20 detik cukup terasa hidup
-   * tanpa memanggil Reverb terus-menerus.
+   * membeku pada keadaan waktu halaman dibuka.
+   *
+   * 5 detik, bukan 20: pada 20 detik perubahan terasa tertinggal jauh dan
+   * layar ini tampak tidak hidup. Biayanya satu panggilan ringan ke Reverb
+   * beserta satu query daftar pengguna — dan yang membuka layar ini hanya
+   * segelintir administrator, bukan seluruh karyawan.
    *
    * Berhenti saat tabnya tidak terlihat: menyegarkan halaman yang tidak
    * dipandang siapa pun hanya membebani server. Tidak berjalan sama sekali
@@ -59,7 +63,7 @@ export function UserTable({
 
     const jeda = setInterval(() => {
       if (document.visibilityState === 'visible') router.refresh();
-    }, 20_000);
+    }, 5_000);
 
     return () => clearInterval(jeda);
   }, [menampilkanKehadiran, router]);
@@ -168,6 +172,19 @@ export function UserTable({
                 { nilai: 'nonaktif', label: 'Nonaktif' },
               ],
             },
+            // Hanya ditawarkan kepada yang memang melihat kolom kehadirannya.
+            ...(menampilkanKehadiran
+              ? [
+                  {
+                    kunci: 'kehadiran',
+                    label: 'Kehadiran',
+                    opsi: [
+                      { nilai: 'online', label: 'Sedang Online' },
+                      { nilai: 'offline', label: 'Offline' },
+                    ],
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -221,24 +238,36 @@ export function UserTable({
                           Warna selalu disertai teks: titik hijau saja tidak
                           terbaca oleh yang tidak membedakan warna.
                         */}
+                        {/*
+                          `bg-success` sebelumnya dipakai di sini dan tidak ada
+                          di palet, sehingga titiknya tidak berwarna sama
+                          sekali. Sekarang memakai token yang benar-benar ada.
+                        */}
                         {item.sedang_online !== undefined && (
                           <span
                             aria-hidden="true"
                             className={cn(
-                              'size-1.5 shrink-0 rounded-full',
-                              item.sedang_online ? 'bg-success' : 'bg-line',
+                              'size-2 shrink-0 rounded-full',
+                              item.sedang_online
+                                ? 'bg-secondary titik-online'
+                                : 'bg-danger',
                             )}
                           />
                         )}
                         <span className="min-w-0">
                           {item.nama}
                           {item.sedang_online !== undefined && (
-                            <span className="block text-caption font-normal text-ink-soft">
+                            <span
+                              className={cn(
+                                'block text-caption font-normal',
+                                item.sedang_online ? 'text-secondary-text' : 'text-ink-soft',
+                              )}
+                            >
                               {item.sedang_online
-                                ? 'Sedang online'
+                                ? 'Sedang Online'
                                 : item.masuk_terakhir
-                                  ? `Masuk terakhir ${formatTanggalWaktu(item.masuk_terakhir)}`
-                                  : 'Belum pernah masuk'}
+                                  ? `Terakhir login ${formatTanggalWaktu(item.masuk_terakhir)}`
+                                  : 'Belum pernah login'}
                             </span>
                           )}
                         </span>

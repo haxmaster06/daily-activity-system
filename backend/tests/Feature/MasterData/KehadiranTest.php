@@ -101,3 +101,59 @@ it('tetap melayani daftar pengguna saat Reverb tidak dapat dihubungi', function 
     expect($data)->toHaveCount(3)
         ->and(collect($data)->every(fn ($baris) => $baris['sedang_online'] === false))->toBeTrue();
 });
+
+/*
+ * Penyaring kehadiran.
+ *
+ * Penjagaannya bukan sekadar menyembunyikan kolom: tanpa penjaga di penyaring,
+ * siapa pun yang boleh membuka daftar dapat menyimpulkan siapa yang online
+ * dari panjang hasilnya, walau kolomnya tidak pernah ditampilkan.
+ */
+it('menyaring hanya yang sedang online', function (): void {
+    $admin = User::factory()->administrator()->create();
+    $online = User::factory()->staff()->create(['name' => 'Sedang Online']);
+    User::factory()->staff()->create(['name' => 'Sedang Offline']);
+
+    palsukanKehadiran([$online->id]);
+    Sanctum::actingAs($admin);
+
+    $nama = collect($this->getJson('/api/pengguna?kehadiran=online')->assertOk()->json('data'))
+        ->pluck('nama');
+
+    expect($nama)->toContain('Sedang Online')
+        ->and($nama)->not->toContain('Sedang Offline');
+});
+
+it('menyaring hanya yang offline', function (): void {
+    $admin = User::factory()->administrator()->create();
+    $online = User::factory()->staff()->create(['name' => 'Sedang Online']);
+    User::factory()->staff()->create(['name' => 'Sedang Offline']);
+
+    palsukanKehadiran([$online->id]);
+    Sanctum::actingAs($admin);
+
+    $nama = collect($this->getJson('/api/pengguna?kehadiran=offline')->assertOk()->json('data'))
+        ->pluck('nama');
+
+    expect($nama)->toContain('Sedang Offline')
+        ->and($nama)->not->toContain('Sedang Online');
+});
+
+it('mengabaikan penyaring kehadiran dari yang tidak berizin', function (): void {
+    $admin = User::factory()->administrator()->create();
+    $online = User::factory()->staff()->create(['name' => 'Sedang Online']);
+    User::factory()->staff()->create(['name' => 'Sedang Offline']);
+
+    palsukanKehadiran([$online->id]);
+
+    $izin = Permission::where('key', KatalogIzin::PENGGUNA_LIHAT_KEHADIRAN)->firstOrFail();
+    $admin->roleUtama()?->permissions()->detach($izin->id);
+
+    Sanctum::actingAs($admin->fresh());
+
+    // Penyaringnya diabaikan: daftarnya utuh, tidak menyempit jadi petunjuk.
+    $nama = collect($this->getJson('/api/pengguna?kehadiran=online')->assertOk()->json('data'))
+        ->pluck('nama');
+
+    expect($nama)->toContain('Sedang Online')->toContain('Sedang Offline');
+});
