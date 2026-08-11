@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\Analitik\AngkaDepartemen;
 use App\Support\Analitik\AngkaProduktivitas;
 use App\Support\Analitik\AngkaProgres;
+use App\Support\Analitik\AngkaRekap;
 use App\Support\Analitik\AngkaRingkasan;
 use App\Support\Analitik\PenyaringAnalitik;
 use App\Support\ApiResponse;
@@ -101,6 +102,27 @@ class AnalitikController extends Controller
         return ApiResponse::ok([
             'rentang' => $saring->ringkas(),
             ...AngkaDepartemen::susun($saring),
+        ]);
+    }
+
+    /**
+     * Rekap seluruh departemen berdampingan.
+     *
+     * Terbatas pada jangkauan Korporat. Bukan karena datanya belum tersaring —
+     * `scopeVisibleTo()` tetap berlaku, jadi pemegang jangkauan departemen akan
+     * melihat departemennya sendiri saja — melainkan karena halaman berjudul
+     * "rekap seluruh departemen" yang hanya menampilkan satu baris adalah
+     * halaman yang berbohong tentang apa yang ditawarkannya.
+     */
+    public function rekap(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->jangkauan()->korporat(), 403);
+
+        $saring = PenyaringAnalitik::dariPermintaan($request);
+
+        return ApiResponse::ok([
+            'rentang' => $saring->ringkas(),
+            ...AngkaRekap::susun($saring),
         ]);
     }
 

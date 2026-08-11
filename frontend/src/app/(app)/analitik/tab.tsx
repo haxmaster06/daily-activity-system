@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { BarChart3, Building2, LayoutDashboard, Scale } from 'lucide-react';
+import { BarChart3, Building2, LayoutDashboard, Scale, Table2 } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 
@@ -19,10 +19,17 @@ import { cn } from '@/lib/cn';
  * pertanyaan hanya membuat keduanya lambat laun berbeda.
  */
 const TAB = [
-  { href: '/analitik', label: 'Departemen', Ikon: Building2 },
-  { href: '/analitik/ringkasan', label: 'Ringkasan', Ikon: LayoutDashboard },
-  { href: '/analitik/produktivitas', label: 'Produktivitas', Ikon: Scale },
-  { href: '/analitik/progres', label: 'Progres', Ikon: BarChart3 },
+  { href: '/analitik', label: 'Departemen', Ikon: Building2, korporat: false },
+  /*
+   * Rekap hanya bagi jangkauan Korporat. Bukan karena datanya belum tersaring —
+   * `scopeVisibleTo()` tetap berlaku — melainkan karena halaman berjudul "rekap
+   * seluruh departemen" yang menampilkan satu baris adalah halaman yang
+   * berbohong tentang apa yang ditawarkannya.
+   */
+  { href: '/analitik/rekap', label: 'Rekap', Ikon: Table2, korporat: true },
+  { href: '/analitik/ringkasan', label: 'Ringkasan', Ikon: LayoutDashboard, korporat: false },
+  { href: '/analitik/produktivitas', label: 'Produktivitas', Ikon: Scale, korporat: false },
+  { href: '/analitik/progres', label: 'Progres', Ikon: BarChart3, korporat: false },
 ] as const;
 
 /**
@@ -36,7 +43,7 @@ const TAB = [
  * rentang tanggalnya kembali ke bawaan adalah cara tercepat membuat orang
  * berhenti memakai penyaringnya.
  */
-export function TabAnalitik() {
+export function TabAnalitik({ korporat }: { korporat: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -45,7 +52,7 @@ export function TabAnalitik() {
   return (
     <nav aria-label="Halaman analitik" className="mb-3 border-b border-line">
       <ul className="flex flex-wrap gap-1">
-        {TAB.map(({ href, label, Ikon }) => {
+        {TAB.filter((satu) => korporat || !satu.korporat).map(({ href, label, Ikon }) => {
           const aktif = pathname === href;
 
           return (

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
 import { ambilOpsiAnalitik } from '@/lib/analitik-server';
+import { JANGKAUAN_KORPORAT } from '@/lib/izin';
 import { wajibAkses } from '@/lib/session';
 import { PemantauSiaran } from '@/components/layout/pemantau-siaran';
 import { PenyaringAnalitik } from './penyaring';
@@ -17,7 +18,7 @@ export const metadata = { title: 'Executive Analytics — DAMS' };
  * ulang tiap berpindah tab — nilainya tersimpan di URL dan ikut terbawa.
  */
 export default async function AnalitikLayout({ children }: { children: ReactNode }) {
-  await wajibAkses('/analitik');
+  const pengguna = await wajibAkses('/analitik');
 
   const opsi = await ambilOpsiAnalitik();
 
@@ -29,7 +30,7 @@ export default async function AnalitikLayout({ children }: { children: ReactNode
         keterangan="Ringkasan progres dan isi laporan pada seluruh jangkauan data Anda."
       />
 
-      <TabAnalitik />
+      <TabAnalitik korporat={pengguna.jangkauan.level === JANGKAUAN_KORPORAT} />
 
       {/*
         Pilihan yang ditawarkan sudah dibatasi jangkauan di server — termasuk

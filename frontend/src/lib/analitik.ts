@@ -273,6 +273,23 @@ export interface KeadaanDepartemen {
   laporan: RingkasLaporan[];
 }
 
+export interface BarisRekap {
+  departemen_id: number;
+  departemen: string;
+  anggota: number;
+  laporan: number;
+  seharusnya: number;
+  persen: number;
+  baris: number;
+  status: { status: string; label: string; jumlah: number }[];
+}
+
+export interface DataRekap {
+  rentang: { dari: string; sampai: string; hari: number };
+  departemen: BarisRekap[];
+  total: Omit<BarisRekap, 'departemen_id' | 'departemen'>;
+}
+
 export interface DataDepartemen {
   rentang: RentangAnalitik;
   departemen: KeadaanDepartemen[];

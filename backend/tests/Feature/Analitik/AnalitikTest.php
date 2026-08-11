@@ -826,3 +826,50 @@ describe('daftar pilihan penyaring', function (): void {
             ->and($nama)->not->toContain('Staf Quality Control');
     });
 });
+
+/*
+ * Rekap lintas departemen.
+ *
+ * Halaman ini menjawab "departemen mana yang tertinggal", jadi hanya berguna
+ * bagi yang memang melihat lebih dari satu departemen. Yang dijaga di sini
+ * bukan sekadar kelayakan aksesnya, tetapi juga bahwa departemen tanpa laporan
+ * tetap muncul — departemen yang hilang dari daftar terbaca sebagai "tidak ada
+ * masalah", dan itu kebalikan dari kenyataannya.
+ */
+it('menolak jangkauan departemen membuka rekap', function (): void {
+    $tim = siapkanAnalitik();
+
+    Sanctum::actingAs($tim['pengawas']);
+
+    $this->getJson('/api/analitik/rekap')->assertForbidden();
+});
+
+it('menampilkan seluruh departemen kepada jangkauan korporat', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+    siapkanAnalitik();
+
+    $data = $this->getJson('/api/analitik/rekap')->assertOk()->json('data');
+
+    expect($data['departemen'])->not->toBeEmpty()
+        ->and($data)->toHaveKey('total');
+
+    // Departemen tanpa satu pun laporan tetap punya barisnya sendiri.
+    $tanpaLaporan = collect($data['departemen'])->firstWhere('laporan', 0);
+    expect($tanpaLaporan)->not->toBeNull()
+        ->and($tanpaLaporan['baris'])->toBe(0);
+});
+
+it('menghitung total dari jumlah, bukan rata-rata persentase', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+    siapkanAnalitik();
+
+    $data = $this->getJson('/api/analitik/rekap')->assertOk()->json('data');
+
+    $laporan = collect($data['departemen'])->sum('laporan');
+    $seharusnya = collect($data['departemen'])->sum('seharusnya');
+
+    expect($data['total']['laporan'])->toBe($laporan)
+        ->and($data['total']['persen'])->toBe(
+            $seharusnya === 0 ? 0 : (int) round($laporan / $seharusnya * 100),
+        );
+});
