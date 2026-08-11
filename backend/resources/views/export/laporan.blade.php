@@ -15,7 +15,7 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: {{ $ukuranHuruf }}pt;
+            font-size: 8pt;
             color: #191C1E;
         }
 
@@ -43,16 +43,15 @@
         th {
             background: #005BBF;
             color: #FFFFFF;
-            font-size: {{ $ukuranHuruf - 0.5 }}pt;
+            font-size: 7.5pt;
             text-align: left;
-            padding: {{ $renggang }}mm;
+            padding: 2mm 1.5mm;
             border: 0.2mm solid #D9DDE5;
             word-wrap: break-word;
         }
 
         td {
-            font-size: {{ $ukuranHuruf }}pt;
-            padding: {{ $renggang }}mm;
+            padding: 1.5mm;
             border: 0.2mm solid #D9DDE5;
             vertical-align: top;
             /*
@@ -69,6 +68,16 @@
         /* Baris berselang-seling memudahkan mata mengikuti satu baris pada
            tabel yang lebar. */
         tbody tr:nth-child(even) td { background: #F2F4F7; }
+
+        .kelompok {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #414754;
+            margin: 0 0 1.5mm;
+        }
+
+        /* Tiap kelompok kolom mulai di halaman baru, kecuali yang pertama. */
+        .pisah { page-break-before: always; }
 
         .kaki {
             margin-top: 4mm;
@@ -102,32 +111,56 @@
         </p>
     @endif
 
-    <table>
-        <thead>
-            <tr>
-                @foreach ($data['kolom'] as $kolom)
-                    <th>
-                        {{ $kolom['label'] }}@if ($kolom['satuan']) ({{ $kolom['satuan'] }})@endif
-                    </th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($data['baris'] as $baris)
-                <tr>
-                    @foreach ($data['kolom'] as $kolom)
-                        <td>{{ $baris[$kolom['kunci']] ?? '' }}</td>
-                    @endforeach
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="{{ count($data['kolom']) }}" style="text-align: center; color: #727785;">
-                        Tidak ada data pada rentang ini.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+    {{--
+        Kolom dipecah antar halaman, bukan dipadatkan.
+
+        Template terlebar punya 27 kolom. Dimuat sekaligus, tiap kolom hanya
+        kebagian beberapa milimeter: tabelnya memang muat di kertas, tetapi
+        tidak ada satu pun yang terbaca — dan tabel yang tidak terbaca sama
+        tidak bergunanya dengan tabel yang terpotong.
+
+        Kolom identitas diulang pada tiap kelompok supaya tiap halaman tetap
+        dapat dibaca sendiri: tanpa itu, halaman kedua hanya berisi deretan
+        angka tanpa keterangan itu milik siapa dan tanggal berapa.
+    --}}
+    @foreach ($kelompok as $index => $kolomKelompok)
+        <div @class(['pisah' => $index > 0])>
+            @if (count($kelompok) > 1)
+                <p class="kelompok">
+                    Kelompok kolom {{ $index + 1 }} dari {{ count($kelompok) }}
+                </p>
+            @endif
+
+            @php($kolomHalaman = array_merge($kolomTetap, $kolomKelompok))
+
+            <table>
+                <thead>
+                    <tr>
+                        @foreach ($kolomHalaman as $kolom)
+                            <th>
+                                {{ $kolom['label'] }}@if ($kolom['satuan']) ({{ $kolom['satuan'] }})@endif
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($data['baris'] as $baris)
+                        <tr>
+                            @foreach ($kolomHalaman as $kolom)
+                                <td>{{ $baris[$kolom['kunci']] ?? '' }}</td>
+                            @endforeach
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ count($kolomHalaman) }}" style="text-align: center; color: #727785;">
+                                Tidak ada data pada rentang ini.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    @endforeach
 
     <p class="kaki">
         Dicetak oleh {{ $dicetakOleh }} pada {{ $dicetakPada }} —

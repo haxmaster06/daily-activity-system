@@ -260,4 +260,13 @@ it('menghasilkan PDF yang sah untuk template berkolom banyak', function (): void
     // sini justru bahwa cabang lebarnya tidak melempar galat.
     $response->assertOk();
     expect(substr($response->getContent(), 0, 4))->toBe('%PDF');
+
+    /*
+     * 27 kolom = 4 identitas + 23 data, dipecah delapan-delapan menjadi tiga
+     * kelompok, masing-masing pada halamannya sendiri. Satu halaman berarti
+     * kolomnya kembali dipadatkan jadi tidak terbaca — persis keadaan yang
+     * hendak dihindari.
+     */
+    preg_match_all('#/Type\s*/Page[^s]#', $response->getContent(), $cocok);
+    expect(count($cocok[0]))->toBeGreaterThan(1);
 });

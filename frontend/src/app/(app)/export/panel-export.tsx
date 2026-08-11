@@ -255,7 +255,9 @@ export function PanelExport({
 
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() =>
+              window.open(`/api/export/pdf?${searchParams.toString()}&inline=1`, '_blank')
+            }
             disabled={!adaData}
             className="btn-primary btn-sm"
           >

@@ -19,6 +19,12 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    /** Tanggal, penyusun, departemen, status — diulang pada tiap kelompok kolom. */
+    private const KOLOM_IDENTITAS = 4;
+
+    /** Bersama kolom identitas menjadi 12 kolom, masih terbaca di A4 landscape. */
+    private const KOLOM_DATA_PER_HALAMAN = 8;
+
     /**
      * Pratinjau isi export.
      *
@@ -130,38 +136,50 @@ class ExportController extends Controller
         $this->catatAudit('PDF', $data);
 
         /*
-         * Ukuran huruf, kerapatan, dan kertas mengikuti jumlah kolom.
+         * Kolom dipecah antar halaman, bukan dipadatkan.
          *
-         * Template terlebar di sistem ini punya 27 kolom. Pada A4 landscape
-         * dengan huruf 8pt, tabel selebar itu tidak muat — dan dompdf tidak
-         * memindahkan kelebihannya ke halaman berikutnya, melainkan
-         * memotongnya hilang tanpa satu pun tanda.
+         * Template terlebar punya 27 kolom. Dimuat sekaligus pada satu kertas,
+         * tiap kolom hanya kebagian beberapa milimeter — tabelnya muat, tetapi
+         * tidak ada satu pun yang terbaca. Tabel yang tidak terbaca sama tidak
+         * bergunanya dengan tabel yang terpotong.
          *
-         * A3 dipakai mulai 12 kolom. Lebih lebar memang kurang praktis
-         * dicetak, tetapi kolom yang hilang diam-diam jauh lebih merugikan
-         * daripada kertas yang besar.
+         * Empat kolom pertama adalah identitas (tanggal, penyusun, departemen,
+         * status) dan diulang pada tiap kelompok, supaya tiap halaman dapat
+         * dibaca sendiri tanpa menengok halaman sebelumnya.
+         *
+         * Delapan kolom data per kelompok: bersama empat kolom identitas
+         * menjadi dua belas, yang masih terbaca pada A4 landscape 8pt.
          */
-        $jumlahKolom = count($data['kolom']);
-
-        [$ukuranHuruf, $renggang, $kertas] = match (true) {
-            $jumlahKolom >= 20 => [5.5, 0.8, 'a3'],
-            $jumlahKolom >= 12 => [6.5, 1.0, 'a3'],
-            $jumlahKolom >= 8 => [7.0, 1.2, 'a4'],
-            default => [8.0, 1.5, 'a4'],
-        };
+        $kolomTetap = array_slice($data['kolom'], 0, self::KOLOM_IDENTITAS);
+        $kolomData = array_slice($data['kolom'], self::KOLOM_IDENTITAS);
 
         $pdf = Pdf::loadView('export.laporan', [
             'data' => $data,
             'dicetakOleh' => $request->user()->name,
             'dicetakPada' => now()->translatedFormat('d F Y, H.i').' WIB',
-            'ukuranHuruf' => $ukuranHuruf,
-            'renggang' => $renggang,
+            'kolomTetap' => $kolomTetap,
+            'kelompok' => $kolomData === []
+                ? [[]]
+                : array_chunk($kolomData, self::KOLOM_DATA_PER_HALAMAN),
         ]);
 
         // Tabel export lebar; potret akan memotong kolomnya.
-        $pdf->setPaper($kertas, 'landscape');
+        $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->download($this->namaBerkas($data, 'pdf'));
+        /*
+         * `inline` dipakai tombol Cetak: berkasnya dibuka di penampil PDF
+         * peramban, lalu pengguna mencetak dari sana.
+         *
+         * Sebelumnya Cetak memakai `window.print()` atas halaman pratinjau, dan
+         * pada template berkolom banyak hasilnya tidak terbaca — kolomnya
+         * dipadatkan sampai beberapa milimeter. Dengan satu jalur ini, yang
+         * tercetak selalu sama dengan yang diunduh.
+         */
+        $nama = $this->namaBerkas($data, 'pdf');
+
+        return $request->boolean('inline')
+            ? $pdf->stream($nama)
+            : $pdf->download($nama);
     }
 
     /**
