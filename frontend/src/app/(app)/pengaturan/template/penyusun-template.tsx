@@ -251,6 +251,12 @@ export function PenyusunTemplate({
       is_active: identitas.is_active,
       bentuk_pengisian: identitas.bentuk_pengisian,
       fields: keKiriman(),
+      /*
+       * Dipakai server HANYA untuk menurunkan kode: salinan mewarisi kode
+       * sumbernya lalu dibedakan nomor (PROD_PROSES_2), bukan mengambilnya dari
+       * nama yang berakhiran "(Salinan)".
+       */
+      ...(salinanDari ? { salin_dari: salinanDari.id } : {}),
     };
 
     const hasil = sedangUbah
