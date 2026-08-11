@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
@@ -44,6 +44,8 @@ export function PanelExport({
   const searchParams = useSearchParams();
 
   const [halaman, setHalaman] = useState(1);
+  const [menyiapkanCetak, setMenyiapkanCetak] = useState(false);
+  const bingkaiCetak = useRef<HTMLIFrameElement>(null);
   const [mengunduh, setMengunduh] = useState<string | null>(null);
 
   function ubahFilter(kunci: string, nilai: string | null) {
@@ -76,6 +78,49 @@ export function PanelExport({
   }
 
   const adaData = pratinjau.template !== null && pratinjau.jumlah_baris > 0;
+
+  /*
+   * Cetak memunculkan dialog cetak, bukan mengunduh — tetapi yang dicetak
+   * adalah PDF, bukan halaman ini.
+   *
+   * Mencetak halaman pratinjau langsung memang lebih lurus, tetapi tabelnya
+   * memakai satu baris kolom selebar isinya; pada template 27 kolom hasilnya
+   * dipadatkan sampai tidak terbaca. PDF-nya sudah memecah kolom antar halaman
+   * beserta pengulangan kolom identitas, dan menduplikasi pemecahan itu di
+   * sini berarti dua tempat yang lambat laun berbeda.
+   *
+   * Dimuat ke iframe tersembunyi lalu dicetak dari sana — satu asal, sehingga
+   * `contentWindow.print()` diizinkan. Bila peramban menolak (Firefox sesekali
+   * menolak mencetak PDF di dalam iframe), berkasnya dibuka di tab baru supaya
+   * pengguna tetap punya jalan.
+   */
+  async function cetak() {
+    const alamat = `/api/export/pdf?${searchParams.toString()}&inline=1`;
+    const bingkai = bingkaiCetak.current;
+
+    if (!bingkai) {
+      window.open(alamat, '_blank');
+
+      return;
+    }
+
+    setMenyiapkanCetak(true);
+
+    try {
+      await new Promise<void>((selesai, gagal) => {
+        bingkai.onload = () => selesai();
+        bingkai.onerror = () => gagal(new Error('gagal memuat'));
+        bingkai.src = alamat;
+      });
+
+      bingkai.contentWindow?.focus();
+      bingkai.contentWindow?.print();
+    } catch {
+      window.open(alamat, '_blank');
+    } finally {
+      setMenyiapkanCetak(false);
+    }
+  }
 
   /*
    * Pratinjau dipaginasi di klien, bukan di server: barisnya sudah ikut
@@ -255,17 +300,27 @@ export function PanelExport({
 
           <button
             type="button"
-            onClick={() =>
-              window.open(`/api/export/pdf?${searchParams.toString()}&inline=1`, '_blank')
-            }
-            disabled={!adaData}
+            onClick={() => void cetak()}
+            disabled={!adaData || menyiapkanCetak}
             className="btn-primary btn-sm"
           >
             <Printer aria-hidden="true" className="size-4" />
-            Cetak
+            {menyiapkanCetak ? 'Menyiapkan...' : 'Cetak'}
           </button>
         </div>
       </div>
+
+      {/*
+        Wadah cetak. `hidden` akan membuat sebagian peramban menolak
+        mencetaknya, jadi disembunyikan lewat ukuran nol.
+      */}
+      <iframe
+        ref={bingkaiCetak}
+        title="Berkas cetak"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="pointer-events-none absolute size-0 border-0 opacity-0"
+      />
 
       {/* Judul yang hanya muncul di hasil cetak. */}
       <div className="hidden print:mb-3 print:block">
