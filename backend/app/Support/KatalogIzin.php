@@ -98,7 +98,7 @@ final class KatalogIzin
             ['laporan', self::LAPORAN_LIHAT, 'Melihat laporan', 'Membuka daftar dan rincian laporan harian.'],
             ['laporan', self::LAPORAN_BUAT, 'Membuat laporan', 'Menyusun laporan harian baru.'],
             ['laporan', self::LAPORAN_UBAH_SENDIRI, 'Menyunting draf sendiri', 'Mengubah laporan sendiri selama masih berstatus draf.'],
-            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus draf sendiri', 'Menghapus laporan sendiri selama masih berstatus draf.'],
+            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus laporan sendiri', 'Menghapus laporan sendiri. Pemegang jangkauan Korporat dapat menghapus laporan siapa pun.'],
             ['laporan', self::LAPORAN_KIRIM, 'Mengirim laporan', 'Mengirim laporan sendiri sehingga menjadi catatan.'],
             ['laporan', self::LAPORAN_TINJAU, 'Meninjau laporan', 'Menandai laporan orang lain sudah ditinjau.'],
             ['laporan', self::EXPORT_LAPORAN, 'Mengexport laporan', 'Membuka pratinjau export dan mengunduh berkasnya.'],

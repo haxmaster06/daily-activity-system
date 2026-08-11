@@ -308,10 +308,10 @@ class DailyReportController extends Controller
         Audit::catat(
             Audit::AKSI_DIHAPUS,
             Audit::MODUL_LAPORAN,
-            "Menghapus draf laporan {$tanggal}",
+            "Menghapus laporan {$tanggal}",
         );
 
-        return ApiResponse::ok(null, 'Draf laporan berhasil dihapus.');
+        return ApiResponse::ok(null, 'Laporan berhasil dihapus.');
     }
 
     /**

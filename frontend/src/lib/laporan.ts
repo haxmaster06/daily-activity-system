@@ -63,6 +63,7 @@ export interface Laporan {
   catatan_tinjauan: string | null;
   dapat_disunting: boolean;
   dapat_dikirim: boolean;
+  dapat_dihapus: boolean;
   penyusun?: { id: number; nama: string };
   departemen?: { id: number; nama: string };
   peninjau?: { id: number; nama: string } | null;

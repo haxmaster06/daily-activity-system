@@ -251,10 +251,21 @@ export function TabelIsian({
      * Kontrol yang menangani tombolnya sendiri dibiarkan sepenuhnya. Tanpa
      * penjaga ini, panah tidak lagi memindahkan pilihan di dalam Select dan
      * Enter tidak lagi memilih isi Combobox.
+     *
+     * `[contenteditable="true"]` menangkap editor teks kaya. Daftar ini semula
+     * menyebut `textarea`, dan itu benar sampai kolom teks panjang diganti
+     * Tiptap — yang merender `<div contenteditable>`, bukan textarea. Sejak itu
+     * tidak ada satu pun selektor yang cocok, sehingga Enter di dalam editor
+     * lolos ke bawah: barisan baru di editor dibatalkan, lalu pada baris
+     * terakhir malah menambah baris isian yang tidak diminta siapa pun.
+     *
+     * Disebut lewat `contenteditable`, bukan kelas milik Tiptap: apa pun yang
+     * dapat disunting langsung memang menangani tombolnya sendiri, dan
+     * penjaganya tidak ikut rusak saat librarynya suatu saat diganti.
      */
     const sasaran = event.target as HTMLElement;
     const kontrolSendiri = sasaran.closest(
-      '[role="combobox"], [role="listbox"], [role="group"], textarea',
+      '[role="combobox"], [role="listbox"], [role="group"], textarea, [contenteditable="true"]',
     );
 
     const denganAlt = event.altKey;

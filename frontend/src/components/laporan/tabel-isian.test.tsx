@@ -296,3 +296,58 @@ describe('TabelIsian — batalkan penghapusan', () => {
     expect(isian.map((i) => (i as HTMLInputElement).value)).toEqual(['A', 'B', 'C']);
   });
 });
+
+/*
+ * Enter di dalam editor teks kaya.
+ *
+ * Penjaga `kontrolSendiri` semula menyebut `textarea`, dan itu benar sampai
+ * kolom teks panjang diganti Tiptap — yang merender `<div contenteditable>`.
+ * Sejak itu tidak ada selektor yang cocok, sehingga Enter lolos ke penanganan
+ * kisi: barisan baru di dalam editor dibatalkan, lalu pada baris terakhir malah
+ * menambah baris isian yang tidak diminta siapa pun.
+ */
+describe('TabelIsian — Enter di dalam editor teks kaya', () => {
+  const KOLOM_KAYA: KolomTemplate[] = [
+    kolom('no_spk', 'No SPK', 'text'),
+    kolom('uraian', 'Uraian', 'textarea'),
+  ];
+
+  function TerkendaliKaya() {
+    const [baris, setBaris] = useState<NilaiBaris[]>([barisKosong(KOLOM_KAYA)]);
+
+    return (
+      <TabelIsian kolom={KOLOM_KAYA} baris={baris} onUbah={setBaris} awalanGalat="uji" />
+    );
+  }
+
+  it('tidak menambah baris kisi saat Enter ditekan di dalam editor', async () => {
+    const pengguna = userEvent.setup();
+    render(<TerkendaliKaya />);
+
+    const editor = document.querySelector('[contenteditable="true"]');
+    expect(editor).not.toBeNull();
+
+    const sebelum = screen.getAllByRole('row').length;
+
+    (editor as HTMLElement).focus();
+    await pengguna.keyboard('{Enter}');
+
+    expect(screen.getAllByRole('row')).toHaveLength(sebelum);
+  });
+
+  /*
+   * Pengisian berturut-turut tanpa tetikus tidak boleh ikut mati oleh
+   * perbaikan di atas — di sel biasa Enter tetap menambah baris.
+   */
+  it('tetap menambah baris saat Enter ditekan di sel biasa', async () => {
+    const pengguna = userEvent.setup();
+    render(<TerkendaliKaya />);
+
+    const sebelum = screen.getAllByRole('row').length;
+
+    screen.getByLabelText('No SPK').focus();
+    await pengguna.keyboard('{Enter}');
+
+    expect(screen.getAllByRole('row')).toHaveLength(sebelum + 1);
+  });
+});

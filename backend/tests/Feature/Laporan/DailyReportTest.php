@@ -206,7 +206,15 @@ it('membiarkan laporan yang sudah dikirim tetap dapat disunting pemiliknya', fun
     $this->putJson("/api/laporan/{$id}", muatanLaporan($template))->assertOk();
 });
 
-it('tetap menolak menghapus laporan yang sudah dikirim', function (): void {
+/*
+ * Menghapus laporan.
+ *
+ * Dulu terkunci dua kali: hanya draf, dan hanya pemiliknya. Keduanya dicabut —
+ * yang pertama karena tahap draf sudah tidak dipakai sehingga tidak ada laporan
+ * yang pernah memenuhinya, yang kedua karena tidak menyisakan satu pun jalan
+ * membersihkan laporan yang salah masuk.
+ */
+it('mengizinkan pemiliknya menghapus laporan yang sudah dikirim', function (): void {
     $template = siapkanMaster();
     $pengguna = User::factory()->staff()->create();
     Sanctum::actingAs($pengguna);
@@ -214,7 +222,44 @@ it('tetap menolak menghapus laporan yang sudah dikirim', function (): void {
     $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
     $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
 
+    $this->deleteJson("/api/laporan/{$id}")->assertOk();
+
+    expect(DailyReport::find($id))->toBeNull();
+});
+
+it('mengizinkan jangkauan korporat menghapus laporan orang lain', function (): void {
+    $template = siapkanMaster();
+    $pemilik = User::factory()->staff()->create();
+
+    Sanctum::actingAs($pemilik);
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+    $this->deleteJson("/api/laporan/{$id}")->assertOk();
+
+    expect(DailyReport::find($id))->toBeNull();
+});
+
+/*
+ * Batas pelonggarannya. Melihat laporan rekan sedepartemen adalah satu hal,
+ * menghapusnya hal lain — dan tanpa test ini pelonggaran di atas mudah melebar
+ * ke jangkauan departemen tanpa ada yang menyadarinya.
+ */
+it('tetap menolak pengguna lain menghapus laporan yang bukan miliknya', function (): void {
+    $template = siapkanMaster();
+    $departemen = Department::where('code', 'PRODUKSI')->firstOrFail();
+    $pemilik = User::factory()->staff()->create(['department_id' => $departemen->id]);
+
+    Sanctum::actingAs($pemilik);
+    $id = $this->postJson('/api/laporan', muatanLaporan($template))->json('data.id');
+    $this->postJson("/api/laporan/{$id}/kirim")->assertOk();
+
+    // Supervisor sedepartemen: boleh melihat, tidak boleh menghapus.
+    Sanctum::actingAs(User::factory()->supervisor()->create(['department_id' => $departemen->id]));
     $this->deleteJson("/api/laporan/{$id}")->assertForbidden();
+
+    expect(DailyReport::find($id))->not->toBeNull();
 });
 
 /*

@@ -67,11 +67,29 @@ class DailyReportPolicy
             && $report->user_id === $user->getKey();
     }
 
+    /**
+     * Menghapus laporan permanen.
+     *
+     * Dua batasan dicabut sekaligus, keduanya sudah tidak berpijak pada apa pun:
+     *
+     * `masihDraf()` — sejak laporan langsung terbit tanpa tahap draf, praktis
+     * tidak ada laporan berstatus draf, sehingga tidak ada yang dapat dihapus
+     * pemiliknya sendiri.
+     *
+     * Kepemilikan mutlak — Administrator memegang seluruh izin tetapi tetap
+     * gagal pada `user_id === getKey()`, jadi tidak ada satu pun jalan
+     * membersihkan laporan yang salah masuk.
+     *
+     * Jangkauan Korporat dipakai sebagai penggantinya, bukan izin baru: yang
+     * berjangkauan Korporat sudah melihat seluruh laporan lewat
+     * `scopeVisibleTo()`, jadi siapa yang boleh menyentuh apa tetap diputuskan
+     * satu acuan. Jangkauan departemen sengaja TIDAK cukup — melihat laporan
+     * rekan sedepartemen adalah satu hal, menghapusnya hal lain.
+     */
     public function delete(User $user, DailyReport $report): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_HAPUS_SENDIRI)
-            && $report->user_id === $user->getKey()
-            && $report->masihDraf();
+            && ($report->user_id === $user->getKey() || $user->jangkauan()->korporat());
     }
 
     /**
