@@ -200,3 +200,28 @@ it('memakai sumber data yang sama untuk pratinjau dan berkas', function (): void
     expect($jejak->changes['jumlah_baris'])->toBe($pratinjau['jumlah_baris']);
     expect($jejak->changes['template'])->toBe($pratinjau['template']['kode']);
 });
+
+/*
+ * Template yang tidak ikut terexport.
+ *
+ * Satu berkas memuat satu bentuk tabel, sehingga laporan bertemplate lain
+ * memang tertinggal. Tanpa keterangan ini layarnya hanya menampilkan angka
+ * yang lebih kecil daripada dugaan, dan terbaca sebagai data yang hilang —
+ * persis yang dilaporkan pemakai.
+ */
+it('menyebutkan template lain yang tidak ikut terexport', function (): void {
+    siapkanExport();
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $data = $this->getJson('/api/export/pratinjau?'.http_build_query([
+        'dari' => now()->subMonth()->toDateString(),
+        'sampai' => now()->toDateString(),
+    ]))->assertOk()->json('data');
+
+    expect($data)->toHaveKey('template_lain');
+
+    // Template yang terpilih tidak boleh ikut disebut sebagai "yang lain".
+    $idLain = collect($data['template_lain'])->pluck('id');
+    expect($idLain)->not->toContain($data['template']['id']);
+});

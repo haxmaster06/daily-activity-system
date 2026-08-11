@@ -7,6 +7,7 @@ import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/cn';
 import { formatAngka } from '@/lib/format';
 import type { Departemen } from '@/lib/master-data';
 import type { PratinjauExport } from '@/lib/export-server';
@@ -42,6 +43,7 @@ export function PanelExport({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [halaman, setHalaman] = useState(1);
   const [mengunduh, setMengunduh] = useState<string | null>(null);
 
   function ubahFilter(kunci: string, nilai: string | null) {
@@ -74,6 +76,30 @@ export function PanelExport({
   }
 
   const adaData = pratinjau.template !== null && pratinjau.jumlah_baris > 0;
+
+  /*
+   * Pratinjau dipaginasi di klien, bukan di server: barisnya sudah ikut
+   * terkirim bersama pratinjaunya, dan berkas export memang selalu memuat
+   * seluruhnya. Yang dipecah hanya tampilannya — 5000 baris dalam satu wadah
+   * gulir membuat halaman berat dan mustahil ditelusuri.
+   */
+  const PER_HALAMAN = 25;
+  const totalHalaman = Math.max(1, Math.ceil(pratinjau.baris.length / PER_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+
+  /*
+   * Seluruh baris tetap dirender; yang di luar halaman ini disembunyikan lewat
+   * CSS dan dimunculkan kembali saat dicetak.
+   *
+   * Memotong arraynya akan membuat tombol Cetak hanya mencetak halaman yang
+   * sedang tampil — pratinjau yang tidak sama dengan hasilnya adalah cacat yang
+   * lebih buruk daripada tabel panjang.
+   */
+  function diHalamanIni(index: number): boolean {
+    return (
+      index >= (halamanAman - 1) * PER_HALAMAN && index < halamanAman * PER_HALAMAN
+    );
+  }
 
   return (
     <>
@@ -139,6 +165,36 @@ export function PanelExport({
         />
       )}
 
+      {/*
+        Satu berkas export memuat satu bentuk tabel, sehingga laporan
+        bertemplate lain memang tidak ikut. Tanpa keterangan ini, layarnya
+        hanya menampilkan angka yang lebih kecil daripada dugaan dan terbaca
+        sebagai data yang hilang.
+      */}
+      {pratinjau.template_lain.length > 0 && (
+        <div className="mb-3 rounded-card border border-accent/40 bg-accent-subtle px-3 py-2 print:hidden">
+          <p className="text-body text-ink">
+            Satu berkas export memuat satu template. Laporan bertemplate lain
+            pada periode ini tidak ikut — pilih templatenya untuk mengexport:
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {pratinjau.template_lain.map((lain) => (
+              <button
+                key={lain.id}
+                type="button"
+                onClick={() => ubahFilter('template_id', String(lain.id))}
+                className="btn-ghost btn-sm border border-line bg-surface"
+              >
+                {lain.nama}
+                <span className="text-ink-soft">
+                  ({formatAngka(lain.jumlah_baris)} baris)
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {pratinjau.terpotong && (
         <Alert
           jenis="galat"
@@ -159,7 +215,8 @@ export function PanelExport({
               <span className="font-semibold text-ink">
                 {formatAngka(pratinjau.jumlah_baris)} baris
               </span>{' '}
-              dari {formatAngka(pratinjau.jumlah_laporan)} laporan,
+              dari template{' '}
+              <span className="font-semibold text-ink">{pratinjau.template?.nama}</span>,
               periode {pratinjau.rentang.label}
             </>
           ) : (
@@ -248,7 +305,13 @@ export function PanelExport({
                 </tr>
               ) : (
                 pratinjau.baris.map((baris, index) => (
-                  <tr key={index} className="hover:bg-surface-muted/60">
+                  <tr
+                    key={index}
+                    className={cn(
+                      'hover:bg-surface-muted/60',
+                      !diHalamanIni(index) && 'hidden print:table-row',
+                    )}
+                  >
                     {pratinjau.kolom.map((kolom) => (
                       <td
                         key={kolom.kunci}
@@ -276,6 +339,42 @@ export function PanelExport({
             </tbody>
           </table>
         </div>
+
+        {/*
+          Hanya di layar. Hasil cetak dan berkas unduhan tetap memuat seluruh
+          baris — yang dipecah cuma cara membacanya di sini.
+        */}
+        {totalHalaman > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 print:hidden">
+            <p className="text-caption text-ink-muted">
+              Menampilkan {formatAngka((halamanAman - 1) * PER_HALAMAN + 1)}–
+              {formatAngka(Math.min(halamanAman * PER_HALAMAN, pratinjau.baris.length))} dari{' '}
+              {formatAngka(pratinjau.baris.length)} baris
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setHalaman((n) => Math.max(1, n - 1))}
+                disabled={halamanAman <= 1}
+                className="btn-ghost btn-sm disabled:opacity-40"
+              >
+                Sebelumnya
+              </button>
+              <span className="text-caption tabular-nums text-ink-muted">
+                {halamanAman} / {totalHalaman}
+              </span>
+              <button
+                type="button"
+                onClick={() => setHalaman((n) => Math.min(totalHalaman, n + 1))}
+                disabled={halamanAman >= totalHalaman}
+                className="btn-ghost btn-sm disabled:opacity-40"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

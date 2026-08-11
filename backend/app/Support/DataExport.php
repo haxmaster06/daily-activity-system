@@ -67,6 +67,7 @@ final class DataExport
          * Bila template tidak dipilih, dipakai template yang paling banyak
          * muncul pada hasil penyaringan.
          */
+        $sebaran = self::sebaranTemplate($laporan);
         $templateTerpakai = $template ?? self::templateTerbanyak($laporan);
 
         if ($templateTerpakai === null) {
@@ -77,6 +78,7 @@ final class DataExport
                 'baris' => [],
                 'jumlah_baris' => 0,
                 'jumlah_laporan' => 0,
+                'template_lain' => [],
                 'terpotong' => false,
             ];
         }
@@ -97,6 +99,20 @@ final class DataExport
             'baris' => $terpotong ? array_slice($baris, 0, self::BATAS_BARIS) : $baris,
             'jumlah_baris' => count($baris),
             'jumlah_laporan' => $laporan->count(),
+            /*
+             * Template lain yang ada di hasil penyaringan tetapi tidak ikut
+             * terexport.
+             *
+             * Tanpa ini layar hanya menampilkan "6 baris dari 10 laporan" dan
+             * terbaca sebagai data yang hilang — padahal empat laporan sisanya
+             * memakai template berbeda, dan satu berkas export memang hanya
+             * memuat satu bentuk tabel. Yang kurang bukan datanya, melainkan
+             * keterangannya.
+             */
+            'template_lain' => collect($sebaran)
+                ->reject(fn (array $satu) => $satu['id'] === $templateTerpakai->id)
+                ->values()
+                ->all(),
             'terpotong' => $terpotong,
         ];
     }
@@ -116,6 +132,36 @@ final class DataExport
     /**
      * @param  Collection<int, DailyReport>  $laporan
      */
+    /**
+     * Template apa saja yang muncul pada hasil penyaringan, beserta jumlahnya.
+     *
+     * @return array<int, array{id: int, nama: string, jumlah_baris: int, jumlah_laporan: int}>
+     */
+    private static function sebaranTemplate(Collection $laporan): array
+    {
+        $sebaran = [];
+
+        foreach ($laporan as $item) {
+            foreach ($item->sections as $bagian) {
+                $id = $bagian->report_template_id;
+
+                $sebaran[$id] ??= [
+                    'id' => $id,
+                    'nama' => $bagian->template?->name ?? '—',
+                    'jumlah_baris' => 0,
+                    'jumlah_laporan' => 0,
+                ];
+
+                $sebaran[$id]['jumlah_baris'] += $bagian->items->count();
+                $sebaran[$id]['jumlah_laporan']++;
+            }
+        }
+
+        usort($sebaran, fn (array $a, array $b) => $b['jumlah_baris'] <=> $a['jumlah_baris']);
+
+        return $sebaran;
+    }
+
     private static function templateTerbanyak(Collection $laporan): ?ReportTemplate
     {
         $hitung = [];

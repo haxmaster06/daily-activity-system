@@ -17,6 +17,14 @@ export interface PratinjauExport {
   baris: Record<string, string | number | null>[];
   jumlah_baris: number;
   jumlah_laporan: number;
+  /**
+   * Template lain yang ada pada hasil penyaringan tetapi tidak ikut terexport.
+   *
+   * Satu berkas export hanya memuat satu bentuk tabel, sehingga laporan
+   * bertemplate lain memang tertinggal. Ini yang membuat keterangannya dapat
+   * menyebutkan berapa dan template apa saja.
+   */
+  template_lain: { id: number; nama: string; jumlah_baris: number; jumlah_laporan: number }[];
   /** Data melebihi batas per berkas; yang tampil hanya bagian awalnya. */
   terpotong: boolean;
 }
