@@ -19,12 +19,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
-    /** Tanggal, penyusun, departemen, status — diulang pada tiap kelompok kolom. */
-    private const KOLOM_IDENTITAS = 4;
-
-    /** Bersama kolom identitas menjadi 12 kolom, masih terbaca di A4 landscape. */
-    private const KOLOM_DATA_PER_HALAMAN = 8;
-
     /**
      * Pratinjau isi export.
      *
@@ -135,32 +129,10 @@ class ExportController extends Controller
 
         $this->catatAudit('PDF', $data);
 
-        /*
-         * Kolom dipecah antar halaman, bukan dipadatkan.
-         *
-         * Template terlebar punya 27 kolom. Dimuat sekaligus pada satu kertas,
-         * tiap kolom hanya kebagian beberapa milimeter — tabelnya muat, tetapi
-         * tidak ada satu pun yang terbaca. Tabel yang tidak terbaca sama tidak
-         * bergunanya dengan tabel yang terpotong.
-         *
-         * Empat kolom pertama adalah identitas (tanggal, penyusun, departemen,
-         * status) dan diulang pada tiap kelompok, supaya tiap halaman dapat
-         * dibaca sendiri tanpa menengok halaman sebelumnya.
-         *
-         * Delapan kolom data per kelompok: bersama empat kolom identitas
-         * menjadi dua belas, yang masih terbaca pada A4 landscape 8pt.
-         */
-        $kolomTetap = array_slice($data['kolom'], 0, self::KOLOM_IDENTITAS);
-        $kolomData = array_slice($data['kolom'], self::KOLOM_IDENTITAS);
-
         $pdf = Pdf::loadView('export.laporan', [
             'data' => $data,
             'dicetakOleh' => $request->user()->name,
             'dicetakPada' => now()->translatedFormat('d F Y, H.i').' WIB',
-            'kolomTetap' => $kolomTetap,
-            'kelompok' => $kolomData === []
-                ? [[]]
-                : array_chunk($kolomData, self::KOLOM_DATA_PER_HALAMAN),
         ]);
 
         // Tabel export lebar; potret akan memotong kolomnya.

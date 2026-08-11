@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
@@ -44,8 +44,7 @@ export function PanelExport({
   const searchParams = useSearchParams();
 
   const [halaman, setHalaman] = useState(1);
-  const [menyiapkanCetak, setMenyiapkanCetak] = useState(false);
-  const bingkaiCetak = useRef<HTMLIFrameElement>(null);
+  const [sedangCetak, setSedangCetak] = useState(false);
   const [mengunduh, setMengunduh] = useState<string | null>(null);
 
   function ubahFilter(kunci: string, nilai: string | null) {
@@ -80,79 +79,35 @@ export function PanelExport({
   const adaData = pratinjau.template !== null && pratinjau.jumlah_baris > 0;
 
   /*
-   * Cetak memunculkan dialog cetak, bukan mengunduh — tetapi yang dicetak
-   * adalah PDF, bukan halaman ini.
+   * Cetak memakai dialog cetak bawaan peramban.
    *
-   * Mencetak halaman pratinjau langsung memang lebih lurus, tetapi tabelnya
-   * memakai satu baris kolom selebar isinya; pada template 27 kolom hasilnya
-   * dipadatkan sampai tidak terbaca. PDF-nya sudah memecah kolom antar halaman
-   * beserta pengulangan kolom identitas, dan menduplikasi pemecahan itu di
-   * sini berarti dua tempat yang lambat laun berbeda.
+   * Yang tercetak bukan tabel lebar di layar, melainkan tata letak berkelompok
+   * di bawah — kolomnya dipecah per halaman dengan kolom identitas berulang,
+   * memakai pengelompokan yang sama persis dengan berkas PDF karena keduanya
+   * membacanya dari server.
    *
-   * Dimuat ke iframe tersembunyi lalu dicetak dari sana — satu asal, sehingga
-   * `contentWindow.print()` diizinkan. Bila peramban menolak (Firefox sesekali
-   * menolak mencetak PDF di dalam iframe), berkasnya dibuka di tab baru supaya
-   * pengguna tetap punya jalan.
+   * Tata letak itu baru dirender saat hendak dicetak: 5000 baris dikali
+   * beberapa kelompok adalah puluhan ribu baris yang tidak berguna bagi siapa
+   * pun selama tidak ada yang mencetak.
    */
   async function cetak() {
-    const alamat = `/api/export/pdf?${searchParams.toString()}&inline=1`;
-    const bingkai = bingkaiCetak.current;
+    setSedangCetak(true);
 
-    if (!bingkai) {
-      window.open(alamat, '_blank');
+    // Satu frame supaya tata letak cetaknya sudah terpasang saat dialog dibuka.
+    await new Promise((selesai) => requestAnimationFrame(() => selesai(null)));
 
-      return;
-    }
-
-    setMenyiapkanCetak(true);
-
-    try {
-      /*
-       * Batas waktu wajib ada. Bila peramban memperlakukan balasannya sebagai
-       * unduhan — pengelola unduhan pihak ketiga sering merampas URL PDF —
-       * `onload` tidak pernah menyala sama sekali, dan tanpa batas ini
-       * tombolnya tersangkut pada "Menyiapkan..." selamanya.
-       */
-      await new Promise<void>((selesai, gagal) => {
-        const jaga = setTimeout(() => gagal(new Error('waktu habis')), 8000);
-
-        bingkai.onload = () => {
-          clearTimeout(jaga);
-          selesai();
-        };
-        bingkai.onerror = () => {
-          clearTimeout(jaga);
-          gagal(new Error('gagal memuat'));
-        };
-        bingkai.src = alamat;
-      });
-
-      bingkai.contentWindow?.focus();
-      bingkai.contentWindow?.print();
-    } catch {
-      window.open(alamat, '_blank');
-    } finally {
-      setMenyiapkanCetak(false);
-    }
+    window.print();
+    setSedangCetak(false);
   }
 
-  /*
-   * Pratinjau dipaginasi di klien, bukan di server: barisnya sudah ikut
-   * terkirim bersama pratinjaunya, dan berkas export memang selalu memuat
-   * seluruhnya. Yang dipecah hanya tampilannya — 5000 baris dalam satu wadah
-   * gulir membuat halaman berat dan mustahil ditelusuri.
-   */
   const PER_HALAMAN = 25;
   const totalHalaman = Math.max(1, Math.ceil(pratinjau.baris.length / PER_HALAMAN));
   const halamanAman = Math.min(halaman, totalHalaman);
 
   /*
-   * Seluruh baris tetap dirender; yang di luar halaman ini disembunyikan lewat
-   * CSS dan dimunculkan kembali saat dicetak.
-   *
-   * Memotong arraynya akan membuat tombol Cetak hanya mencetak halaman yang
-   * sedang tampil — pratinjau yang tidak sama dengan hasilnya adalah cacat yang
-   * lebih buruk daripada tabel panjang.
+   * Yang tercetak bukan tabel ini melainkan tata letak berkelompok di atas,
+   * sehingga memotong barisnya di sini aman — halaman cetaknya tetap memuat
+   * seluruh baris.
    */
   function diHalamanIni(index: number): boolean {
     return (
@@ -315,26 +270,15 @@ export function PanelExport({
           <button
             type="button"
             onClick={() => void cetak()}
-            disabled={!adaData || menyiapkanCetak}
+            disabled={!adaData}
             className="btn-primary btn-sm"
           >
             <Printer aria-hidden="true" className="size-4" />
-            {menyiapkanCetak ? 'Menyiapkan...' : 'Cetak'}
+            Cetak
           </button>
         </div>
       </div>
 
-      {/*
-        Wadah cetak. `hidden` akan membuat sebagian peramban menolak
-        mencetaknya, jadi disembunyikan lewat ukuran nol.
-      */}
-      <iframe
-        ref={bingkaiCetak}
-        title="Berkas cetak"
-        aria-hidden="true"
-        tabIndex={-1}
-        className="pointer-events-none absolute size-0 border-0 opacity-0"
-      />
 
       {/* Judul yang hanya muncul di hasil cetak. */}
       <div className="hidden print:mb-3 print:block">
@@ -344,10 +288,64 @@ export function PanelExport({
         <p className="text-body text-ink-muted">Periode {pratinjau.rentang.label}</p>
       </div>
 
-      <div className="card overflow-hidden print:border-0 print:shadow-none">
-        <div className="max-h-[32rem] overflow-auto print:max-h-none print:overflow-visible">
+      {/*
+        Tata letak cetak: satu tabel per kelompok kolom, kolom identitas
+        berulang. Hanya ada saat mencetak — tabel lebar di layar dipakai untuk
+        membaca, tata letak ini untuk kertas.
+      */}
+      {sedangCetak && (
+        <div className="hidden print:block">
+          {pratinjau.kelompok_kolom.map((kolomHalaman, nomor) => (
+            <div key={nomor} className={nomor > 0 ? 'break-before-page' : undefined}>
+              {pratinjau.kelompok_kolom.length > 1 && (
+                <p className="mb-1 text-caption font-semibold text-ink-muted">
+                  Kelompok kolom {nomor + 1} dari {pratinjau.kelompok_kolom.length}
+                </p>
+              )}
+
+              <table className="mb-4 w-full border-collapse text-table">
+                <thead>
+                  <tr className="border-b border-line bg-surface-muted">
+                    {kolomHalaman.map((kolom) => (
+                      <th
+                        key={kolom.kunci}
+                        scope="col"
+                        className="border border-line px-2 py-1 text-left text-caption font-semibold text-ink"
+                      >
+                        {kolom.label}
+                        {kolom.satuan && (
+                          <span className="font-normal text-ink-soft"> ({kolom.satuan})</span>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pratinjau.baris.map((baris, index) => (
+                    <tr key={index}>
+                      {kolomHalaman.map((kolom) => (
+                        <td
+                          key={kolom.kunci}
+                          className="whitespace-pre-line break-words border border-line px-2 py-1 align-top text-ink"
+                        >
+                          {baris[kolom.kunci] === null || baris[kolom.kunci] === ''
+                            ? '—'
+                            : String(baris[kolom.kunci])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card overflow-hidden print:hidden">
+        <div className="max-h-[32rem] overflow-auto">
           <table className="w-full min-w-max border-collapse text-table">
-            <thead className="sticky top-0 z-10 bg-surface-muted print:static">
+            <thead className="sticky top-0 z-10 bg-surface-muted">
               <tr className="border-b border-line">
                 {pratinjau.kolom.map((kolom) => (
                   <th
@@ -380,7 +378,7 @@ export function PanelExport({
                     key={index}
                     className={cn(
                       'hover:bg-surface-muted/60',
-                      !diHalamanIni(index) && 'hidden print:table-row',
+                      !diHalamanIni(index) && 'hidden',
                     )}
                   >
                     {pratinjau.kolom.map((kolom) => (

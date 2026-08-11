@@ -22,6 +22,12 @@ final class DataExport
     /** Batas baris per export. Melewati ini, permintaan ditolak. */
     public const BATAS_BARIS = 5000;
 
+    /** Tanggal, penyusun, departemen, status — diulang pada tiap kelompok. */
+    public const KOLOM_IDENTITAS = 4;
+
+    /** Bersama kolom identitas menjadi 12 kolom; masih terbaca di A4 landscape. */
+    public const KOLOM_DATA_PER_HALAMAN = 8;
+
     /**
      * @param  array<string, mixed>  $filter
      * @return array<string, mixed>
@@ -75,6 +81,7 @@ final class DataExport
                 'rentang' => self::rentang($dari, $sampai),
                 'template' => null,
                 'kolom' => [],
+                'kelompok_kolom' => [],
                 'baris' => [],
                 'jumlah_baris' => 0,
                 'jumlah_laporan' => 0,
@@ -96,6 +103,17 @@ final class DataExport
                 'nama' => $templateTerpakai->name,
             ],
             'kolom' => $kolom,
+            /*
+             * Kolom yang sudah dipecah per halaman cetak; tiap kelompok sudah
+             * memuat kolom identitasnya sendiri.
+             *
+             * Dihitung di sini, bukan di pemakainya: berkas PDF dan pratinjau
+             * layar harus memecah dengan cara yang sama persis. Dua tempat
+             * untuk aturan yang sama lambat laun berbeda, dan yang berbeda pada
+             * cetakan tidak akan disadari siapa pun sampai lembarnya sudah
+             * dibagikan.
+             */
+            'kelompok_kolom' => self::kelompokKolom($kolom),
             'baris' => $terpotong ? array_slice($baris, 0, self::BATAS_BARIS) : $baris,
             'jumlah_baris' => count($baris),
             'jumlah_laporan' => $laporan->count(),
@@ -137,6 +155,31 @@ final class DataExport
      *
      * @return array<int, array{id: int, nama: string, jumlah_baris: int, jumlah_laporan: int}>
      */
+    /**
+     * Memecah kolom menjadi kelompok selebar satu halaman cetak.
+     *
+     * Kolom identitas diulang pada tiap kelompok supaya tiap halaman dapat
+     * dibaca sendiri — tanpa itu halaman kedua hanya berisi deretan angka tanpa
+     * keterangan itu milik siapa dan tanggal berapa.
+     *
+     * @param  array<int, array<string, mixed>>  $kolom
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private static function kelompokKolom(array $kolom): array
+    {
+        $tetap = array_slice($kolom, 0, self::KOLOM_IDENTITAS);
+        $data = array_slice($kolom, self::KOLOM_IDENTITAS);
+
+        if ($data === []) {
+            return [$tetap];
+        }
+
+        return array_map(
+            fn (array $bagian) => array_merge($tetap, $bagian),
+            array_chunk($data, self::KOLOM_DATA_PER_HALAMAN),
+        );
+    }
+
     private static function sebaranTemplate(Collection $laporan): array
     {
         $sebaran = [];

@@ -123,15 +123,13 @@
         dapat dibaca sendiri: tanpa itu, halaman kedua hanya berisi deretan
         angka tanpa keterangan itu milik siapa dan tanggal berapa.
     --}}
-    @foreach ($kelompok as $index => $kolomKelompok)
+    @foreach ($data['kelompok_kolom'] as $index => $kolomHalaman)
         <div @class(['pisah' => $index > 0])>
-            @if (count($kelompok) > 1)
+            @if (count($data['kelompok_kolom']) > 1)
                 <p class="kelompok">
-                    Kelompok kolom {{ $index + 1 }} dari {{ count($kelompok) }}
+                    Kelompok kolom {{ $index + 1 }} dari {{ count($data['kelompok_kolom']) }}
                 </p>
             @endif
-
-            @php($kolomHalaman = array_merge($kolomTetap, $kolomKelompok))
 
             <table>
                 <thead>

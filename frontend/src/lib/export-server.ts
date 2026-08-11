@@ -14,6 +14,14 @@ export interface PratinjauExport {
   rentang: { dari: string; sampai: string; label: string };
   template: { id: number; kode: string; nama: string } | null;
   kolom: KolomExport[];
+  /**
+   * Kolom yang sudah dipecah per halaman cetak; tiap kelompok sudah memuat
+   * kolom identitasnya sendiri.
+   *
+   * Dihitung server supaya hasil cetak layar dan berkas PDF memecah dengan cara
+   * yang sama persis.
+   */
+  kelompok_kolom: KolomExport[][];
   baris: Record<string, string | number | null>[];
   jumlah_baris: number;
   jumlah_laporan: number;
