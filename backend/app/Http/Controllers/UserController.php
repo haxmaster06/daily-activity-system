@@ -11,6 +11,8 @@ use App\Models\DailyReport;
 use App\Models\User;
 use App\Support\ApiResponse;
 use App\Support\Audit;
+use App\Support\KatalogIzin;
+use App\Support\KehadiranReverb;
 use App\Support\PenjagaAkses;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +30,16 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', User::class);
+
+        /*
+         * Dibaca sekali per permintaan, bukan sekali per baris, dan hanya bila
+         * pemanggilnya memang berhak — memanggil Reverb untuk pengguna yang toh
+         * tidak akan ditampilkan hasilnya adalah kerja percuma sekaligus
+         * kebocoran yang menunggu terjadi.
+         */
+        $online = $request->user()?->boleh(KatalogIzin::PENGGUNA_LIHAT_KEHADIRAN)
+            ? app(KehadiranReverb::class)->idPenggunaOnline()
+            : null;
 
         $pengguna = User::query()
             ->with(['role', 'department'])
@@ -59,7 +71,7 @@ class UserController extends Controller
             ->orderBy('name')
             ->paginate(perPage: min($request->integer('per_halaman', 25), 100))
             ->withQueryString()
-            ->through(fn (User $item) => new UserResource($item));
+            ->through(fn (User $item) => (new UserResource($item))->denganKehadiran($online));
 
         return ApiResponse::paginated($pengguna);
     }

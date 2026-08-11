@@ -55,6 +55,13 @@ export interface Pengguna {
   jumlah_laporan?: number;
   jumlah_lampiran?: number;
   departemen: { id: number | null; kode: string | null; nama: string | null };
+  /*
+   * Kehadiran. Keduanya ABSEN — bukan bernilai false — bila pemanggilnya tidak
+   * berizin melihatnya, sehingga `sedang_online === undefined` berarti "tidak
+   * boleh tahu", bukan "sedang offline".
+   */
+  sedang_online?: boolean;
+  masuk_terakhir?: string | null;
 }
 
 export async function ambilDepartemen(cari?: string): Promise<Departemen[]> {

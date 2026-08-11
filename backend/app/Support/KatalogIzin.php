@@ -44,6 +44,16 @@ final class KatalogIzin
 
     public const ANALITIK_LIHAT = 'analitik.lihat';
 
+    /**
+     * Melihat siapa yang sedang tersambung.
+     *
+     * Sengaja tidak masuk daftar bawaan peran mana pun. Administrator
+     * memperolehnya lewat `self::kunci()`, dan siapa lagi yang berhak
+     * diputuskan operator lewat Manajemen Peran — kapan seseorang bekerja
+     * adalah informasi yang cukup peka untuk tidak dibagikan begitu saja.
+     */
+    public const PENGGUNA_LIHAT_KEHADIRAN = 'pengguna.lihat-kehadiran';
+
     public const DEPARTEMEN_LIHAT = 'departemen.lihat';
 
     public const DEPARTEMEN_KELOLA = 'departemen.kelola';
@@ -109,6 +119,8 @@ final class KatalogIzin
             ['progres', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
 
             ['analitik', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
+
+            ['pengguna', self::PENGGUNA_LIHAT_KEHADIRAN, 'Melihat kehadiran', 'Melihat siapa yang sedang tersambung pada Manajemen Pengguna.'],
 
             ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
