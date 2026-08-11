@@ -225,3 +225,39 @@ it('menyebutkan template lain yang tidak ikut terexport', function (): void {
     $idLain = collect($data['template_lain'])->pluck('id');
     expect($idLain)->not->toContain($data['template']['id']);
 });
+
+/*
+ * Template berkolom banyak.
+ *
+ * Dompdf tidak memindahkan kolom yang tidak muat ke halaman berikutnya —
+ * kelebihannya dipotong hilang tanpa satu pun tanda. Karena itu ukuran huruf,
+ * kerapatan, dan kertas dipilih mengikuti jumlah kolom, dan cabang itu perlu
+ * benar-benar dijalankan: kesalahan di sana hanya muncul pada template terlebar,
+ * yang justru paling jarang dicoba.
+ */
+it('menghasilkan PDF yang sah untuk template berkolom banyak', function (): void {
+    siapkanExport();
+
+    // PROD_PROSES adalah template terlebar di seeder (27 kolom).
+    $lebar = ReportTemplate::where('code', 'PROD_PROSES')->firstOrFail();
+
+    $penyusun = User::factory()->administrator()->create();
+
+    $laporan = DailyReport::factory()->milik($penyusun)->dikirim()->create([
+        'report_date' => now()->toDateString(),
+    ]);
+    $bagian = $laporan->sections()->create([
+        'report_template_id' => $lebar->id,
+        'sort_order' => 0,
+    ]);
+    $bagian->items()->create(['data' => [], 'sort_order' => 0]);
+
+    Sanctum::actingAs($penyusun);
+
+    $response = $this->get('/api/export/pdf?template_id='.$lebar->id);
+
+    // Tanpa data pada template itu, endpoint menolak dengan 422 — yang diuji di
+    // sini justru bahwa cabang lebarnya tidak melempar galat.
+    $response->assertOk();
+    expect(substr($response->getContent(), 0, 4))->toBe('%PDF');
+});

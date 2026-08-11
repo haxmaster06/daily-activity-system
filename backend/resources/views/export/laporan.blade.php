@@ -15,7 +15,7 @@
 
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 8pt;
+            font-size: {{ $ukuranHuruf }}pt;
             color: #191C1E;
         }
 
@@ -23,19 +23,36 @@
         .periode { font-size: 9pt; color: #414754; margin: 0 0 1mm; }
         .keterangan { font-size: 8pt; color: #727785; margin: 0 0 4mm; }
 
-        table { width: 100%; border-collapse: collapse; }
+        /*
+         * `table-layout: fixed` wajib di sini.
+         *
+         * Tanpa itu dompdf melebarkan tiap kolom mengikuti isinya, tabelnya
+         * tumbuh melewati lebar kertas, dan kelebihannya TIDAK dipindah ke
+         * halaman berikutnya — sekadar terpotong hilang. Pada template
+         * berkolom banyak yang hilang justru kolom-kolom terakhir, tanpa satu
+         * pun tanda bahwa ada yang hilang.
+         *
+         * Dengan `fixed`, kolomnya berbagi lebar kertas dan isinya turun baris.
+         */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
 
         th {
             background: #005BBF;
             color: #FFFFFF;
-            font-size: 7.5pt;
+            font-size: {{ $ukuranHuruf - 0.5 }}pt;
             text-align: left;
-            padding: 2mm 1.5mm;
+            padding: {{ $renggang }}mm;
             border: 0.2mm solid #D9DDE5;
+            word-wrap: break-word;
         }
 
         td {
-            padding: 1.5mm;
+            font-size: {{ $ukuranHuruf }}pt;
+            padding: {{ $renggang }}mm;
             border: 0.2mm solid #D9DDE5;
             vertical-align: top;
             /*

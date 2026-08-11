@@ -129,14 +129,37 @@ class ExportController extends Controller
 
         $this->catatAudit('PDF', $data);
 
+        /*
+         * Ukuran huruf, kerapatan, dan kertas mengikuti jumlah kolom.
+         *
+         * Template terlebar di sistem ini punya 27 kolom. Pada A4 landscape
+         * dengan huruf 8pt, tabel selebar itu tidak muat — dan dompdf tidak
+         * memindahkan kelebihannya ke halaman berikutnya, melainkan
+         * memotongnya hilang tanpa satu pun tanda.
+         *
+         * A3 dipakai mulai 12 kolom. Lebih lebar memang kurang praktis
+         * dicetak, tetapi kolom yang hilang diam-diam jauh lebih merugikan
+         * daripada kertas yang besar.
+         */
+        $jumlahKolom = count($data['kolom']);
+
+        [$ukuranHuruf, $renggang, $kertas] = match (true) {
+            $jumlahKolom >= 20 => [5.5, 0.8, 'a3'],
+            $jumlahKolom >= 12 => [6.5, 1.0, 'a3'],
+            $jumlahKolom >= 8 => [7.0, 1.2, 'a4'],
+            default => [8.0, 1.5, 'a4'],
+        };
+
         $pdf = Pdf::loadView('export.laporan', [
             'data' => $data,
             'dicetakOleh' => $request->user()->name,
             'dicetakPada' => now()->translatedFormat('d F Y, H.i').' WIB',
+            'ukuranHuruf' => $ukuranHuruf,
+            'renggang' => $renggang,
         ]);
 
         // Tabel export lebar; potret akan memotong kolomnya.
-        $pdf->setPaper('a4', 'landscape');
+        $pdf->setPaper($kertas, 'landscape');
 
         return $pdf->download($this->namaBerkas($data, 'pdf'));
     }

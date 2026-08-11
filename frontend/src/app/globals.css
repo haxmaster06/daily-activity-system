@@ -164,6 +164,37 @@
       display: table-header-group;
     }
 
+    /*
+     * Tabel lebar tidak boleh melebihi lebar kertas.
+     *
+     * Di layar, tabel pratinjau memakai `min-w-max` supaya kolomnya selebar
+     * isinya dan wadahnya yang menggulir. Saat dicetak tidak ada yang dapat
+     * digulir: kelebihan lebarnya sekadar terpotong hilang, dan pada template
+     * berkolom banyak yang hilang justru kolom-kolom terakhir.
+     *
+     * `table-layout: fixed` membuat kolomnya berbagi lebar kertas dan isinya
+     * turun baris, bukan mendorong tabel keluar halaman.
+     */
+    table {
+      width: 100% !important;
+      min-width: 0 !important;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      overflow-wrap: break-word;
+      word-break: break-word;
+      max-width: none !important;
+    }
+
+    /* Kolom banyak menuntut huruf lebih kecil agar tetap terbaca. */
+    table th,
+    table td {
+      font-size: 7.5pt;
+      padding: 1.5mm !important;
+    }
+
     tr,
     img {
       break-inside: avoid;
