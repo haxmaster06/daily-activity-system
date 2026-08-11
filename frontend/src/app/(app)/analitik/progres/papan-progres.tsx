@@ -11,7 +11,7 @@ import {
   Th,
 } from '@/components/ui/data-table';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { DataProgres } from '@/lib/analitik';
 import { formatAngka, formatTanggalRingkas } from '@/lib/format';
 import { TautanDepartemen, TautanPengguna, TautanStatus } from '../dapat-disaring';
@@ -53,7 +53,7 @@ export function PapanProgres({ data }: { data: DataProgres }) {
   ];
 
   return (
-    <TooltipProvider>
+    <>
       <div className="flex flex-col gap-3">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {kartuRingkas.map((satu) => (
@@ -266,6 +266,6 @@ export function PapanProgres({ data }: { data: DataProgres }) {
         </section>
 
       </div>
-    </TooltipProvider>
+    </>
   );
 }

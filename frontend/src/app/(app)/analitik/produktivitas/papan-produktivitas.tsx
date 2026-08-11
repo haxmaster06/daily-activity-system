@@ -9,7 +9,7 @@ import {
   Th,
 } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
-import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import { labelMetrik, type DataProduktivitas } from '@/lib/analitik';
 import { formatAngka, formatTanggal } from '@/lib/format';
 import { TautanDepartemen, TautanPengguna, TautanTanggal } from '../dapat-disaring';
@@ -59,7 +59,7 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
   const desimal = metrik.desimal ? 2 : 0;
 
   return (
-    <TooltipProvider>
+    <>
       <div className="flex flex-col gap-3">
         <section className="rounded-card border border-line bg-surface p-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -240,6 +240,6 @@ export function PapanProduktivitas({ data }: { data: DataProduktivitas }) {
           </div>
         </section>
       </div>
-    </TooltipProvider>
+    </>
   );
 }

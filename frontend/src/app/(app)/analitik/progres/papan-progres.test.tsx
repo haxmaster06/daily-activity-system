@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render as renderAsli, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DataProgres } from '@/lib/analitik';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { PapanProgres } from './papan-progres';
 
 /*
@@ -72,6 +73,14 @@ beforeEach(() => {
     push.mockClear();
     params = new URLSearchParams();
 });
+
+/**
+ * `TooltipProvider` dipasang sekali di layout Analytics, bukan di tiap papan.
+ * Test merender papannya sendirian, jadi providernya disediakan di sini.
+ */
+function render(ui: React.ReactElement) {
+  return renderAsli(<TooltipProvider>{ui}</TooltipProvider>);
+}
 
 describe('grafik menyaring seluruh halaman', () => {
     /*

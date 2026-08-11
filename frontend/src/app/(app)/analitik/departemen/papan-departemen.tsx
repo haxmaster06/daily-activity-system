@@ -7,7 +7,7 @@ import { KepalaLaporan, TampilanLaporan } from '@/components/laporan/tampilan-la
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import type {
   DataDepartemen,
   KeadaanDepartemen,
@@ -61,7 +61,7 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
   const kosong = data.departemen.filter((satu) => satu.jumlah_laporan === 0);
 
   return (
-    <TooltipProvider>
+    <>
       <div className="flex flex-col gap-3">
         <p className="text-body text-ink-muted">
           Isi laporan {formatTanggal(data.rentang.dari)} – {formatTanggal(data.rentang.sampai)}.
@@ -119,7 +119,7 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
           </div>
         )}
       </Modal>
-    </TooltipProvider>
+    </>
   );
 }
 
