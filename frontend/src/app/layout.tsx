@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
+import { PromptPasang } from '@/components/layout/prompt-pasang';
 import { QueryProvider } from '@/providers/query-provider';
 import { UiProvider } from '@/providers/ui-provider';
 import './globals.css';
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <UiProvider>
           <QueryProvider>{children}</QueryProvider>
+          <PromptPasang />
         </UiProvider>
       </body>
     </html>
