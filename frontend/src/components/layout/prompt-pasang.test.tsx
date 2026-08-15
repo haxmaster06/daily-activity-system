@@ -6,9 +6,8 @@ import { PromptPasang } from './prompt-pasang';
 
 /**
  * Menirukan penangkapan `beforeinstallprompt` oleh skrip inline root layout:
- * acaranya sudah tersimpan di `window.__promptPasang`, lalu `promptpasang:siap`
- * memberi tahu komponen. Yang diuji penahanan + pemanggilan `prompt()`, bukan
- * protokol pemasangan.
+ * acaranya tersimpan di `window.__promptPasang`, lalu `promptpasang:siap`
+ * memberi tahu komponen. Yang diuji penahanan + pemanggilan `prompt()`.
  */
 function siapkanChromium() {
   const prompt = vi.fn().mockResolvedValue(undefined);
@@ -32,7 +31,6 @@ function pakaiUserAgent(ua: string) {
 }
 
 beforeEach(() => {
-  // jsdom tak punya matchMedia; komponen memakainya untuk mode standalone.
   window.matchMedia ??= vi.fn().mockReturnValue({ matches: false }) as never;
   window.__promptPasang = null;
   localStorage.clear();
@@ -50,42 +48,34 @@ describe('PromptPasang', () => {
     expect(screen.queryByRole('button', { name: /Pasang Aplikasi/i })).not.toBeInTheDocument();
   });
 
-  it('Android: sekali tekan membuka dialog pemasangan bawaan saat acaranya siap', async () => {
+  it('Android: sekali tekan membuka dialog bawaan saat acaranya sudah siap', async () => {
     pakaiUserAgent(UA_ANDROID);
     render(<PromptPasang />);
 
     const prompt = siapkanChromium();
-
     await userEvent.click(await screen.findByRole('button', { name: /Pasang Aplikasi/i }));
 
     expect(prompt).toHaveBeenCalledOnce();
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: /Pasang Aplikasi/i })).not.toBeInTheDocument(),
-    );
   });
 
   /*
-   * Inti perbaikannya: Chrome menahan beforeinstallprompt sampai ada
-   * interaksi, jadi di layar masuk acaranya belum ada. Tombol tetap harus
-   * tampil sejak awal, dengan cara pasang lewat menu sebagai gantinya.
+   * Inti perbaikannya: di layar masuk acaranya belum ada karena pengguna belum
+   * menyentuh apa pun. Ketukan tombol inilah gestur pertama itu — komponen
+   * menyiapkan diri lalu membuka dialog otomatis begitu acaranya tiba, tanpa
+   * menuntut ketukan kedua.
    */
-  it('Android tanpa acara: tombol tetap tampil dan menunjukkan cara pasang lewat menu', async () => {
+  it('Android: menyiapkan lalu membuka dialog otomatis saat acaranya tiba', async () => {
     pakaiUserAgent(UA_ANDROID);
     render(<PromptPasang />);
 
-    const tombol = await screen.findByRole('button', { name: /Pasang Aplikasi/i });
-    expect(screen.queryByText(/Instal aplikasi/i)).not.toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: /^Pasang Aplikasi/i }));
+    expect(screen.getByRole('button', { name: /Menyiapkan/i })).toBeInTheDocument();
 
-    await userEvent.click(tombol);
+    const prompt = siapkanChromium(); // Acaranya tiba sesaat setelah ketukan.
 
-    expect(await screen.findByText(/Instal aplikasi/i)).toBeInTheDocument();
+    await waitFor(() => expect(prompt).toHaveBeenCalledOnce());
   });
 
-  /*
-   * iOS Safari tak pernah memancarkan beforeinstallprompt — di sanalah dulu
-   * tombol tak muncul sama sekali. Kini tampil dan membuka petunjuk Bagikan →
-   * Ke Layar Utama, satu-satunya cara memasang di iPhone.
-   */
   it('iOS: tombol tampil dan membuka petunjuk Ke Layar Utama', async () => {
     pakaiUserAgent(UA_IOS);
     render(<PromptPasang />);

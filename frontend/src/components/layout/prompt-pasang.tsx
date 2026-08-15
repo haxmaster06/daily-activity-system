@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 
@@ -9,25 +9,23 @@ import { DURASI, EASE_KELUAR } from '@/lib/gerak';
 /**
  * Tombol mengambang yang menawarkan pemasangan ke homescreen sejak layar masuk.
  *
- * Kenapa tombolnya selalu tampil di ponsel, bukan menunggu acaranya:
+ * Chrome menahan `beforeinstallprompt` sampai pengguna menyentuh halaman
+ * setidaknya sekali (kriteria resmi Chrome). Di layar masuk yang belum disentuh
+ * acaranya belum pernah ada — jadi menunggu acara berarti tombol baru berguna
+ * setelah pengguna berinteraksi. Karena itu:
  *
- * Chrome SENGAJA menahan `beforeinstallprompt` sampai pengguna berinteraksi
- * dengan halaman. Di layar masuk yang belum disentuh, acaranya belum pernah
- * dipancarkan — jadi menunggu acara berarti tombol baru muncul setelah pengguna
- * mengetik lalu berpindah halaman. Tak ada kode yang bisa memaksa Chrome
- * memancarkannya lebih awal.
+ * • Tombolnya ditampilkan berdasarkan platform, bukan menunggu acara — hadir
+ *   sejak layar masuk.
+ * • Bila acaranya sudah tertangkap (skrip inline root layout →
+ *   `window.__promptPasang`), sekali tekan membuka dialog pemasangan bawaan.
+ * • Bila belum, ketukan tombol inilah yang memenuhi syarat Chrome; komponen
+ *   menunggu sebentar acaranya tiba lalu membuka dialognya otomatis — tanpa
+ *   menuntut ketukan kedua. Bila tak kunjung tiba, barulah cara pasang lewat
+ *   menu ditampilkan.
  *
- * Karena itu tombolnya ditampilkan berdasarkan platform, lalu aksinya
- * menyesuaikan:
- *
- * • Android/Chromium — bila acaranya sudah tertangkap (skrip inline root layout
- *   → `window.__promptPasang`), sekali tekan membuka dialog pemasangan bawaan.
- *   Bila belum, tekan menampilkan cara memasang lewat menu peramban, yang
- *   selalu tersedia untuk PWA yang memenuhi syarat.
- *
- * • iOS Safari — tak pernah memancarkan acara itu dan tak punya API pasang dari
- *   JavaScript sama sekali (dikunci Apple). Tekan menampilkan petunjuk Bagikan →
- *   Ke Layar Utama, satu-satunya cara memasang di iPhone.
+ * iOS Safari tak pernah memancarkan acara itu dan tak punya API pasang dari
+ * JavaScript sama sekali (dikunci Apple); di sana tombol membuka petunjuk
+ * Bagikan → Ke Layar Utama, satu-satunya cara memasang di iPhone.
  */
 
 type AcaraPasang = Event & {
@@ -45,6 +43,7 @@ type Platform = 'ios' | 'android' | null;
 
 const KUNCI_TOLAK = 'dams-pasang-ditolak';
 const ACARA_SIAP = 'promptpasang:siap';
+const TUNGGU_ACARA = 2500; // Batas menanti acara tiba sesudah ketukan pertama.
 
 function deteksiPlatform(): Platform {
   const ua = navigator.userAgent;
@@ -54,9 +53,8 @@ function deteksiPlatform(): Platform {
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   if (iOS) {
-    // Hanya Safari yang bisa memasang di iOS; Chrome-iOS/peramban dalam-aplikasi
-    // tak bisa. ponytail: peramban dalam-aplikasi sulit dibedakan sempurna,
-    // petunjuknya tetap tak menyesatkan.
+    // Hanya Safari yang bisa memasang di iOS. ponytail: peramban dalam-aplikasi
+    // sulit dibedakan sempurna, petunjuknya tetap tak menyesatkan.
     return /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua) ? 'ios' : null;
   }
   if (/android/i.test(ua)) return 'android';
@@ -68,6 +66,9 @@ export function PromptPasang() {
   const [acara, setAcara] = useState<AcaraPasang | null>(null);
   const [platform, setPlatform] = useState<Platform>(null);
   const [bukaPetunjuk, setBukaPetunjuk] = useState(false);
+  const [menyiapkan, setMenyiapkan] = useState(false);
+  const menungguRef = useRef(false);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Sudah terpasang (standalone), atau tawarannya pernah ditutup.
@@ -75,11 +76,18 @@ export function PromptPasang() {
     if ((navigator as { standalone?: boolean }).standalone === true) return;
     if (localStorage.getItem(KUNCI_TOLAK)) return;
 
-    // Android/Chromium: pantulkan acara yang ditangkap skrip inline root layout.
     function segarkan() {
-      setAcara(window.__promptPasang ?? null);
+      const a = window.__promptPasang ?? null;
+      setAcara(a);
+      // Pengguna sudah menekan Pasang sebelum acaranya siap; begitu tiba, buka
+      // dialognya otomatis tanpa menuntut ketukan kedua.
+      if (a && menungguRef.current) {
+        menungguRef.current = false;
+        if (timerRef.current) window.clearTimeout(timerRef.current);
+        setMenyiapkan(false);
+        void bukaDialog(a);
+      }
     }
-    // Terpasang (lewat dialog bawaan maupun menu) → tak perlu ditawari lagi.
     function terpasang() {
       window.__promptPasang = null;
       setAcara(null);
@@ -93,29 +101,46 @@ export function PromptPasang() {
     return () => {
       window.removeEventListener(ACARA_SIAP, segarkan);
       window.removeEventListener('appinstalled', terpasang);
+      if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, []);
 
-  async function pasang() {
-    if (!acara) return;
-
-    await acara.prompt();
-    const { outcome } = await acara.userChoice; // Acara hanya boleh dipakai sekali.
-    window.__promptPasang = null;
-    setAcara(null);
-    // Sudah dipasang — sembunyikan seluruhnya, jangan mundur ke petunjuk menu.
-    if (outcome === 'accepted') setPlatform(null);
+  async function bukaDialog(e: AcaraPasang) {
+    try {
+      await e.prompt();
+      const { outcome } = await e.userChoice;
+      window.__promptPasang = null;
+      setAcara(null);
+      if (outcome === 'accepted') setPlatform(null);
+    } catch {
+      // Sebagian Chrome menuntut gestur untuk prompt(); bila ditolak, tawarkan
+      // jalur menu sebagai gantinya.
+      setBukaPetunjuk(true);
+    }
   }
 
   function utama() {
-    // Sekali tekan pasang bila dialog bawaannya sudah tersedia; jika belum,
-    // buka/tutup petunjuk cara memasang.
     if (acara) {
-      void pasang();
+      void bukaDialog(acara);
 
       return;
     }
-    setBukaPetunjuk((buka) => !buka);
+    if (platform === 'ios') {
+      setBukaPetunjuk((buka) => !buka);
+
+      return;
+    }
+
+    // Android belum terpersenjatai: ketukan inilah yang memenuhi syarat Chrome.
+    // Tunggu sebentar acaranya tiba lalu buka otomatis; bila tidak, ke menu.
+    menungguRef.current = true;
+    setMenyiapkan(true);
+    timerRef.current = window.setTimeout(() => {
+      if (!menungguRef.current) return;
+      menungguRef.current = false;
+      setMenyiapkan(false);
+      setBukaPetunjuk(true);
+    }, TUNGGU_ACARA);
   }
 
   function tolak() {
@@ -161,11 +186,12 @@ export function PromptPasang() {
           <button
             type="button"
             onClick={utama}
+            disabled={menyiapkan}
             aria-expanded={acara ? undefined : bukaPetunjuk}
-            className="flex items-center gap-2 rounded-full bg-primary py-2.5 pl-4 pr-5 text-body-lg font-semibold text-white shadow-card transition-colors duration-fast hover:bg-primary-hover"
+            className="flex items-center gap-2 rounded-full bg-primary py-2.5 pl-4 pr-5 text-body-lg font-semibold text-white shadow-card transition-colors duration-fast hover:bg-primary-hover disabled:opacity-70"
           >
             <Download aria-hidden="true" className="size-4" />
-            Pasang Aplikasi
+            {menyiapkan ? 'Menyiapkan…' : 'Pasang Aplikasi'}
           </button>
           <button
             type="button"
