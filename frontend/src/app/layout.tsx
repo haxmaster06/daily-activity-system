@@ -36,16 +36,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     // Light mode saja — tidak ada dark mode (standar §3.1).
     <html lang="id" className={`${jakarta.variable} ${inter.variable}`}>
-      <head>
+      <body>
         {/*
-          Dua hal, sedini mungkin sebelum React hidrasi:
+          JANGAN membungkus ini dalam <head> manual: itu menggusur metadata Next
+          (termasuk <link rel="manifest">) ke <body>, dan Chrome hanya membaca
+          manifest dari <head> — akibatnya situs dianggap "tanpa manifest" dan
+          tak bisa dipasang. Skrip klasik di awal <body> ini jalan saat HTML
+          diurai, sebelum hidrasi, tanpa mengganggu penempatan metadata.
 
-          1. Daftarkan service worker minimal (/sw.js). Tanpa ini Chrome menahan
-             `beforeinstallprompt` jauh lebih ketat — inilah yang membuat tombol
-             pasang dulu tak kunjung berfungsi di layar masuk.
-          2. Tangkap `beforeinstallprompt` yang dipancarkan Chrome saat halaman
-             dimuat, sering sebelum hidrasi selesai; PromptPasang memantulkannya
-             agar tombol berfungsi sejak layar masuk.
+          Dua hal yang dilakukannya:
+          1. Daftarkan service worker minimal (/sw.js) — membuat Chrome andal
+             menawarkan pasang.
+          2. Tangkap `beforeinstallprompt` (sering dipancarkan sebelum hidrasi);
+             PromptPasang memantulkannya agar tombol berfungsi sejak layar masuk.
         */}
         <script
           dangerouslySetInnerHTML={{
@@ -55,8 +58,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               "window.addEventListener('appinstalled',function(){window.__promptPasang=null;window.dispatchEvent(new Event('promptpasang:siap'))});",
           }}
         />
-      </head>
-      <body>
         <UiProvider>
           <QueryProvider>{children}</QueryProvider>
           <PromptPasang />
