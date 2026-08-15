@@ -36,6 +36,22 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     // Light mode saja — tidak ada dark mode (standar §3.1).
     <html lang="id" className={`${jakarta.variable} ${inter.variable}`}>
+      <head>
+        {/*
+          Menangkap `beforeinstallprompt` lebih dulu daripada React. Chrome
+          memancarkannya saat halaman masuk dimuat, sering sebelum hidrasi
+          selesai; skrip klasik ini jalan saat HTML diurai sehingga acaranya tak
+          terlewat, dan PromptPasang memantulkannya agar tombol muncul sejak
+          layar masuk.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__promptPasang=e;window.dispatchEvent(new Event('promptpasang:siap'))});" +
+              "window.addEventListener('appinstalled',function(){window.__promptPasang=null;window.dispatchEvent(new Event('promptpasang:siap'))});",
+          }}
+        />
+      </head>
       <body>
         <UiProvider>
           <QueryProvider>{children}</QueryProvider>

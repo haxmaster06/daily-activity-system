@@ -5,45 +5,53 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PromptPasang } from './prompt-pasang';
 
 /**
- * Menirukan `beforeinstallprompt` — tidak ada di jsdom. Yang diuji adalah
- * penahanan acaranya dan pemanggilan `prompt()`, bukan protokol pemasangan.
+ * Menirukan penangkapan `beforeinstallprompt` oleh skrip inline root layout:
+ * acaranya sudah tersimpan di `window.__promptPasang`, lalu `promptpasang:siap`
+ * memberi tahu komponen. Yang diuji penahanan + pemanggilan `prompt()`, bukan
+ * protokol pemasangan.
  */
-function picuPrompt() {
+function siapkanChromium() {
   const prompt = vi.fn().mockResolvedValue(undefined);
-  const event = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+  window.__promptPasang = Object.assign(new Event('beforeinstallprompt'), {
     prompt,
     userChoice: Promise.resolve({ outcome: 'accepted' as const }),
-  });
-  window.dispatchEvent(event);
+  }) as never;
+  window.dispatchEvent(new Event('promptpasang:siap'));
 
   return prompt;
 }
 
+const UA_ASLI = Object.getOwnPropertyDescriptor(navigator, 'userAgent');
+
+function pakaiUserAgent(ua: string) {
+  Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
+}
+
 beforeEach(() => {
-  // jsdom tidak punya matchMedia; komponen memakainya untuk mendeteksi mode
-  // standalone. Dianggap belum terpasang.
+  // jsdom tak punya matchMedia; komponen memakainya untuk mode standalone.
   window.matchMedia ??= vi.fn().mockReturnValue({ matches: false }) as never;
+  window.__promptPasang = null;
   localStorage.clear();
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
+  if (UA_ASLI) Object.defineProperty(navigator, 'userAgent', UA_ASLI);
 });
 
 describe('PromptPasang', () => {
-  it('diam sampai peramban menawarkan pemasangan', () => {
+  it('diam sampai ada tawaran pemasangan', () => {
     render(<PromptPasang />);
 
     expect(screen.queryByRole('button', { name: /Pasang Aplikasi/i })).not.toBeInTheDocument();
   });
 
-  it('menampilkan tombol lalu membuka dialog pemasangan bawaan saat ditekan', async () => {
+  it('Android: menampilkan tombol lalu membuka dialog bawaan saat ditekan', async () => {
     render(<PromptPasang />);
 
-    const prompt = picuPrompt();
+    const prompt = siapkanChromium();
 
-    const tombol = await screen.findByRole('button', { name: /Pasang Aplikasi/i });
-    await userEvent.click(tombol);
+    await userEvent.click(await screen.findByRole('button', { name: /Pasang Aplikasi/i }));
 
     expect(prompt).toHaveBeenCalledOnce();
     await waitFor(() =>
@@ -53,18 +61,37 @@ describe('PromptPasang', () => {
 
   it('tidak menawari lagi setelah tawarannya ditutup', async () => {
     const { unmount } = render(<PromptPasang />);
-    picuPrompt();
+    siapkanChromium();
 
     await userEvent.click(await screen.findByRole('button', { name: /Tutup tawaran pasang/i }));
     expect(localStorage.getItem('dams-pasang-ditolak')).toBe('1');
 
-    // Kunjungan berikutnya: acara dipicu lagi, tetapi tombol tak muncul.
     unmount();
     render(<PromptPasang />);
-    picuPrompt();
+    siapkanChromium();
 
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /Pasang Aplikasi/i })).not.toBeInTheDocument();
-    });
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Pasang Aplikasi/i })).not.toBeInTheDocument(),
+    );
+  });
+
+  /*
+   * iOS Safari tak pernah memancarkan beforeinstallprompt — di sanalah dulu
+   * tombol tak muncul sama sekali. Kini tombolnya tampil dan membuka petunjuk
+   * Bagikan → Ke Layar Utama, satu-satunya cara memasang di iPhone.
+   */
+  it('iOS: menampilkan tombol yang membuka petunjuk Ke Layar Utama', async () => {
+    pakaiUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    );
+
+    render(<PromptPasang />);
+
+    const tombol = await screen.findByRole('button', { name: /Pasang Aplikasi/i });
+    expect(screen.queryByText(/Ke Layar Utama/i)).not.toBeInTheDocument();
+
+    await userEvent.click(tombol);
+
+    expect(await screen.findByText(/Ke Layar Utama/i)).toBeInTheDocument();
   });
 });
