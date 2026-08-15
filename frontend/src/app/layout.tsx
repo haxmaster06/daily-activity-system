@@ -38,15 +38,19 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="id" className={`${jakarta.variable} ${inter.variable}`}>
       <head>
         {/*
-          Menangkap `beforeinstallprompt` lebih dulu daripada React. Chrome
-          memancarkannya saat halaman masuk dimuat, sering sebelum hidrasi
-          selesai; skrip klasik ini jalan saat HTML diurai sehingga acaranya tak
-          terlewat, dan PromptPasang memantulkannya agar tombol muncul sejak
-          layar masuk.
+          Dua hal, sedini mungkin sebelum React hidrasi:
+
+          1. Daftarkan service worker minimal (/sw.js). Tanpa ini Chrome menahan
+             `beforeinstallprompt` jauh lebih ketat — inilah yang membuat tombol
+             pasang dulu tak kunjung berfungsi di layar masuk.
+          2. Tangkap `beforeinstallprompt` yang dipancarkan Chrome saat halaman
+             dimuat, sering sebelum hidrasi selesai; PromptPasang memantulkannya
+             agar tombol berfungsi sejak layar masuk.
         */}
         <script
           dangerouslySetInnerHTML={{
             __html:
+              "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}" +
               "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__promptPasang=e;window.dispatchEvent(new Event('promptpasang:siap'))});" +
               "window.addEventListener('appinstalled',function(){window.__promptPasang=null;window.dispatchEvent(new Event('promptpasang:siap'))});",
           }}
