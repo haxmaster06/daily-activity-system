@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
 import { QueryProvider } from '@/providers/query-provider';
@@ -23,7 +23,13 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'DAMS — Sistem Monitoring Aktivitas Harian',
   description: 'Pencatatan dan pemantauan aktivitas harian antar departemen.',
+  // Membuat iOS meluncurkan aplikasi layar penuh dari homescreen, bukan
+  // berbingkai Safari. Link manifest disuntik otomatis dari app/manifest.ts.
+  appleWebApp: { capable: true, title: 'DAMS', statusBarStyle: 'default' },
 };
+
+// Di Next 15 themeColor lewat viewport, bukan metadata.
+export const viewport: Viewport = { themeColor: '#1A73E8' };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
