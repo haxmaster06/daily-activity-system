@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { IsianKolom } from '@/components/laporan/isian-kolom';
 import { PanelBaris } from '@/components/laporan/panel-baris';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { berupaHtml, htmlKeTeks } from '@/components/ui/tampil-kaya';
 import { cn } from '@/lib/cn';
 import { useLebarLayar, LAYAR_SEMPIT } from '@/lib/use-lebar-layar';
 import {
@@ -632,5 +633,9 @@ function ringkasNilai(isi: NilaiSel | undefined): string {
   if (typeof isi === 'boolean') return isi ? 'Ya' : 'Tidak';
   if (typeof isi === 'object' && 'nama' in isi) return isi.nama;
 
-  return String(isi);
+  // Kolom teks kaya menyimpan HTML (`<p>…</p>`). Di ringkasan satu baris ini
+  // ditampilkan sebagai teks polos — bukan dirender — supaya tagnya tak bocor.
+  const teks = String(isi);
+
+  return berupaHtml(teks) ? htmlKeTeks(teks) : teks;
 }
