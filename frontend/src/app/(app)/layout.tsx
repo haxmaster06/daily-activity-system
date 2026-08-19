@@ -1,10 +1,13 @@
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppHeader } from '@/components/layout/app-header';
 import { PenjagaVersi } from '@/components/layout/penjaga-versi';
 import { PageTransition } from '@/components/ui/page-transition';
+import { GalatApi } from '@/lib/api';
 import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
+import { ambilStatusPemeliharaan } from '@/lib/pemeliharaan';
 import { penggunaSaatIni } from '@/lib/session';
 
 /**
@@ -12,7 +15,20 @@ import { penggunaSaatIni } from '@/lib/session';
  * Berlaku untuk semua halaman kecuali Login (standar §2.3).
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const pengguna = await penggunaSaatIni();
+  let pengguna;
+
+  try {
+    pengguna = await penggunaSaatIni();
+  } catch (galat) {
+    // Mode pemeliharaan aktif dan bukan administrator: backend membalas 503.
+    // Layout dijalankan pada pemuatan penuh, jadi penjaga ini yang menangkap
+    // kasus itu di sini (halaman di dalamnya juga memeriksanya sendiri).
+    if (galat instanceof GalatApi && galat.status === 503 && Boolean(galat.errors?.pemeliharaan)) {
+      redirect('/pemeliharaan');
+    }
+
+    throw galat;
+  }
 
   /*
    * Middleware hanya memeriksa keberadaan cookie. Di sini sesi diverifikasi ke
@@ -27,6 +43,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (pengguna === null) {
     redirect(RUTE_SESI_BERAKHIR);
   }
+
+  // Hanya administrator yang sampai di sini saat pemeliharaan aktif; spanduknya
+  // mengingatkan bahwa aplikasi sedang tertutup bagi pengguna lain.
+  const pemeliharaan = await ambilStatusPemeliharaan();
 
   return (
     // `dvh`, bukan `vh`: di ponsel `100vh` menghitung bilah alamat yang
@@ -45,6 +65,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       >
         Lewati ke isi halaman
       </a>
+
+      {pemeliharaan.aktif && (
+        <div
+          role="status"
+          className="border-b border-accent/40 bg-accent-subtle px-4 py-1.5 text-center text-caption text-accent-text"
+        >
+          Mode pemeliharaan aktif — aplikasi tertutup bagi pengguna lain.{' '}
+          <Link href="/pengaturan/pemeliharaan" className="font-medium underline">
+            Kelola
+          </Link>
+        </div>
+      )}
 
       <AppHeader
         pengguna={{

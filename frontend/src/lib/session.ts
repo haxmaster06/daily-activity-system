@@ -118,7 +118,20 @@ export const penggunaSaatIni = cache(async (): Promise<PenggunaSesi | null> => {
  * siapa pun yang mengetik alamatnya langsung.
  */
 export async function wajibAkses(href: string): Promise<PenggunaSesi> {
-  const pengguna = await penggunaSaatIni();
+  let pengguna: PenggunaSesi | null;
+
+  try {
+    pengguna = await penggunaSaatIni();
+  } catch (galat) {
+    // Mode pemeliharaan aktif dan pemanggilnya bukan administrator: backend
+    // membalas 503 bertanda `pemeliharaan`. Alihkan ke halamannya, bukan ke
+    // layar galat. Administrator dibiarkan lewat backend, jadi tak sampai sini.
+    if (galat instanceof GalatApi && galat.status === 503 && Boolean(galat.errors?.pemeliharaan)) {
+      redirect('/pemeliharaan');
+    }
+
+    throw galat;
+  }
 
   if (pengguna === null) {
     redirect(RUTE_SESI_BERAKHIR);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ModePemeliharaan;
 use App\Http\Middleware\PastikanBerizin;
 use App\Http\Middleware\PerpanjangSesi;
 use App\Support\ApiResponse;
@@ -64,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'aktif' => EnsureUserIsActive::class,
             'perpanjang-sesi' => PerpanjangSesi::class,
             'izin' => PastikanBerizin::class,
+            'pemeliharaan' => ModePemeliharaan::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

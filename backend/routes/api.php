@@ -10,6 +10,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ImportLaporanController;
 use App\Http\Controllers\ImportMasterController;
 use App\Http\Controllers\LampiranController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\MasterTypeController;
 use App\Http\Controllers\MonitoringController;
@@ -39,9 +40,16 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login');
 
-Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])->group(function (): void {
+// Publik dan di luar penjaga pemeliharaan: halaman pemeliharaan harus tetap
+// dapat membaca statusnya walau modenya sedang aktif.
+Route::get('/pemeliharaan', [MaintenanceController::class, 'show'])->name('pemeliharaan.show');
+
+Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', 'throttle:api'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
+    Route::put('/pemeliharaan', [MaintenanceController::class, 'update'])
+        ->middleware('izin:sistem.maintenance')
+        ->name('pemeliharaan.update');
 
     /*
      * Ringkasan. Angkanya dibatasi DailyReport::scopeVisibleTo() — pengguna

@@ -78,6 +78,8 @@ final class KatalogIzin
 
     public const ROLE_KELOLA = 'role.kelola';
 
+    public const SISTEM_MAINTENANCE = 'sistem.maintenance';
+
     /** Nama kelompok untuk pengelompokan di layar. */
     /**
      * Kelompok izin, berurut sesuai tampilnya di layar Manajemen Peran.
@@ -94,6 +96,7 @@ final class KatalogIzin
         'analitik' => 'Executive Analytics',
         'master' => 'Data Master',
         'pengguna' => 'Pengguna & Hak Akses',
+        'sistem' => 'Sistem',
     ];
 
     /**
@@ -135,6 +138,8 @@ final class KatalogIzin
             ['pengguna', self::PENGGUNA_ATUR_KATA_SANDI, 'Mengatur ulang kata sandi', 'Menetapkan kata sandi baru untuk akun lain.'],
             ['pengguna', self::ROLE_LIHAT, 'Melihat peran', 'Membaca daftar peran beserta hak aksesnya.'],
             ['pengguna', self::ROLE_KELOLA, 'Mengelola peran & hak akses', 'Membuat peran, mengubah namanya, dan menentukan hak aksesnya.'],
+
+            ['sistem', self::SISTEM_MAINTENANCE, 'Mode pemeliharaan', 'Menyalakan/mematikan mode pemeliharaan, dan tetap dapat masuk saat mode itu aktif.'],
         ];
 
         $hasil = [];
