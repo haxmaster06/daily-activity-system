@@ -7,6 +7,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { JANGKAUAN_KORPORAT } from '@/lib/izin';
 import { wajibAkses } from '@/lib/session';
 import { PemantauSiaran } from '@/components/layout/pemantau-siaran';
+import { BilahPenyaring } from './bilah-penyaring';
 import { PenyaringAnalitik } from './penyaring';
 import { TabAnalitik } from './tab';
 
@@ -40,17 +41,19 @@ export default async function AnalitikLayout({ children }: { children: ReactNode
           membuang departemen di luar jangkauan bila diminta lewat URL; daftar ini
           kenyamanan, bukan penjagaan.
         */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <PenyaringAnalitik opsi={opsi} />
+        <BilahPenyaring>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <PenyaringAnalitik opsi={opsi} />
 
-          {/*
-            Halaman ini menunggu kabar, bukan menghitung ulang berkala. Laporan
-            yang baru masuk mengubah angkanya tanpa siapa pun menekan muat ulang —
-            dan itu satu-satunya cara papan yang dibiarkan terbuka di layar besar
-            tetap benar sepanjang hari.
-          */}
-          <PemantauSiaran departemenId={opsi.departemen.map((satu) => satu.id)} />
-        </div>
+            {/*
+              Halaman ini menunggu kabar, bukan menghitung ulang berkala. Laporan
+              yang baru masuk mengubah angkanya tanpa siapa pun menekan muat ulang —
+              dan itu satu-satunya cara papan yang dibiarkan terbuka di layar besar
+              tetap benar sepanjang hari.
+            */}
+            <PemantauSiaran departemenId={opsi.departemen.map((satu) => satu.id)} />
+          </div>
+        </BilahPenyaring>
 
         <div className="mt-3">{children}</div>
       </>

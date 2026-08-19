@@ -6,6 +6,7 @@ use App\Models\DailyReportItem;
 use App\Models\ReportTemplate;
 use App\Models\User;
 use App\Support\Analitik\AngkaDepartemen;
+use App\Support\Analitik\AngkaProduksi;
 use App\Support\Analitik\AngkaProduktivitas;
 use App\Support\Analitik\AngkaProgres;
 use App\Support\Analitik\AngkaRingkasan;
@@ -157,5 +158,19 @@ class AnalitikController extends Controller
             'metrik_tersedia' => $tersedia,
             'data' => $data,
         ]);
+    }
+
+    /**
+     * Proses Produksi — ringkasan yang benar-benar dipakai direksi.
+     *
+     * Tanpa bar penyaring: satu kontrol `periode` (harian/mingguan/bulanan/
+     * tahunan). Angkanya dijumlahkan per stasiun langsung dari struktur template
+     * Produksi, jadi tidak ada parameter yang perlu dipilah satu per satu.
+     */
+    public function produksi(Request $request): JsonResponse
+    {
+        $periode = $request->string('periode')->toString() ?: AngkaProduksi::PERIODE_BAWAAN;
+
+        return ApiResponse::ok(AngkaProduksi::susun($request->user(), $periode));
     }
 }

@@ -142,6 +142,7 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         Route::get('/ringkasan', [AnalitikController::class, 'ringkasan'])->name('analitik.ringkasan');
         Route::get('/produktivitas', [AnalitikController::class, 'produktivitas'])
             ->name('analitik.produktivitas');
+        Route::get('/produksi', [AnalitikController::class, 'produksi'])->name('analitik.produksi');
         Route::get('/progres', [AnalitikController::class, 'progres'])->name('analitik.progres');
     });
 

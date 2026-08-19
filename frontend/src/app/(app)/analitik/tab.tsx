@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { BarChart3, Building2, LayoutDashboard, Scale, Table2 } from 'lucide-react';
+import { BarChart3, Building2, Factory, LayoutDashboard, Table2 } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 
@@ -28,7 +28,7 @@ const TAB = [
    */
   { href: '/analitik/rekap', label: 'Rekap', Ikon: Table2, korporat: true },
   { href: '/analitik/ringkasan', label: 'Ringkasan', Ikon: LayoutDashboard, korporat: false },
-  { href: '/analitik/produktivitas', label: 'Produktivitas', Ikon: Scale, korporat: false },
+  { href: '/analitik/produksi', label: 'Proses Produksi', Ikon: Factory, korporat: false },
   { href: '/analitik/progres', label: 'Progres', Ikon: BarChart3, korporat: false },
 ] as const;
 
