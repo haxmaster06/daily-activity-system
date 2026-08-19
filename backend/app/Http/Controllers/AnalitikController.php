@@ -170,7 +170,8 @@ class AnalitikController extends Controller
     public function produksi(Request $request): JsonResponse
     {
         $periode = $request->string('periode')->toString() ?: AngkaProduksi::PERIODE_BAWAAN;
+        $penggunaId = $request->integer('pengguna_id') ?: null;
 
-        return ApiResponse::ok(AngkaProduksi::susun($request->user(), $periode));
+        return ApiResponse::ok(AngkaProduksi::susun($request->user(), $periode, $penggunaId));
     }
 }

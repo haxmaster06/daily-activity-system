@@ -103,8 +103,11 @@ export function ambilProduktivitas(query: URLSearchParams): Promise<DataProdukti
   return ambil<DataProduktivitas>('produktivitas', query);
 }
 
-export function ambilProduksi(periode: string): Promise<DataProduksi> {
-  return ambil<DataProduksi>('produksi', new URLSearchParams({ periode }));
+export function ambilProduksi(periode: string, penggunaId?: string): Promise<DataProduksi> {
+  const query = new URLSearchParams({ periode });
+  if (penggunaId) query.set('pengguna_id', penggunaId);
+
+  return ambil<DataProduksi>('produksi', query);
 }
 
 export function ambilProgres(query: URLSearchParams): Promise<DataProgres> {

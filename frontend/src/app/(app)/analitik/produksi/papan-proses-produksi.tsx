@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Factory } from 'lucide-react';
 
 import { ButtonGroup } from '@/components/ui/button-group';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/cn';
 import { formatAngka } from '@/lib/format';
 import type { DataProduksi, OrderProduksi, StasiunProduksi, TrenProduksi } from '@/lib/analitik';
@@ -34,6 +35,13 @@ export function PapanProsesProduksi({ data }: { data: DataProduksi }) {
     router.push(`?${query.toString()}`);
   }
 
+  function pilihPelapor(nilai: string) {
+    const query = new URLSearchParams(params.toString());
+    if (nilai) query.set('pengguna', nilai);
+    else query.delete('pengguna');
+    router.push(`?${query.toString()}`);
+  }
+
   const kosong = data.kpi.length === 0 && data.stasiun.length === 0 && data.order === null;
 
   return (
@@ -46,7 +54,24 @@ export function PapanProsesProduksi({ data }: { data: DataProduksi }) {
           </h2>
           <p className="text-caption text-ink-soft">{data.periode_label}</p>
         </div>
-        <ButtonGroup label="Periode" opsi={PERIODE} nilai={data.periode} onUbah={pilihPeriode} />
+        <div className="flex flex-wrap items-end gap-2">
+          {data.pelapor.length > 1 && (
+            <Select
+              id="pelapor-produksi"
+              label="Pelapor"
+              ukuran="sm"
+              placeholder="Semua pelapor"
+              nilai={data.pengguna_id ? String(data.pengguna_id) : ''}
+              opsi={[
+                { nilai: '', label: 'Semua pelapor' },
+                ...data.pelapor.map((satu) => ({ nilai: String(satu.id), label: satu.nama })),
+              ]}
+              onUbah={pilihPelapor}
+              className="min-w-44"
+            />
+          )}
+          <ButtonGroup label="Periode" opsi={PERIODE} nilai={data.periode} onUbah={pilihPeriode} />
+        </div>
       </div>
 
       {kosong ? (

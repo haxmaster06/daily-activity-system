@@ -906,3 +906,52 @@ describe('proses produksi', function (): void {
         expect(collect($oven['field'])->firstWhere('peran', 'keluar')['nilai'])->toEqual(500);
     });
 });
+
+describe('proses produksi per user', function (): void {
+    it('menjumlahkan gabungan, memfilter per user, dan mendaftar pelapor', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProses();
+        $admin = User::factory()->administrator()->create();
+        $a = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Pelapor A']);
+        $b = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Pelapor B']);
+
+        laporanProses($a, $produksi, $template, ['oven_keluar' => 300]);
+        laporanProses($b, $produksi, $template, ['oven_keluar' => 200]);
+
+        Sanctum::actingAs($admin);
+
+        $ovenKeluar = fn (array $data): float => (float) collect(
+            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field']
+        )->firstWhere('peran', 'keluar')['nilai'];
+
+        // Gabungan seluruh pelapor.
+        $semua = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+        expect($ovenKeluar($semua))->toEqual(500.0)
+            ->and(collect($semua['pelapor'])->pluck('nama'))->toContain('Pelapor A')->toContain('Pelapor B')
+            ->and($semua['pengguna_id'])->toBeNull();
+
+        // Disaring ke satu pelapor.
+        $hanyaA = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$a->id}")
+            ->assertOk()->json('data');
+        expect($ovenKeluar($hanyaA))->toEqual(300.0)
+            ->and($hanyaA['pengguna_id'])->toBe($a->id);
+    });
+
+    it('mengabaikan pengguna di luar jangkauan (jatuh ke semua)', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+        $template = templateProses();
+        laporanProses($pengawas, $milik, $template, ['oven_keluar' => 400], Carbon::yesterday());
+        $luar = User::factory()->staff()->create(['department_id' => $lain->id]);
+        laporanProses($luar, $lain, $template, ['oven_keluar' => 999]);
+
+        Sanctum::actingAs($pengawas->fresh());
+
+        // Pelapor di luar jangkauan tak masuk daftar, dan memintanya diabaikan.
+        $data = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$luar->id}")
+            ->assertOk()->json('data');
+
+        expect(collect($data['pelapor'])->pluck('id'))->not->toContain($luar->id)
+            ->and($data['pengguna_id'])->toBeNull();
+    });
+});

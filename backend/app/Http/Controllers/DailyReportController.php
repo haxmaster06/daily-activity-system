@@ -16,6 +16,7 @@ use App\Support\Audit;
 use App\Support\HtmlAman;
 use App\Support\JangkauanData;
 use App\Support\KatalogIzin;
+use App\Support\PenjagaIdentitasLaporan;
 use App\Support\ValidasiIsianTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -346,14 +347,27 @@ class DailyReportController extends Controller
                 "sections.{$urutan}.items",
             );
 
+            $bersihSemua = array_map(
+                fn ($isiBaris) => ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris),
+                array_values($isiBagian['items']),
+            );
+
+            // Cegah satu catatan produksi (mis. LOT + tanggal) tercatat dua kali
+            // oleh orang berbeda — jika tidak, angka analitik menggelembung.
+            PenjagaIdentitasLaporan::periksa(
+                $template,
+                $bersihSemua,
+                $pengguna,
+                $laporan->id,
+                "sections.{$urutan}.items",
+            );
+
             $section = $laporan->sections()->create([
                 'report_template_id' => $template->id,
                 'sort_order' => $urutan,
             ]);
 
-            foreach (array_values($isiBagian['items']) as $nomorBaris => $isiBaris) {
-                $bersih = ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris);
-
+            foreach ($bersihSemua as $nomorBaris => $bersih) {
                 $section->items()->create([
                     'data' => $bersih,
                     'progress_status' => ValidasiIsianTemplate::statusBaris($template, $bersih),

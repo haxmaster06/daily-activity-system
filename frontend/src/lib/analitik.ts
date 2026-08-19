@@ -67,10 +67,18 @@ export interface TrenProduksi {
   titik: { label: string; nilai: number }[];
 }
 
+export interface PelaporProduksi {
+  id: number;
+  nama: string;
+}
+
 export interface DataProduksi {
   periode: PeriodeProduksi;
   periode_label: string;
   rentang: { dari: string; sampai: string };
+  /** Pelapor yang sedang disaring, atau null berarti seluruh pelapor. */
+  pengguna_id: number | null;
+  pelapor: PelaporProduksi[];
   kpi: KartuKpi[];
   stasiun: StasiunProduksi[];
   order: OrderProduksi | null;

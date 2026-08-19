@@ -38,7 +38,7 @@ final class AngkaProduksi
     /**
      * @return array<string, mixed>
      */
-    public static function susun(User $pengguna, string $periode): array
+    public static function susun(User $pengguna, string $periode, ?int $penggunaId = null): array
     {
         $periode = isset(self::PERIODE[$periode]) ? $periode : self::PERIODE_BAWAAN;
         [$dari, $sampai] = self::rentang($periode);
@@ -48,18 +48,58 @@ final class AngkaProduksi
         $proses = ReportTemplate::where('code', 'PROD_PROSES')->first();
         $spk = ReportTemplate::where('code', 'PROD_SPK')->first();
 
-        $stasiun = $proses ? self::stasiun($pengguna, $dari, $sampai, $proses) : [];
-        $order = $spk ? self::order($pengguna, $dari, $sampai, $spk) : null;
+        // Daftar pelapor untuk penyaring "per user". Selalu berdasar seluruh
+        // pelapor yang terlihat, bukan hanya yang terpilih.
+        $pelapor = self::pelapor($pengguna, $dari, $sampai, $proses, $spk);
+
+        // Pilihan di luar daftar (di luar jangkauan / tak melapor) diabaikan,
+        // bukan ditolak — jatuh ke "semua pelapor".
+        if ($penggunaId !== null && ! collect($pelapor)->contains('id', $penggunaId)) {
+            $penggunaId = null;
+        }
+
+        $stasiun = $proses ? self::stasiun($pengguna, $dari, $sampai, $proses, $penggunaId) : [];
+        $order = $spk ? self::order($pengguna, $dari, $sampai, $spk, $penggunaId) : null;
 
         return [
             'periode' => $periode,
             'periode_label' => self::PERIODE[$periode]['label'],
             'rentang' => ['dari' => $dari->toDateString(), 'sampai' => $sampai->toDateString()],
-            'kpi' => self::kpi($pengguna, $dari, $sampai, $dariSblm, $sampaiSblm, $proses, $spk),
+            'pengguna_id' => $penggunaId,
+            'pelapor' => $pelapor,
+            'kpi' => self::kpi($pengguna, $dari, $sampai, $dariSblm, $sampaiSblm, $proses, $spk, $penggunaId),
             'stasiun' => $stasiun,
             'order' => $order,
-            'tren' => $proses ? self::tren($pengguna, $dari, $sampai, $periode, $proses) : null,
+            'tren' => $proses ? self::tren($pengguna, $dari, $sampai, $periode, $proses, $penggunaId) : null,
         ];
+    }
+
+    /**
+     * Pelapor yang mengisi template Produksi pada periode — dalam jangkauan.
+     *
+     * @return list<array{id: int, nama: string}>
+     */
+    private static function pelapor(User $pengguna, Carbon $dari, Carbon $sampai, ?ReportTemplate $proses, ?ReportTemplate $spk): array
+    {
+        $templateId = collect([$proses, $spk])->filter()->pluck('id')->all();
+
+        if ($templateId === []) {
+            return [];
+        }
+
+        $userId = DailyReport::query()
+            ->visibleTo($pengguna)
+            ->whereBetween('report_date', [$dari, $sampai])
+            ->whereHas('sections', fn ($q) => $q->whereIn('report_template_id', $templateId))
+            ->distinct()
+            ->pluck('user_id');
+
+        return User::whereIn('id', $userId)
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->map(fn (string $nama, int|string $id) => ['id' => (int) $id, 'nama' => $nama])
+            ->values()
+            ->all();
     }
 
     /** @return array{0: Carbon, 1: Carbon} */
@@ -105,7 +145,7 @@ final class AngkaProduksi
     /**
      * @return list<array<string, mixed>>
      */
-    private static function stasiun(User $pengguna, Carbon $dari, Carbon $sampai, ReportTemplate $proses): array
+    private static function stasiun(User $pengguna, Carbon $dari, Carbon $sampai, ReportTemplate $proses, ?int $penggunaId): array
     {
         $fields = self::fieldNumerik($proses)->filter(fn (TemplateField $f) => $f->group_label !== null && $f->group_label !== '');
 
@@ -113,7 +153,7 @@ final class AngkaProduksi
             return [];
         }
 
-        $jumlah = self::jumlah($pengguna, $dari, $sampai, $proses->id, $fields->pluck('key')->all());
+        $jumlah = self::jumlah($pengguna, $dari, $sampai, $proses->id, $fields->pluck('key')->all(), $penggunaId);
 
         // Urutan stasiun mengikuti kemunculan pertama pada sort_order.
         return $fields
@@ -156,6 +196,7 @@ final class AngkaProduksi
         Carbon $sampaiSblm,
         ?ReportTemplate $proses,
         ?ReportTemplate $spk,
+        ?int $penggunaId,
     ): array {
         $kartu = [];
 
@@ -166,8 +207,8 @@ final class AngkaProduksi
             $target = $fields->filter(fn (TemplateField $f) => self::peran($f->key) === 'target')->last();
 
             $kunci = collect([$masuk, $keluar, $target])->filter()->pluck('key')->all();
-            $kini = self::jumlah($pengguna, $dari, $sampai, $proses->id, $kunci);
-            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $proses->id, $kunci);
+            $kini = self::jumlah($pengguna, $dari, $sampai, $proses->id, $kunci, $penggunaId);
+            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $proses->id, $kunci, $penggunaId);
 
             if ($keluar) {
                 $kartu[] = self::kartu('Keluaran akhir', $keluar->unit ?? '',
@@ -188,8 +229,8 @@ final class AngkaProduksi
         }
 
         if ($spk) {
-            $kini = self::jumlah($pengguna, $dari, $sampai, $spk->id, ['butuh_box', 'selesai_box']);
-            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $spk->id, ['butuh_box', 'selesai_box']);
+            $kini = self::jumlah($pengguna, $dari, $sampai, $spk->id, ['butuh_box', 'selesai_box'], $penggunaId);
+            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $spk->id, ['butuh_box', 'selesai_box'], $penggunaId);
             if (($kini['butuh_box'] ?? 0) > 0) {
                 $kartu[] = self::kartu('Order terpenuhi', '%',
                     round(($kini['selesai_box'] ?? 0) / $kini['butuh_box'] * 100, 1),
@@ -222,16 +263,16 @@ final class AngkaProduksi
     /**
      * @return array<string, mixed>|null
      */
-    private static function order(User $pengguna, Carbon $dari, Carbon $sampai, ReportTemplate $spk): ?array
+    private static function order(User $pengguna, Carbon $dari, Carbon $sampai, ReportTemplate $spk, ?int $penggunaId): ?array
     {
         $jumlah = self::jumlah($pengguna, $dari, $sampai, $spk->id, [
             'butuh_pouch', 'selesai_pouch', 'kurang_pouch',
             'butuh_box', 'selesai_box', 'kurang_box',
-        ]);
+        ], $penggunaId);
 
         $baris = DB::table('daily_report_items as i')
             ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
-            ->joinSub(self::terlihat($pengguna, $dari, $sampai), 'r', 'r.id', '=', 's.daily_report_id')
+            ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
             ->where('s.report_template_id', $spk->id)
             ->selectRaw(
                 'COUNT(*) AS spk, '
@@ -258,7 +299,7 @@ final class AngkaProduksi
      *
      * @return array<string, mixed>|null
      */
-    private static function tren(User $pengguna, Carbon $dari, Carbon $sampai, string $periode, ReportTemplate $proses): ?array
+    private static function tren(User $pengguna, Carbon $dari, Carbon $sampai, string $periode, ReportTemplate $proses, ?int $penggunaId): ?array
     {
         $keluar = self::fieldNumerik($proses)
             ->filter(fn (TemplateField $f) => self::peran($f->key) === 'keluar')
@@ -271,7 +312,7 @@ final class AngkaProduksi
         $jalur = '$."'.$keluar->key.'"';
         $harian = DB::table('daily_report_items as i')
             ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
-            ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id', 'report_date']), 'r', 'r.id', '=', 's.daily_report_id')
+            ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id', 'report_date'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
             ->where('s.report_template_id', $proses->id)
             ->groupBy('r.report_date')
             ->selectRaw(
@@ -348,7 +389,7 @@ final class AngkaProduksi
      * @param  list<string>  $keys
      * @return array<string, float>
      */
-    private static function jumlah(User $pengguna, Carbon $dari, Carbon $sampai, int $templateId, array $keys): array
+    private static function jumlah(User $pengguna, Carbon $dari, Carbon $sampai, int $templateId, array $keys, ?int $penggunaId = null): array
     {
         $keys = array_values(array_filter($keys, fn ($k) => preg_match('/^[a-z0-9_]+$/i', $k)));
 
@@ -366,7 +407,7 @@ final class AngkaProduksi
 
         $baris = DB::table('daily_report_items as i')
             ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
-            ->joinSub(self::terlihat($pengguna, $dari, $sampai), 'r', 'r.id', '=', 's.daily_report_id')
+            ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
             ->where('s.report_template_id', $templateId)
             ->selectRaw(implode(', ', $pilih), $bind)
             ->first();
@@ -385,11 +426,12 @@ final class AngkaProduksi
      *
      * @param  list<string>  $kolom
      */
-    private static function terlihat(User $pengguna, Carbon $dari, Carbon $sampai, array $kolom = ['id']): Builder
+    private static function terlihat(User $pengguna, Carbon $dari, Carbon $sampai, array $kolom = ['id'], ?int $penggunaId = null): Builder
     {
         return DailyReport::query()
             ->visibleTo($pengguna)
             ->whereBetween('report_date', [$dari, $sampai])
+            ->when($penggunaId !== null, fn ($q) => $q->where('user_id', $penggunaId))
             ->getQuery()
             ->select($kolom);
     }
