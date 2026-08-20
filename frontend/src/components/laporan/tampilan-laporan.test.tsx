@@ -196,3 +196,40 @@ describe('laporan tanpa isi', () => {
     expect(screen.getByText('Laporan ini belum punya isi.')).toBeInTheDocument();
   });
 });
+
+/*
+ * Satu laporan bisa memuat beberapa template sekaligus. Ditumpuk vertikal
+ * keduanya harus digulir jauh; dikelompokkan Tab per template, hanya yang
+ * dipilih yang tampil.
+ */
+describe('beberapa template dalam satu laporan', () => {
+  const LAPORAN_GANDA: Laporan = {
+    ...LAPORAN,
+    bagian: [
+      ...(LAPORAN.bagian ?? []),
+      {
+        id: 2,
+        urutan: 1,
+        template: {
+          id: 9,
+          kode: 'SPK',
+          nama: 'Pemenuhan Order',
+          kolom: [kolom({ kunci: 'po', label: 'Nomor PO', tipe: 'text', urutan: 0 })],
+        },
+        baris: [{ id: 21, urutan: 0, status: 'selesai', nilai: { po: 'PO-2026-XYZ' } }],
+      },
+    ],
+  };
+
+  it('menampilkan tab per template dan hanya isi tab aktif', () => {
+    render(<TampilanLaporan laporan={LAPORAN_GANDA} />);
+
+    // Dua tab, dinamai templatenya.
+    expect(screen.getByRole('tab', { name: /Proses Harian/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Pemenuhan Order/ })).toBeInTheDocument();
+
+    // Tab pertama aktif; isi template kedua belum tampil.
+    expect(screen.getByText('PT Pembeli Alfa')).toBeInTheDocument();
+    expect(screen.queryByText('PO-2026-XYZ')).not.toBeInTheDocument();
+  });
+});

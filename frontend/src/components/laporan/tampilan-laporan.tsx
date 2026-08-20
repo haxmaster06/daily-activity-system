@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import * as Tabs from '@radix-ui/react-tabs';
+
 import { StatusBadge } from '@/components/ui/status-badge';
 import { TampilKaya } from '@/components/ui/tampil-kaya';
 import { cn } from '@/lib/cn';
@@ -56,29 +59,71 @@ export function TampilanLaporan({ laporan }: { laporan: Laporan }) {
     );
   }
 
+  // Satu template: tak perlu tab, langsung tampilkan.
+  if (bagian.length === 1) {
+    return <BagianTampilan bagian={bagian[0]} />;
+  }
+
+  // Beberapa template dalam satu laporan: kelompokkan dengan Tab per template
+  // supaya ringkas — nama templatenya jadi label tab, bukan tumpukan judul.
+  return <TabTemplate bagian={bagian} />;
+}
+
+function TabTemplate({ bagian }: { bagian: BagianLaporan[] }) {
+  const [aktif, setAktif] = useState(String(bagian[0].id));
+
   return (
-    <div className="flex flex-col gap-4">
+    <Tabs.Root value={aktif} onValueChange={setAktif}>
+      <Tabs.List className="mb-3 flex flex-wrap gap-1 border-b border-line">
+        {bagian.map((satu) => (
+          <Tabs.Trigger
+            key={satu.id}
+            value={String(satu.id)}
+            className={cn(
+              'flex items-center gap-1.5 border-b-2 border-transparent px-3 py-1.5 text-body font-medium text-ink-muted outline-none transition-colors duration-fast',
+              'hover:text-ink focus-visible:ring-2 focus-visible:ring-primary/40',
+              'data-[state=active]:border-primary data-[state=active]:text-primary-text',
+            )}
+          >
+            {satu.template.nama}
+            <span className="rounded-full bg-surface-muted px-1.5 text-caption tabular-nums text-ink-soft">
+              {formatAngka(satu.baris.length)}
+            </span>
+          </Tabs.Trigger>
+        ))}
+      </Tabs.List>
+
       {bagian.map((satu) => (
-        <BagianTampilan key={satu.id} bagian={satu} />
+        <Tabs.Content key={satu.id} value={String(satu.id)} className="outline-none">
+          <BagianTampilan bagian={satu} tampilkanJudul={false} />
+        </Tabs.Content>
       ))}
-    </div>
+    </Tabs.Root>
   );
 }
 
-function BagianTampilan({ bagian }: { bagian: BagianLaporan }) {
+function BagianTampilan({
+  bagian,
+  tampilkanJudul = true,
+}: {
+  bagian: BagianLaporan;
+  tampilkanJudul?: boolean;
+}) {
   const kolom = [...bagian.template.kolom].sort((a, b) => a.urutan - b.urutan);
 
   return (
     <section>
-      <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-surface/95 py-1 backdrop-blur">
-        <span className="font-heading text-body-lg font-semibold text-ink">
-          {bagian.template.nama}
-        </span>
-        <span className="text-caption font-normal text-ink-soft">
-          {formatAngka(bagian.baris.length)} baris
-        </span>
-        <span aria-hidden className="h-px flex-1 bg-line" />
-      </h3>
+      {tampilkanJudul && (
+        <h3 className="sticky top-0 z-10 flex items-baseline gap-2 bg-surface/95 py-1 backdrop-blur">
+          <span className="font-heading text-body-lg font-semibold text-ink">
+            {bagian.template.nama}
+          </span>
+          <span className="text-caption font-normal text-ink-soft">
+            {formatAngka(bagian.baris.length)} baris
+          </span>
+          <span aria-hidden className="h-px flex-1 bg-line" />
+        </h3>
+      )}
 
       <div className="mt-1 flex flex-col gap-1.5">
         {bagian.baris.map((baris, nomor) => (
