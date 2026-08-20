@@ -270,3 +270,35 @@ it('menghasilkan PDF yang sah untuk template berkolom banyak', function (): void
     preg_match_all('#/Type\s*/Page[^s]#', $response->getContent(), $cocok);
     expect(count($cocok[0]))->toBeGreaterThan(1);
 });
+
+it('menghitung baris total untuk kolom bertanda total (desimal)', function (): void {
+    test()->seed(DepartmentSeeder::class);
+    $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+    $admin = User::factory()->administrator()->create();
+
+    $template = ReportTemplate::create([
+        'code' => 'UJI_TOTAL',
+        'name' => 'Uji Total',
+        'department_id' => $produksi->id,
+        'is_active' => true,
+    ]);
+    $template->fields()->createMany([
+        ['key' => 'nama', 'label' => 'Nama', 'type' => 'text', 'sort_order' => 0],
+        ['key' => 'berat', 'label' => 'Berat', 'type' => 'decimal', 'unit' => 'kg', 'desimal' => 2, 'total' => true, 'sort_order' => 1],
+    ]);
+
+    $laporan = DailyReport::factory()->milik($admin)->create(['report_date' => now()->toDateString()]);
+    $bagian = $laporan->sections()->create(['report_template_id' => $template->id, 'sort_order' => 0]);
+    $bagian->items()->create(['data' => ['nama' => 'A', 'berat' => 12.5], 'sort_order' => 0]);
+    $bagian->items()->create(['data' => ['nama' => 'B', 'berat' => 7.25], 'sort_order' => 1]);
+
+    Sanctum::actingAs($admin);
+
+    $total = $this->getJson('/api/export/pratinjau?template_id='.$template->id)
+        ->assertOk()->json('data.total');
+
+    expect($total)->not->toBeNull()
+        ->and((float) $total['berat'])->toEqual(19.75)
+        ->and($total['nama'])->toBe('')
+        ->and($total['_tanggal'])->toBe('Total');
+});

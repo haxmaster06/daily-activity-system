@@ -54,6 +54,8 @@ export interface KolomTemplate {
   master_induk_kunci: string | null;
   /** Kolom menempel di kiri saat tabel isian digulir mendatar. */
   beku: boolean;
+  /** Menampilkan baris total (jumlah ke bawah) untuk kolom angka ini. */
+  total: boolean;
   /** Variasi tampilan saat diisi. Null berarti tipe ini hanya punya satu. */
   tampilan: string | null;
 }

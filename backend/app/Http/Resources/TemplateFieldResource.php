@@ -51,6 +51,7 @@ class TemplateFieldResource extends JsonResource
             ),
             'master_induk_kunci' => $this->master_induk_key,
             'beku' => $this->beku,
+            'total' => $this->total,
             'tampilan' => $this->tampilanBerlaku(),
         ];
     }

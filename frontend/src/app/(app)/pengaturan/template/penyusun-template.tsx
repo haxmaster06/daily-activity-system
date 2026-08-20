@@ -110,6 +110,7 @@ function kolomDari(sumber: Template | null): DraftKolom[] {
     options: (k.pilihan ?? []).map((p) => p.label).join(', '),
     lookup_source: k.sumber_master ?? '',
     computed_from: k.rumus ?? '',
+    total: k.total,
     placeholder: k.placeholder ?? '',
     master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
     master_induk_key: k.master_induk_kunci ?? '',
@@ -236,6 +237,8 @@ export function PenyusunTemplate({
       master_type_id: k.type === 'master' && k.master_type_id ? Number(k.master_type_id) : null,
       master_induk_key: k.type === 'master' ? k.master_induk_key || null : null,
       beku: k.beku,
+      // Total hanya berarti untuk kolom angka.
+      total: bertipeAngka(k.type) ? k.total : false,
       tampilan: k.tampilan || null,
     }));
   }

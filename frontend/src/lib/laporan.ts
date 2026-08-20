@@ -180,6 +180,20 @@ export function hitungPratinjau(rumus: string, nilai: NilaiBaris): number | null
 }
 
 /**
+ * Jumlah satu kolom ke bawah, untuk baris Total (kolom bertanda `total`).
+ *
+ * Menerima angka desimal apa adanya. Kolom rumus dijumlahkan dari hasil
+ * hitungannya per baris, bukan dari nilai tersimpan (rumus tak menyimpan nilai).
+ */
+export function totalKolom(kolom: KolomTemplate, baris: NilaiBaris[]): number {
+  return baris.reduce((jumlah, satu) => {
+    const nilai = kolom.rumus ? hitungPratinjau(kolom.rumus, satu) : satu[kolom.kunci];
+
+    return jumlah + (typeof nilai === 'number' ? nilai : Number(nilai) || 0);
+  }, 0);
+}
+
+/**
  * Mengelompokkan kolom berurutan yang punya `grup` sama.
  *
  * Pengelompokan mengikuti urutan kolom, bukan mengumpulkan seluruh kolom

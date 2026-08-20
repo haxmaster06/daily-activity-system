@@ -9,10 +9,12 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { berupaHtml, htmlKeTeks } from '@/components/ui/tampil-kaya';
 import { cn } from '@/lib/cn';
 import { useLebarLayar, LAYAR_SEMPIT } from '@/lib/use-lebar-layar';
+import { formatAngka } from '@/lib/format';
 import {
   barisKosong,
   hitungPratinjau,
   susunGrup,
+  totalKolom,
   type NilaiBaris,
   type NilaiSel,
 } from '@/lib/laporan';
@@ -588,6 +590,41 @@ export function TabelIsian({
               );
             })}
           </tbody>
+
+          {kolom.some((k) => k.total) && (
+            <tfoot className="border-t-2 border-line bg-surface-muted">
+              <tr>
+                <td
+                  className="sticky left-0 z-10 bg-surface-muted px-2 py-1.5 text-center text-caption font-medium text-ink-soft"
+                  style={{ width: LEBAR_NOMOR }}
+                >
+                  Total
+                </td>
+                {grup.map((g, gi) =>
+                  g.kolom.map((item, ki) => {
+                    const beku = gayaBeku(item.kunci);
+
+                    return (
+                      <td
+                        key={item.kunci}
+                        style={beku}
+                        className={cn(
+                          'px-2 py-1.5 text-right tabular-nums font-medium text-ink',
+                          ki === 0 && g.nama && gi > 0 && 'border-l border-line',
+                          beku && 'sticky z-10 bg-surface-muted',
+                        )}
+                      >
+                        {item.total
+                          ? `${formatAngka(totalKolom(item, baris), item.tipe === 'integer' ? 0 : (item.desimal ?? 2))}${item.satuan ? ` ${item.satuan}` : ''}`
+                          : ''}
+                      </td>
+                    );
+                  }),
+                )}
+                {!terkunci && <td />}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 

@@ -22,6 +22,8 @@ export interface PratinjauExport {
    * yang sama persis.
    */
   kelompok_kolom: KolomExport[][];
+  /** Baris total (jumlah ke bawah kolom bertanda total), atau null. */
+  total: Record<string, string | number | null> | null;
   baris: Record<string, string | number | null>[];
   jumlah_baris: number;
   jumlah_laporan: number;

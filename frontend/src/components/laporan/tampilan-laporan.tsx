@@ -9,6 +9,7 @@ import {
   formatTanggal,
   formatTanggalRingkas,
 } from '@/lib/format';
+import { totalKolom } from '@/lib/laporan';
 import type { BagianLaporan, Laporan, NilaiBaris, NilaiSel } from '@/lib/laporan';
 import type { KolomTemplate } from '@/lib/template';
 
@@ -90,7 +91,37 @@ function BagianTampilan({ bagian }: { bagian: BagianLaporan }) {
           />
         ))}
       </div>
+
+      <TotalBagian kolom={kolom} baris={bagian.baris.map((satu) => satu.nilai)} />
     </section>
+  );
+}
+
+/** Baris Total di bawah satu bagian — jumlah ke bawah kolom bertanda `total`. */
+function TotalBagian({ kolom, baris }: { kolom: KolomTemplate[]; baris: NilaiBaris[] }) {
+  const kolomTotal = kolom.filter((satu) => satu.total);
+
+  if (kolomTotal.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-1.5 rounded-card border border-line bg-surface-muted/60 px-2.5 py-2">
+      <p className="mb-1 text-meta font-semibold uppercase tracking-wide text-ink-soft">Total</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {kolomTotal.map((satu) => (
+          <span key={satu.kunci} className="text-body text-ink">
+            <span className="text-ink-soft">
+              {satu.grup ? `${satu.grup} · ${satu.label}` : satu.label}:{' '}
+            </span>
+            <span className="font-medium tabular-nums">
+              {formatAngka(totalKolom(satu, baris), satu.tipe === 'integer' ? 0 : (satu.desimal ?? 2))}
+              {satu.satuan ? ` ${satu.satuan}` : ''}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

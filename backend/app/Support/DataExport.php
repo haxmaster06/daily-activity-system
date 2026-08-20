@@ -82,6 +82,7 @@ final class DataExport
                 'template' => null,
                 'kolom' => [],
                 'kelompok_kolom' => [],
+                'total' => null,
                 'baris' => [],
                 'jumlah_baris' => 0,
                 'jumlah_laporan' => 0,
@@ -114,6 +115,7 @@ final class DataExport
              * dibagikan.
              */
             'kelompok_kolom' => self::kelompokKolom($kolom),
+            'total' => self::total($laporan, $templateTerpakai),
             'baris' => $terpotong ? array_slice($baris, 0, self::BATAS_BARIS) : $baris,
             'jumlah_baris' => count($baris),
             'jumlah_laporan' => $laporan->count(),
@@ -254,6 +256,54 @@ final class DataExport
         }
 
         return $kolom;
+    }
+
+    /**
+     * Baris total: jumlah ke bawah tiap kolom bertanda `total`. Null bila
+     * template tak punya kolom total. Kolom rumus menyimpan nilai hitungannya di
+     * `data` (dihitung server saat simpan), jadi ikut terjumlah apa adanya.
+     *
+     * @param  Collection<int, DailyReport>  $laporan
+     * @return array<string, mixed>|null
+     */
+    private static function total(Collection $laporan, ReportTemplate $template): ?array
+    {
+        $kolomTotal = $template->fields->filter(fn (TemplateField $field) => $field->total);
+
+        if ($kolomTotal->isEmpty()) {
+            return null;
+        }
+
+        $jumlah = [];
+
+        foreach ($laporan as $item) {
+            foreach ($item->sections as $bagian) {
+                if ($bagian->report_template_id !== $template->id) {
+                    continue;
+                }
+
+                foreach ($bagian->items as $isi) {
+                    foreach ($kolomTotal as $field) {
+                        $nilai = $isi->data[$field->key] ?? null;
+
+                        if (is_numeric($nilai)) {
+                            $jumlah[$field->key] = ($jumlah[$field->key] ?? 0) + (float) $nilai;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sejajar dengan kolom: identitas kosong, sel pertama diberi label "Total".
+        $baris = ['_tanggal' => 'Total', '_penyusun' => '', '_departemen' => '', '_status' => ''];
+
+        foreach ($template->fields as $field) {
+            $baris[$field->key] = ($field->total && isset($jumlah[$field->key]))
+                ? round($jumlah[$field->key], $field->type === TemplateField::TIPE_INTEGER ? 0 : ($field->desimal ?? 2))
+                : '';
+        }
+
+        return $baris;
     }
 
     /**

@@ -30,6 +30,7 @@ export interface KiriKolom {
   master_type_id: number | null;
   master_induk_key: string | null;
   beku: boolean;
+  total: boolean;
   tampilan: string | null;
 }
 

@@ -24,6 +24,7 @@ function kolom(sebagian: Partial<KolomTemplate> & Pick<KolomTemplate, 'kunci' | 
     master_jenis: null,
     master_induk_kunci: null,
     beku: false,
+    total: false,
     tampilan: null,
     ...sebagian,
   };

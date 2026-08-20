@@ -156,6 +156,15 @@
                         </tr>
                     @endforelse
                 </tbody>
+                @if (! empty($data['total']))
+                    <tfoot>
+                        <tr>
+                            @foreach ($kolomHalaman as $kolom)
+                                <td style="font-weight: bold; border-top: 2px solid #C1C6D6;">{{ $data['total'][$kolom['kunci']] ?? '' }}</td>
+                            @endforeach
+                        </tr>
+                    </tfoot>
+                @endif
             </table>
         </div>
     @endforeach

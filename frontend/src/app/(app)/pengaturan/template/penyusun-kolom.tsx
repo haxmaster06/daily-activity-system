@@ -42,6 +42,7 @@ export interface DraftKolom {
   options: string;
   lookup_source: string;
   computed_from: string;
+  total: boolean;
   master_type_id: string;
   master_induk_key: string;
   beku: boolean;
@@ -70,6 +71,7 @@ export const KOLOM_KOSONG: DraftKolom = {
   options: '',
   lookup_source: '',
   computed_from: '',
+  total: false,
   master_type_id: '',
   master_induk_key: '',
   beku: false,
@@ -538,6 +540,24 @@ export function PenyusunKolom({
               Berlaku untuk paling banyak dua kolom pertama. Kolom identitas yang tetap
               terlihat membuat pengisi tidak kehilangan jejak baris saat menggulir ke kanan.
             </span>
+
+            {bertipeAngka && (
+              <>
+                <label className="flex w-fit items-center gap-2 text-body text-ink-muted sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={item.total}
+                    onChange={(e) => ubahSatu(index, { total: e.target.checked })}
+                    className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+                  />
+                  Tampilkan baris total (jumlah ke bawah)
+                </label>
+                <span className="text-caption text-ink-soft sm:col-span-2">
+                  Menjumlahkan seluruh baris kolom ini di baris Total — pada pengisian,
+                  tampilan laporan, dan export.
+                </span>
+              </>
+            )}
           </div>
     );
   }

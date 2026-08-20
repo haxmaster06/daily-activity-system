@@ -336,6 +336,24 @@ export function PanelExport({
                     </tr>
                   ))}
                 </tbody>
+                {pratinjau.total && (
+                  <tfoot>
+                    <tr className="bg-surface-muted font-semibold">
+                      {kolomHalaman.map((kolom) => (
+                        <td
+                          key={kolom.kunci}
+                          className="border border-line px-2 py-1 align-top text-ink"
+                        >
+                          {pratinjau.total?.[kolom.kunci] === null ||
+                          pratinjau.total?.[kolom.kunci] === '' ||
+                          pratinjau.total?.[kolom.kunci] === undefined
+                            ? ''
+                            : String(pratinjau.total[kolom.kunci])}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
               </table>
             </div>
           ))}
@@ -406,6 +424,21 @@ export function PanelExport({
                 ))
               )}
             </tbody>
+            {pratinjau.total && pratinjau.baris.length > 0 && (
+              <tfoot className="sticky bottom-0 bg-surface-muted">
+                <tr className="border-t-2 border-line font-semibold">
+                  {pratinjau.kolom.map((kolom) => (
+                    <td key={kolom.kunci} className="px-2.5 py-1.5 align-top text-ink">
+                      {pratinjau.total?.[kolom.kunci] === null ||
+                      pratinjau.total?.[kolom.kunci] === '' ||
+                      pratinjau.total?.[kolom.kunci] === undefined
+                        ? ''
+                        : String(pratinjau.total[kolom.kunci])}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
