@@ -119,7 +119,7 @@ function laporanAngka(
     string $status,
     float $qty,
 ): DailyReport {
-    $laporan = DailyReport::factory()->create([
+    $laporan = DailyReport::factory()->dikirim()->create([
         'user_id' => $pengguna->id,
         'department_id' => $departemen->id,
         'report_date' => Carbon::today(),
@@ -460,7 +460,7 @@ describe('keadaan departemen', function (): void {
 
         $pengguna = User::factory()->staff()->create(['department_id' => $milik->id]);
 
-        $laporan = DailyReport::factory()->create([
+        $laporan = DailyReport::factory()->dikirim()->create([
             'user_id' => $pengguna->id,
             'department_id' => $milik->id,
             'report_date' => Carbon::today()->subDay(),
@@ -706,7 +706,7 @@ describe('penyaring selain departemen', function (): void {
         $penyusun = User::factory()->staff()->create(['department_id' => $milik->id]);
 
         // Satu laporan memuat dua baris: pembeli Alfa dan pembeli Beta.
-        $laporan = DailyReport::factory()->create([
+        $laporan = DailyReport::factory()->dikirim()->create([
             'user_id' => $penyusun->id,
             'department_id' => $milik->id,
             'report_date' => Carbon::today(),
@@ -848,7 +848,7 @@ function templateProses(): ReportTemplate
 
 function laporanProses(User $pengguna, Department $departemen, ReportTemplate $template, array $data, ?Carbon $tanggal = null): DailyReport
 {
-    $laporan = DailyReport::factory()->create([
+    $laporan = DailyReport::factory()->dikirim()->create([
         'user_id' => $pengguna->id,
         'department_id' => $departemen->id,
         'report_date' => $tanggal ?? Carbon::today(),

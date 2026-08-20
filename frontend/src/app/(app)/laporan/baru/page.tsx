@@ -28,7 +28,7 @@ export default async function BuatLaporanPage() {
   return (
     <>
       <Breadcrumb
-        jejak={[{ label: 'Laporan Saya', href: '/laporan' }, { label: 'Buat Laporan' }]}
+        jejak={[{ label: 'Laporan Harian', href: '/laporan' }, { label: 'Buat Laporan' }]}
       />
       <PageHeader judul="Buat Laporan Harian" />
       <FormLaporan templateTersedia={template} />

@@ -16,7 +16,7 @@ function laporanBerisi(User $pengguna, string $tanggal, array $baris): DailyRepo
 {
     $template = ReportTemplate::with('fields')->where('code', 'AKTIVITAS_UMUM')->firstOrFail();
 
-    $laporan = DailyReport::factory()->milik($pengguna)->create(['report_date' => $tanggal]);
+    $laporan = DailyReport::factory()->milik($pengguna)->dikirim()->create(['report_date' => $tanggal]);
     $bagian = $laporan->sections()->create([
         'report_template_id' => $template->id,
         'sort_order' => 0,

@@ -8,7 +8,7 @@ import { penggunaSaatIni } from '@/lib/session';
 import { ambilTemplate } from '@/lib/template-server';
 import { DaftarLaporan } from './daftar-laporan';
 
-export const metadata = { title: 'Laporan Saya — DAMS' };
+export const metadata = { title: 'Laporan Harian — DAMS' };
 
 interface Params {
   cari?: string;
@@ -57,12 +57,12 @@ export default async function LaporanPage({
 
   return (
     <>
-      <Breadcrumb jejak={[{ label: 'Laporan Saya' }]} />
+      <Breadcrumb jejak={[{ label: 'Laporan Harian' }]} />
       <DaftarLaporan
         laporan={data}
         meta={meta}
         tampilkanPenyusun={melihatLaporanOrangLain}
-        judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Saya'}
+        judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Harian'}
         templateImport={templateImport}
       />
     </>

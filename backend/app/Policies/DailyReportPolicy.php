@@ -33,11 +33,26 @@ class DailyReportPolicy
             return false;
         }
 
+        // Super Admin melihat segalanya, termasuk draf orang lain. Harus sejalan
+        // dengan DailyReport::scopeVisibleTo() — daftar dan detail wajib sepakat.
+        if ($user->is_system) {
+            return true;
+        }
+
         $jangkauan = $user->jangkauan();
 
-        return $jangkauan->korporat()
+        $dalamJangkauan = $jangkauan->korporat()
             || $report->user_id === $user->getKey()
             || $jangkauan->mencakupDepartemen($report->department_id);
+
+        if (! $dalamJangkauan) {
+            return false;
+        }
+
+        // Draf berarti belum dipublikasikan: hanya pembuatnya yang boleh
+        // membukanya. Berlaku bagi jangkauan korporat sekalipun (Management).
+        return $report->status !== DailyReport::STATUS_DRAF
+            || $report->user_id === $user->getKey();
     }
 
     public function create(User $user): bool

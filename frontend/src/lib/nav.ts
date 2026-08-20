@@ -36,7 +36,7 @@ export interface KemampuanPengguna {
 
 export const MENU_UTAMA: readonly MenuUtama[] = [
   { label: 'Dashboard', href: '/dashboard', izin: ['dashboard.lihat'] },
-  { label: 'Laporan Saya', href: '/laporan', izin: ['laporan.lihat'] },
+  { label: 'Laporan Harian', href: '/laporan', izin: ['laporan.lihat'] },
   { label: 'Progres', href: '/progress', izin: ['tugas.lihat'] },
   { label: 'Monitoring', href: '/monitoring', izin: ['monitoring.lihat'] },
   { label: 'Analytics', href: '/analitik', izin: ['analitik.lihat'] },
