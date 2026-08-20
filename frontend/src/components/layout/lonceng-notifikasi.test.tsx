@@ -100,7 +100,7 @@ describe('menghapus notifikasi', () => {
   it('membersihkan tanpa menyertakan yang belum dibaca', async () => {
     const pengguna = await bukaLonceng();
 
-    await pengguna.click(await screen.findByRole('menuitem', { name: /Bersihkan/ }));
+    await pengguna.click(await screen.findByRole('menuitem', { name: 'Bersihkan' }));
 
     await waitFor(() => {
       expect(permintaan.some((satu) => satu.alamat === '/api/notifikasi/hapus')).toBe(true);
@@ -111,7 +111,23 @@ describe('menghapus notifikasi', () => {
     expect(bersih?.isi).toEqual({ bersihkan: true });
   });
 
-  it('tidak menawarkan Bersihkan saat tidak ada yang sudah dibaca', async () => {
+  it('membersihkan seluruhnya saat diminta lewat Bersihkan semua', async () => {
+    const pengguna = await bukaLonceng();
+
+    await pengguna.click(
+      await screen.findByRole('menuitem', { name: 'Bersihkan semua notifikasi' }),
+    );
+
+    await waitFor(() => {
+      expect(permintaan.some((satu) => satu.alamat === '/api/notifikasi/hapus')).toBe(true);
+    });
+
+    const bersih = permintaan.find((satu) => satu.alamat === '/api/notifikasi/hapus');
+
+    expect(bersih?.isi).toEqual({ bersihkan: true, semua: true });
+  });
+
+  it('tidak menawarkan Bersihkan (yang dibaca) saat tidak ada yang sudah dibaca', async () => {
     vi.stubGlobal('fetch', () =>
       Promise.resolve({
         ok: true,
@@ -127,6 +143,10 @@ describe('menghapus notifikasi', () => {
 
     await screen.findByText('Laporan baru');
 
-    expect(screen.queryByRole('menuitem', { name: /Bersihkan/ })).not.toBeInTheDocument();
+    // Yang membuang hanya yang dibaca tak ditawarkan; membuang semua tetap ada.
+    expect(screen.queryByRole('menuitem', { name: 'Bersihkan' })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitem', { name: 'Bersihkan semua notifikasi' }),
+    ).toBeInTheDocument();
   });
 });

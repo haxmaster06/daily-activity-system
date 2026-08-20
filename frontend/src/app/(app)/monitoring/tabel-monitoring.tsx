@@ -47,7 +47,7 @@ export function TabelMonitoring({
   const router = useRouter();
   const { rentang, anggota } = ringkasan;
 
-  const [mengirim, setMengirim] = useState<number | null>(null);
+  const [mengirim, setMengirim] = useState<number | 'massal' | null>(null);
   const [sudahDiingatkan, setSudahDiingatkan] = useState<number[]>([]);
   const [hasil, setHasil] = useState<{ jenis: 'galat' | 'berhasil'; pesan: string } | null>(
     null,
@@ -67,25 +67,33 @@ export function TabelMonitoring({
   const totalLaporan = anggota.reduce((n, a) => n + a.jumlah_laporan, 0);
   const belumSamaSekali = anggota.filter((a) => a.jumlah_laporan === 0).length;
 
-  async function kirimPengingat(id: number) {
-    setMengirim(id);
+  async function kirimPengingat(ids: number[]) {
+    if (ids.length === 0) return;
+
+    setMengirim(ids.length === 1 ? ids[0] : 'massal');
     setHasil(null);
 
     try {
       const response = await fetch('/api/monitoring/pengingat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pengguna_id: id }),
+        body: JSON.stringify({ pengguna_id: ids }),
       });
 
-      const isi = (await response.json()) as { success: boolean; message: string };
+      const isi = (await response.json()) as {
+        success: boolean;
+        message: string;
+        data?: { terkirim: number; dilewati: { nama: string; alasan: string }[] };
+      };
 
-      setHasil({ jenis: isi.success ? 'berhasil' : 'galat', pesan: isi.message });
+      const terkirim = isi.data?.terkirim ?? 0;
 
-      // Ditandai walau gagal karena sudah pernah dikirim hari ini — tombolnya
-      // tidak berguna lagi sampai hari berganti.
-      if (isi.success || response.status === 422) {
-        setSudahDiingatkan((sebelumnya) => [...sebelumnya, id]);
+      setHasil({ jenis: terkirim > 0 ? 'berhasil' : 'galat', pesan: isi.message });
+
+      // Semua yang dicoba tak dapat dikirimi ulang hari ini — entah terkirim,
+      // entah kena batas satu pengingat per hari. Tombolnya tak berguna lagi.
+      if (isi.success) {
+        setSudahDiingatkan((sebelumnya) => [...sebelumnya, ...ids]);
       }
     } catch {
       setHasil({
@@ -97,15 +105,36 @@ export function TabelMonitoring({
     }
   }
 
+  /** Anggota yang belum lapor hari ini, bukan diri sendiri, belum diingatkan. */
+  const kandidatPengingat = anggota.filter(
+    (a) => !a.sudah_melapor_hari_ini && a.id !== penggunaId && !diingatkan(a),
+  );
+
   return (
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-page-title text-ink">Monitoring Tim</h1>
-        <p className="flex items-center gap-1.5 text-body text-ink-muted">
-          <CalendarRange aria-hidden="true" className="size-4" />
-          {formatTanggal(rentang.dari)} – {formatTanggal(rentang.sampai)}
-          <span className="text-ink-soft">({rentang.jumlah_hari} hari)</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          {kandidatPengingat.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void kirimPengingat(kandidatPengingat.map((a) => a.id))}
+              disabled={mengirim !== null}
+              title="Kirim pengingat ke semua anggota yang belum lapor hari ini"
+              className="btn-primary btn-sm"
+            >
+              <BellRing aria-hidden="true" className="size-4" />
+              {mengirim === 'massal'
+                ? 'Mengirim...'
+                : `Ingatkan semua yang belum lapor (${kandidatPengingat.length})`}
+            </button>
+          )}
+          <p className="flex items-center gap-1.5 text-body text-ink-muted">
+            <CalendarRange aria-hidden="true" className="size-4" />
+            {formatTanggal(rentang.dari)} – {formatTanggal(rentang.sampai)}
+            <span className="text-ink-soft">({rentang.jumlah_hari} hari)</span>
+          </p>
+        </div>
       </div>
 
       <div className="mb-3 grid gap-3 sm:grid-cols-3">
@@ -218,7 +247,7 @@ export function TabelMonitoring({
                         onClick={(event) => {
                           // Baris ini dapat diklik untuk membuka laporannya.
                           event.stopPropagation();
-                          void kirimPengingat(item.id);
+                          void kirimPengingat([item.id]);
                         }}
                         disabled={mengirim !== null || diingatkan(item)}
                         title={`${item.nama} belum mengisi laporan hari ini`}
