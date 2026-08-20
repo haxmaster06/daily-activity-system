@@ -44,6 +44,16 @@ final class KatalogIzin
 
     public const ANALITIK_LIHAT = 'analitik.lihat';
 
+    /**
+     * Melihat siapa yang sedang tersambung.
+     *
+     * Sengaja tidak masuk daftar bawaan peran mana pun. Administrator
+     * memperolehnya lewat `self::kunci()`, dan siapa lagi yang berhak
+     * diputuskan operator lewat Manajemen Peran — kapan seseorang bekerja
+     * adalah informasi yang cukup peka untuk tidak dibagikan begitu saja.
+     */
+    public const PENGGUNA_LIHAT_KEHADIRAN = 'pengguna.lihat-kehadiran';
+
     public const DEPARTEMEN_LIHAT = 'departemen.lihat';
 
     public const DEPARTEMEN_KELOLA = 'departemen.kelola';
@@ -68,6 +78,8 @@ final class KatalogIzin
 
     public const ROLE_KELOLA = 'role.kelola';
 
+    public const SISTEM_MAINTENANCE = 'sistem.maintenance';
+
     /** Nama kelompok untuk pengelompokan di layar. */
     /**
      * Kelompok izin, berurut sesuai tampilnya di layar Manajemen Peran.
@@ -84,6 +96,7 @@ final class KatalogIzin
         'analitik' => 'Executive Analytics',
         'master' => 'Data Master',
         'pengguna' => 'Pengguna & Hak Akses',
+        'sistem' => 'Sistem',
     ];
 
     /**
@@ -98,7 +111,7 @@ final class KatalogIzin
             ['laporan', self::LAPORAN_LIHAT, 'Melihat laporan', 'Membuka daftar dan rincian laporan harian.'],
             ['laporan', self::LAPORAN_BUAT, 'Membuat laporan', 'Menyusun laporan harian baru.'],
             ['laporan', self::LAPORAN_UBAH_SENDIRI, 'Menyunting draf sendiri', 'Mengubah laporan sendiri selama masih berstatus draf.'],
-            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus draf sendiri', 'Menghapus laporan sendiri selama masih berstatus draf.'],
+            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus laporan sendiri', 'Menghapus laporan sendiri. Pemegang jangkauan Korporat dapat menghapus laporan siapa pun.'],
             ['laporan', self::LAPORAN_KIRIM, 'Mengirim laporan', 'Mengirim laporan sendiri sehingga menjadi catatan.'],
             ['laporan', self::LAPORAN_TINJAU, 'Meninjau laporan', 'Menandai laporan orang lain sudah ditinjau.'],
             ['laporan', self::EXPORT_LAPORAN, 'Mengexport laporan', 'Membuka pratinjau export dan mengunduh berkasnya.'],
@@ -109,6 +122,8 @@ final class KatalogIzin
             ['progres', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
 
             ['analitik', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
+
+            ['pengguna', self::PENGGUNA_LIHAT_KEHADIRAN, 'Melihat kehadiran', 'Melihat siapa yang sedang tersambung pada Manajemen Pengguna.'],
 
             ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
@@ -123,6 +138,8 @@ final class KatalogIzin
             ['pengguna', self::PENGGUNA_ATUR_KATA_SANDI, 'Mengatur ulang kata sandi', 'Menetapkan kata sandi baru untuk akun lain.'],
             ['pengguna', self::ROLE_LIHAT, 'Melihat peran', 'Membaca daftar peran beserta hak aksesnya.'],
             ['pengguna', self::ROLE_KELOLA, 'Mengelola peran & hak akses', 'Membuat peran, mengubah namanya, dan menentukan hak aksesnya.'],
+
+            ['sistem', self::SISTEM_MAINTENANCE, 'Mode pemeliharaan', 'Menyalakan/mematikan mode pemeliharaan, dan tetap dapat masuk saat mode itu aktif.'],
         ];
 
         $hasil = [];

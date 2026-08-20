@@ -31,6 +31,60 @@ export interface KartuKpi {
   keterangan: string;
 }
 
+/** Proses Produksi — ringkasan per stasiun + pemenuhan order + satu tren. */
+export type PeriodeProduksi = 'harian' | 'mingguan' | 'bulanan' | 'tahunan';
+
+export interface FieldStasiun {
+  label: string;
+  satuan: string;
+  nilai: number;
+  peran: 'target' | 'masuk' | 'keluar' | 'lain';
+}
+
+export interface StasiunProduksi {
+  nama: string;
+  urut: number;
+  /** Keluar/target × 100, atau null bila salah satunya tak ada. */
+  tercapai: number | null;
+  field: FieldStasiun[];
+}
+
+export interface OrderProduksi {
+  butuh_pouch: number;
+  selesai_pouch: number;
+  kurang_pouch: number;
+  butuh_box: number;
+  selesai_box: number;
+  kurang_box: number;
+  spk: number;
+  terjadwal: number;
+  tepat_kirim: number;
+}
+
+export interface TrenProduksi {
+  satuan: string;
+  label: string;
+  titik: { label: string; nilai: number }[];
+}
+
+export interface PelaporProduksi {
+  id: number;
+  nama: string;
+}
+
+export interface DataProduksi {
+  periode: PeriodeProduksi;
+  periode_label: string;
+  rentang: { dari: string; sampai: string };
+  /** Pelapor yang sedang disaring, atau null berarti seluruh pelapor. */
+  pengguna_id: number | null;
+  pelapor: PelaporProduksi[];
+  kpi: KartuKpi[];
+  stasiun: StasiunProduksi[];
+  order: OrderProduksi | null;
+  tren: TrenProduksi | null;
+}
+
 export interface Sorotan {
   jenis: 'baik' | 'perhatian';
   teks: string;

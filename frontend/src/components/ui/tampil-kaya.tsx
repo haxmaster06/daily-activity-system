@@ -49,6 +49,29 @@ export function berupaHtml(isi: string): boolean {
 }
 
 /**
+ * Mengubah HTML teks kaya menjadi teks polos satu baris — untuk ringkasan
+ * (mis. mode Per Baris), di mana `<p>Meeting</p>` mentah tak boleh terlihat.
+ *
+ * Batas blok jadi spasi lalu semua tag dibuang; entitas dasar dikembalikan
+ * (`&amp;` terakhir agar tak ganda-dekode). Bukan pembersih keamanan — hasilnya
+ * teks polos yang di-escape React saat dirender.
+ */
+export function htmlKeTeks(html: string): string {
+    return html
+        .replace(/<\/(p|li|ul|ol|div)>/gi, ' ')
+        .replace(/<br\s*\/?>/gi, ' ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/&amp;/gi, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
  * Benar hanya bila seluruh tag ada di daftar izin DAN tidak satu pun membawa
  * atribut. Tanpa atribut, `onerror`, `onclick`, dan `href="javascript:"` tidak
  * punya tempat untuk ditulis.

@@ -16,7 +16,7 @@ function laporanBerisi(User $pengguna, string $tanggal, array $baris): DailyRepo
 {
     $template = ReportTemplate::with('fields')->where('code', 'AKTIVITAS_UMUM')->firstOrFail();
 
-    $laporan = DailyReport::factory()->milik($pengguna)->create(['report_date' => $tanggal]);
+    $laporan = DailyReport::factory()->milik($pengguna)->dikirim()->create(['report_date' => $tanggal]);
     $bagian = $laporan->sections()->create([
         'report_template_id' => $template->id,
         'sort_order' => 0,
@@ -199,4 +199,106 @@ it('memakai sumber data yang sama untuk pratinjau dan berkas', function (): void
 
     expect($jejak->changes['jumlah_baris'])->toBe($pratinjau['jumlah_baris']);
     expect($jejak->changes['template'])->toBe($pratinjau['template']['kode']);
+});
+
+/*
+ * Template yang tidak ikut terexport.
+ *
+ * Satu berkas memuat satu bentuk tabel, sehingga laporan bertemplate lain
+ * memang tertinggal. Tanpa keterangan ini layarnya hanya menampilkan angka
+ * yang lebih kecil daripada dugaan, dan terbaca sebagai data yang hilang —
+ * persis yang dilaporkan pemakai.
+ */
+it('menyebutkan template lain yang tidak ikut terexport', function (): void {
+    siapkanExport();
+
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $data = $this->getJson('/api/export/pratinjau?'.http_build_query([
+        'dari' => now()->subMonth()->toDateString(),
+        'sampai' => now()->toDateString(),
+    ]))->assertOk()->json('data');
+
+    expect($data)->toHaveKey('template_lain');
+
+    // Template yang terpilih tidak boleh ikut disebut sebagai "yang lain".
+    $idLain = collect($data['template_lain'])->pluck('id');
+    expect($idLain)->not->toContain($data['template']['id']);
+});
+
+/*
+ * Template berkolom banyak.
+ *
+ * Dompdf tidak memindahkan kolom yang tidak muat ke halaman berikutnya —
+ * kelebihannya dipotong hilang tanpa satu pun tanda. Karena itu ukuran huruf,
+ * kerapatan, dan kertas dipilih mengikuti jumlah kolom, dan cabang itu perlu
+ * benar-benar dijalankan: kesalahan di sana hanya muncul pada template terlebar,
+ * yang justru paling jarang dicoba.
+ */
+it('menghasilkan PDF yang sah untuk template berkolom banyak', function (): void {
+    siapkanExport();
+
+    // PROD_PROSES adalah template terlebar di seeder (27 kolom).
+    $lebar = ReportTemplate::where('code', 'PROD_PROSES')->firstOrFail();
+
+    $penyusun = User::factory()->administrator()->create();
+
+    $laporan = DailyReport::factory()->milik($penyusun)->dikirim()->create([
+        'report_date' => now()->toDateString(),
+    ]);
+    $bagian = $laporan->sections()->create([
+        'report_template_id' => $lebar->id,
+        'sort_order' => 0,
+    ]);
+    $bagian->items()->create(['data' => [], 'sort_order' => 0]);
+
+    Sanctum::actingAs($penyusun);
+
+    $response = $this->get('/api/export/pdf?template_id='.$lebar->id);
+
+    // Tanpa data pada template itu, endpoint menolak dengan 422 — yang diuji di
+    // sini justru bahwa cabang lebarnya tidak melempar galat.
+    $response->assertOk();
+    expect(substr($response->getContent(), 0, 4))->toBe('%PDF');
+
+    /*
+     * 27 kolom = 4 identitas + 23 data, dipecah delapan-delapan menjadi tiga
+     * kelompok, masing-masing pada halamannya sendiri. Satu halaman berarti
+     * kolomnya kembali dipadatkan jadi tidak terbaca — persis keadaan yang
+     * hendak dihindari.
+     */
+    preg_match_all('#/Type\s*/Page[^s]#', $response->getContent(), $cocok);
+    expect(count($cocok[0]))->toBeGreaterThan(1);
+});
+
+it('menghitung baris total untuk kolom bertanda total (desimal)', function (): void {
+    test()->seed(DepartmentSeeder::class);
+    $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+    $admin = User::factory()->administrator()->create();
+
+    $template = ReportTemplate::create([
+        'code' => 'UJI_TOTAL',
+        'name' => 'Uji Total',
+        'department_id' => $produksi->id,
+        'is_active' => true,
+    ]);
+    $template->fields()->createMany([
+        ['key' => 'nama', 'label' => 'Nama', 'type' => 'text', 'sort_order' => 0],
+        ['key' => 'berat', 'label' => 'Berat', 'type' => 'decimal', 'unit' => 'kg', 'desimal' => 2, 'total' => true, 'sort_order' => 1],
+    ]);
+
+    $laporan = DailyReport::factory()->milik($admin)->create(['report_date' => now()->toDateString()]);
+    $bagian = $laporan->sections()->create(['report_template_id' => $template->id, 'sort_order' => 0]);
+    $bagian->items()->create(['data' => ['nama' => 'A', 'berat' => 12.5], 'sort_order' => 0]);
+    $bagian->items()->create(['data' => ['nama' => 'B', 'berat' => 7.25], 'sort_order' => 1]);
+
+    Sanctum::actingAs($admin);
+
+    $total = $this->getJson('/api/export/pratinjau?template_id='.$template->id)
+        ->assertOk()->json('data.total');
+
+    expect($total)->not->toBeNull()
+        ->and((float) $total['berat'])->toEqual(19.75)
+        ->and($total['nama'])->toBe('')
+        ->and($total['_tanggal'])->toBe('Total');
 });

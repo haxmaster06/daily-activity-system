@@ -203,6 +203,24 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
     }
   }
 
+  /**
+   * Membuang SELURUH notifikasi, termasuk yang belum dibaca. Tak dapat
+   * dikembalikan — pilihan sadar, bukan efek samping tombol bersihkan.
+   */
+  async function bersihkanSemua() {
+    setKotak({ jumlah_belum_dibaca: 0, daftar: [] });
+
+    try {
+      await fetch('/api/notifikasi/hapus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bersihkan: true, semua: true }),
+      });
+    } finally {
+      void muat();
+    }
+  }
+
   const belumDibaca = kotak.jumlah_belum_dibaca;
   const adaYangDibaca = kotak.daftar.some((satu) => satu.dibaca);
 
@@ -353,6 +371,21 @@ export function LoncengNotifikasi({ penggunaId }: { penggunaId: number }) {
               })
             )}
           </div>
+
+          {kotak.daftar.length > 0 && (
+            <div className="border-t border-line px-2 py-1.5">
+              <DropdownMenu.Item
+                onSelect={(event) => {
+                  event.preventDefault();
+                  void bersihkanSemua();
+                }}
+                className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-control py-1 text-caption text-ink-soft outline-none data-[highlighted]:bg-surface-muted data-[highlighted]:text-danger-text"
+              >
+                <Trash2 aria-hidden="true" className="size-3.5" />
+                Bersihkan semua notifikasi
+              </DropdownMenu.Item>
+            </div>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

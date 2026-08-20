@@ -30,6 +30,19 @@ class DailyReportResource extends JsonResource
             // lagi dikunci status, satu-satunya sumber kebenaran adalah
             // DailyReportPolicy::update().
             'dapat_disunting' => $request->user()?->can('update', $this->resource) ?? false,
+            /*
+             * Terpisah dari `dapat_disunting`, meski keduanya menuntut
+             * kepemilikan. Izinnya berbeda — LAPORAN_UBAH_SENDIRI dan
+             * LAPORAN_KIRIM dapat diberikan sendiri-sendiri lewat Manajemen
+             * Peran. Sempat dipagari satu penanda saja, dan akibatnya tombol
+             * Kirim tampil pada laporan yang penolakannya sudah pasti.
+             */
+            'dapat_dikirim' => $request->user()?->can('kirim', $this->resource) ?? false,
+            // Terpisah lagi: menghapus menuntut kepemilikan ATAU jangkauan
+            // Korporat, sedangkan menyunting hanya kepemilikan. Memagari
+            // tombol hapus dengan `dapat_disunting` membuatnya tampil pada
+            // laporan yang penolakannya sudah pasti.
+            'dapat_dihapus' => $request->user()?->can('delete', $this->resource) ?? false,
 
             'penyusun' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,

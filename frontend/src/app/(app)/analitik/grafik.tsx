@@ -515,3 +515,57 @@ export function GrafikBeban({
 
   return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
+
+/** Tren keluaran produksi — butir sudah berlabel dari server (hari/minggu/bulan/tahun). */
+export function GrafikTrenProduksi({
+  titik,
+  satuan,
+  label,
+}: {
+  titik: { label: string; nilai: number }[];
+  satuan: string;
+  label: string;
+}) {
+  const gerak = gerakDikurangi();
+
+  const konfigurasi = useMemo(
+    () => ({
+      labels: titik.map((satu) => satu.label),
+      datasets: [
+        {
+          label: satuan ? `${label} (${satuan})` : label,
+          data: titik.map((satu) => satu.nilai),
+          borderColor: WARNA.primary,
+          backgroundColor: 'rgba(26, 115, 232, 0.12)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2,
+        },
+      ],
+    }),
+    [titik, satuan, label],
+  );
+
+  const opsi: ChartOptions<'line'> = {
+    ...dasar(gerak),
+    plugins: {
+      ...dasar(gerak).plugins,
+      tooltip: {
+        ...dasar(gerak).plugins.tooltip,
+        callbacks: {
+          label: (butir) => `${formatAngka(titik[butir.dataIndex]?.nilai ?? 0)} ${satuan}`.trim(),
+        },
+      },
+    },
+    scales: {
+      x: { ticks: { color: WARNA.teks, font: { size: 10 }, maxTicksLimit: 12 } },
+      y: {
+        beginAtZero: true,
+        ticks: { color: WARNA.teks, font: { size: 11 } },
+        grid: { color: WARNA.garisBantu },
+      },
+    },
+  };
+
+  return <Line aria-hidden="true" data={konfigurasi} options={opsi} />;
+}

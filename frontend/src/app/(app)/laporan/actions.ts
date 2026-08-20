@@ -103,12 +103,12 @@ export async function tinjauLaporan(id: number, catatan: string): Promise<HasilA
   }
 }
 
-export async function hapusDrafLaporan(id: number): Promise<HasilAksi> {
+export async function hapusLaporan(id: number): Promise<HasilAksi> {
   try {
     const { message } = await panggilApi(`/laporan/${id}`, { method: 'DELETE' });
     revalidatePath(HALAMAN);
 
-    return hasilBerhasil(message || 'Draf laporan berhasil dihapus.');
+    return hasilBerhasil(message || 'Laporan berhasil dihapus.');
   } catch (galat) {
     return hasilGalat(galat);
   }

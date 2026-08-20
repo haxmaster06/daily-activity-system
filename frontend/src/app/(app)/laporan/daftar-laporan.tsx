@@ -20,7 +20,7 @@ import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatTanggal } from '@/lib/format';
 import { RAGAM_STATUS, type Laporan } from '@/lib/laporan';
-import { hapusDrafLaporan } from './actions';
+import { hapusLaporan } from './actions';
 import { ImportLaporanDialog, type PilihanTemplateImport } from './import-laporan-dialog';
 
 interface DaftarLaporanProps {
@@ -51,7 +51,7 @@ export function DaftarLaporan({
   async function hapus() {
     if (!konfirmasiHapus) return;
 
-    const hasil = await hapusDrafLaporan(konfirmasiHapus.id);
+    const hasil = await hapusLaporan(konfirmasiHapus.id);
 
     setKonfirmasiHapus(null);
     setPemberitahuan({ jenis: hasil.berhasil ? 'berhasil' : 'galat', pesan: hasil.pesan });
@@ -149,7 +149,12 @@ export function DaftarLaporan({
                     <StatusBadge status={RAGAM_STATUS[item.status]} label={item.label_status} />
                   </Td>
                   <Td align="right">
-                    {item.dapat_disunting && (
+                    {/*
+                      `dapat_dihapus`, bukan `dapat_disunting`. Keduanya sempat
+                      disatukan, sehingga tombol ini muncul di tiap laporan
+                      sendiri lalu dijawab 403 begitu ditekan.
+                    */}
+                    {item.dapat_dihapus && (
                       <button
                         type="button"
                         onClick={(event) => {
@@ -157,9 +162,9 @@ export function DaftarLaporan({
                           setKonfirmasiHapus(item);
                         }}
                         className="btn-ghost btn-sm"
-                        aria-label={`Hapus draf ${formatTanggal(item.tanggal)}`}
+                        aria-label={`Hapus laporan ${formatTanggal(item.tanggal)}`}
                       >
-                        Hapus Draf
+                        Hapus
                       </button>
                     )}
                   </Td>
@@ -194,8 +199,8 @@ export function DaftarLaporan({
         terbuka={konfirmasiHapus !== null}
         onTutup={() => setKonfirmasiHapus(null)}
         onSetuju={hapus}
-        judul="Hapus Draf Laporan"
-        pesan={`Draf laporan ${formatTanggal(konfirmasiHapus?.tanggal ?? null)} beserta seluruh isinya akan dihapus permanen.`}
+        judul="Hapus Laporan"
+        pesan={`Laporan ${formatTanggal(konfirmasiHapus?.tanggal ?? null)} beserta seluruh isinya akan dihapus permanen.`}
         labelAksi="Hapus"
         berisiko
       />

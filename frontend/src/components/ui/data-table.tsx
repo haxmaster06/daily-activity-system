@@ -31,9 +31,22 @@ export function DataTable({
   );
 }
 
-export function DataTableHead({ children }: { children: ReactNode }) {
+export function DataTableHead({
+  children,
+  grup,
+}: {
+  children: ReactNode;
+  /**
+   * Baris header di atas judul kolom, untuk mengelompokkan beberapa kolom di
+   * bawah satu nama — isinya `<Th colSpan={n}>`.
+   *
+   * Opsional supaya seluruh tabel yang sudah ada tidak berubah sama sekali.
+   */
+  grup?: ReactNode;
+}) {
   return (
     <thead className="sticky top-0 z-10 bg-surface-muted">
+      {grup && <tr className="border-b border-line/60">{grup}</tr>}
       <tr className="border-b border-line">{children}</tr>
     </thead>
   );
@@ -43,14 +56,17 @@ export function Th({
   children,
   className,
   align = 'left',
+  colSpan,
 }: {
   children?: ReactNode;
   className?: string;
   align?: 'left' | 'right' | 'center';
+  colSpan?: number;
 }) {
   return (
     <th
-      scope="col"
+      scope={colSpan && colSpan > 1 ? 'colgroup' : 'col'}
+      colSpan={colSpan}
       className={cn(
         'whitespace-nowrap px-3 py-2 text-caption font-semibold uppercase tracking-wide text-ink-muted',
         align === 'right' && 'text-right',
@@ -72,13 +88,16 @@ export function Td({
   children,
   className,
   align = 'left',
+  colSpan,
 }: {
   children?: ReactNode;
   className?: string;
   align?: 'left' | 'right' | 'center';
+  colSpan?: number;
 }) {
   return (
     <td
+      colSpan={colSpan}
       className={cn(
         'px-3 py-2 align-middle text-ink',
         align === 'right' && 'text-right',

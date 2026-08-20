@@ -7,6 +7,7 @@ import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { Alert } from '@/components/ui/alert';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Select } from '@/components/ui/select';
+import { cn } from '@/lib/cn';
 import { formatAngka } from '@/lib/format';
 import type { Departemen } from '@/lib/master-data';
 import type { PratinjauExport } from '@/lib/export-server';
@@ -42,6 +43,8 @@ export function PanelExport({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const [halaman, setHalaman] = useState(1);
+  const [sedangCetak, setSedangCetak] = useState(false);
   const [mengunduh, setMengunduh] = useState<string | null>(null);
 
   function ubahFilter(kunci: string, nilai: string | null) {
@@ -74,6 +77,43 @@ export function PanelExport({
   }
 
   const adaData = pratinjau.template !== null && pratinjau.jumlah_baris > 0;
+
+  /*
+   * Cetak memakai dialog cetak bawaan peramban.
+   *
+   * Yang tercetak bukan tabel lebar di layar, melainkan tata letak berkelompok
+   * di bawah — kolomnya dipecah per halaman dengan kolom identitas berulang,
+   * memakai pengelompokan yang sama persis dengan berkas PDF karena keduanya
+   * membacanya dari server.
+   *
+   * Tata letak itu baru dirender saat hendak dicetak: 5000 baris dikali
+   * beberapa kelompok adalah puluhan ribu baris yang tidak berguna bagi siapa
+   * pun selama tidak ada yang mencetak.
+   */
+  async function cetak() {
+    setSedangCetak(true);
+
+    // Satu frame supaya tata letak cetaknya sudah terpasang saat dialog dibuka.
+    await new Promise((selesai) => requestAnimationFrame(() => selesai(null)));
+
+    window.print();
+    setSedangCetak(false);
+  }
+
+  const PER_HALAMAN = 25;
+  const totalHalaman = Math.max(1, Math.ceil(pratinjau.baris.length / PER_HALAMAN));
+  const halamanAman = Math.min(halaman, totalHalaman);
+
+  /*
+   * Yang tercetak bukan tabel ini melainkan tata letak berkelompok di atas,
+   * sehingga memotong barisnya di sini aman — halaman cetaknya tetap memuat
+   * seluruh baris.
+   */
+  function diHalamanIni(index: number): boolean {
+    return (
+      index >= (halamanAman - 1) * PER_HALAMAN && index < halamanAman * PER_HALAMAN
+    );
+  }
 
   return (
     <>
@@ -139,6 +179,36 @@ export function PanelExport({
         />
       )}
 
+      {/*
+        Satu berkas export memuat satu bentuk tabel, sehingga laporan
+        bertemplate lain memang tidak ikut. Tanpa keterangan ini, layarnya
+        hanya menampilkan angka yang lebih kecil daripada dugaan dan terbaca
+        sebagai data yang hilang.
+      */}
+      {pratinjau.template_lain.length > 0 && (
+        <div className="mb-3 rounded-card border border-accent/40 bg-accent-subtle px-3 py-2 print:hidden">
+          <p className="text-body text-ink">
+            Satu berkas export memuat satu template. Laporan bertemplate lain
+            pada periode ini tidak ikut — pilih templatenya untuk mengexport:
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {pratinjau.template_lain.map((lain) => (
+              <button
+                key={lain.id}
+                type="button"
+                onClick={() => ubahFilter('template_id', String(lain.id))}
+                className="btn-ghost btn-sm border border-line bg-surface"
+              >
+                {lain.nama}
+                <span className="text-ink-soft">
+                  ({formatAngka(lain.jumlah_baris)} baris)
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {pratinjau.terpotong && (
         <Alert
           jenis="galat"
@@ -159,7 +229,8 @@ export function PanelExport({
               <span className="font-semibold text-ink">
                 {formatAngka(pratinjau.jumlah_baris)} baris
               </span>{' '}
-              dari {formatAngka(pratinjau.jumlah_laporan)} laporan,
+              dari template{' '}
+              <span className="font-semibold text-ink">{pratinjau.template?.nama}</span>,
               periode {pratinjau.rentang.label}
             </>
           ) : (
@@ -198,7 +269,7 @@ export function PanelExport({
 
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => void cetak()}
             disabled={!adaData}
             className="btn-primary btn-sm"
           >
@@ -208,6 +279,7 @@ export function PanelExport({
         </div>
       </div>
 
+
       {/* Judul yang hanya muncul di hasil cetak. */}
       <div className="hidden print:mb-3 print:block">
         <p className="font-heading text-page-title text-ink">
@@ -216,10 +288,82 @@ export function PanelExport({
         <p className="text-body text-ink-muted">Periode {pratinjau.rentang.label}</p>
       </div>
 
-      <div className="card overflow-hidden print:border-0 print:shadow-none">
-        <div className="max-h-[32rem] overflow-auto print:max-h-none print:overflow-visible">
+      {/*
+        Tata letak cetak: satu tabel per kelompok kolom, kolom identitas
+        berulang. Hanya ada saat mencetak — tabel lebar di layar dipakai untuk
+        membaca, tata letak ini untuk kertas.
+      */}
+      {sedangCetak && (
+        <div className="hidden print:block">
+          {pratinjau.kelompok_kolom.map((kolomHalaman, nomor) => (
+            <div key={nomor} className={nomor > 0 ? 'break-before-page' : undefined}>
+              {pratinjau.kelompok_kolom.length > 1 && (
+                <p className="mb-1 text-caption font-semibold text-ink-muted">
+                  Kelompok kolom {nomor + 1} dari {pratinjau.kelompok_kolom.length}
+                </p>
+              )}
+
+              <table className="mb-4 w-full border-collapse text-table">
+                <thead>
+                  <tr className="border-b border-line bg-surface-muted">
+                    {kolomHalaman.map((kolom) => (
+                      <th
+                        key={kolom.kunci}
+                        scope="col"
+                        className="border border-line px-2 py-1 text-left text-caption font-semibold text-ink"
+                      >
+                        {kolom.label}
+                        {kolom.satuan && (
+                          <span className="font-normal text-ink-soft"> ({kolom.satuan})</span>
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pratinjau.baris.map((baris, index) => (
+                    <tr key={index}>
+                      {kolomHalaman.map((kolom) => (
+                        <td
+                          key={kolom.kunci}
+                          className="whitespace-pre-line break-words border border-line px-2 py-1 align-top text-ink"
+                        >
+                          {baris[kolom.kunci] === null || baris[kolom.kunci] === ''
+                            ? '—'
+                            : String(baris[kolom.kunci])}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+                {pratinjau.total && (
+                  <tfoot>
+                    <tr className="bg-surface-muted font-semibold">
+                      {kolomHalaman.map((kolom) => (
+                        <td
+                          key={kolom.kunci}
+                          className="border border-line px-2 py-1 align-top text-ink"
+                        >
+                          {pratinjau.total?.[kolom.kunci] === null ||
+                          pratinjau.total?.[kolom.kunci] === '' ||
+                          pratinjau.total?.[kolom.kunci] === undefined
+                            ? ''
+                            : String(pratinjau.total[kolom.kunci])}
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card overflow-hidden print:hidden">
+        <div className="max-h-[32rem] overflow-auto">
           <table className="w-full min-w-max border-collapse text-table">
-            <thead className="sticky top-0 z-10 bg-surface-muted print:static">
+            <thead className="sticky top-0 z-10 bg-surface-muted">
               <tr className="border-b border-line">
                 {pratinjau.kolom.map((kolom) => (
                   <th
@@ -248,7 +392,13 @@ export function PanelExport({
                 </tr>
               ) : (
                 pratinjau.baris.map((baris, index) => (
-                  <tr key={index} className="hover:bg-surface-muted/60">
+                  <tr
+                    key={index}
+                    className={cn(
+                      'hover:bg-surface-muted/60',
+                      !diHalamanIni(index) && 'hidden',
+                    )}
+                  >
                     {pratinjau.kolom.map((kolom) => (
                       <td
                         key={kolom.kunci}
@@ -274,8 +424,59 @@ export function PanelExport({
                 ))
               )}
             </tbody>
+            {pratinjau.total && pratinjau.baris.length > 0 && (
+              <tfoot className="sticky bottom-0 bg-surface-muted">
+                <tr className="border-t-2 border-line font-semibold">
+                  {pratinjau.kolom.map((kolom) => (
+                    <td key={kolom.kunci} className="px-2.5 py-1.5 align-top text-ink">
+                      {pratinjau.total?.[kolom.kunci] === null ||
+                      pratinjau.total?.[kolom.kunci] === '' ||
+                      pratinjau.total?.[kolom.kunci] === undefined
+                        ? ''
+                        : String(pratinjau.total[kolom.kunci])}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
+
+        {/*
+          Hanya di layar. Hasil cetak dan berkas unduhan tetap memuat seluruh
+          baris — yang dipecah cuma cara membacanya di sini.
+        */}
+        {totalHalaman > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 print:hidden">
+            <p className="text-caption text-ink-muted">
+              Menampilkan {formatAngka((halamanAman - 1) * PER_HALAMAN + 1)}–
+              {formatAngka(Math.min(halamanAman * PER_HALAMAN, pratinjau.baris.length))} dari{' '}
+              {formatAngka(pratinjau.baris.length)} baris
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setHalaman((n) => Math.max(1, n - 1))}
+                disabled={halamanAman <= 1}
+                className="btn-ghost btn-sm disabled:opacity-40"
+              >
+                Sebelumnya
+              </button>
+              <span className="text-caption tabular-nums text-ink-muted">
+                {halamanAman} / {totalHalaman}
+              </span>
+              <button
+                type="button"
+                onClick={() => setHalaman((n) => Math.min(totalHalaman, n + 1))}
+                disabled={halamanAman >= totalHalaman}
+                className="btn-ghost btn-sm disabled:opacity-40"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Layers, Plus, Trash2 } from 'lucide-react';
+import { Copy, Layers, Plus, Trash2 } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -18,16 +18,13 @@ import { FilterBar } from '@/components/ui/filter-bar';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatAngka } from '@/lib/format';
 import type { Departemen } from '@/lib/master-data';
-import type { OpsiPenyusunKolom, Template } from '@/lib/template';
+import type { Template } from '@/lib/template';
 import { hapusTemplate } from './actions';
-import type { RingkasanJenisMaster } from './penyusun-kolom';
-import { TemplateWizard } from './template-wizard';
+
 
 interface TemplateManagerProps {
   template: Template[];
   departemen: Departemen[];
-  opsi: OpsiPenyusunKolom;
-  jenisMaster: RingkasanJenisMaster[];
 }
 
 /**
@@ -38,25 +35,21 @@ interface TemplateManagerProps {
  * makin banyak tab makin tergulir keluar layar dan makin sulit ditemukan
  * (docs/standar-ui-ux.md §2).
  */
-export function TemplateManager({
-  template,
-  departemen,
-  opsi,
-  jenisMaster,
-}: TemplateManagerProps) {
+export function TemplateManager({ template, departemen }: TemplateManagerProps) {
   const router = useRouter();
 
-  const [wizardTerbuka, setWizardTerbuka] = useState(false);
-  const [sedangDiubah, setSedangDiubah] = useState<Template | null>(null);
   const [konfirmasiHapus, setKonfirmasiHapus] = useState<Template | null>(null);
   const [pemberitahuan, setPemberitahuan] = useState<{
     jenis: 'galat' | 'berhasil';
     pesan: string;
   } | null>(null);
 
-  function buka(target: Template | null) {
-    setSedangDiubah(target);
-    setWizardTerbuka(true);
+  /*
+   * Penyusunnya halaman tersendiri, bukan modal: formnya jauh melewati delapan
+   * field, dan template terbesar punya 27 kolom (docs/standar-ui-ux.md §7.1).
+   */
+  function buka(target: Template) {
+    router.push(`/pengaturan/template/${target.id}/ubah`);
   }
 
   async function hapus() {
@@ -74,7 +67,11 @@ export function TemplateManager({
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-page-title text-ink">Template Laporan</h1>
-        <button type="button" onClick={() => buka(null)} className="btn-primary btn-sm">
+        <button
+          type="button"
+          onClick={() => router.push('/pengaturan/template/baru')}
+          className="btn-primary btn-sm"
+        >
           <Plus aria-hidden="true" className="size-4" />
           Buat Template
         </button>
@@ -169,7 +166,20 @@ export function TemplateManager({
                     <button
                       type="button"
                       onClick={(event) => {
-                        // Tanpa ini, klik Hapus ikut memicu klik baris.
+                        // Tanpa ini, klik ikon ikut memicu klik baris.
+                        event.stopPropagation();
+                        router.push(`/pengaturan/template/baru?dari=${item.id}`);
+                      }}
+                      aria-label={`Duplikat template ${item.nama}`}
+                      title="Duplikat"
+                      className="mr-1 grid size-7 place-items-center rounded-control text-ink-soft transition-colors duration-fast hover:bg-surface-muted hover:text-primary-text"
+                    >
+                      <Copy aria-hidden="true" className="size-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
                         event.stopPropagation();
                         setKonfirmasiHapus(item);
                       }}
@@ -191,15 +201,6 @@ export function TemplateManager({
           Menampilkan {formatAngka(template.length)} template
         </p>
       </div>
-
-      <TemplateWizard
-        terbuka={wizardTerbuka}
-        onTutup={() => setWizardTerbuka(false)}
-        template={sedangDiubah}
-        departemen={departemen}
-        opsi={opsi}
-        jenisMaster={jenisMaster}
-      />
 
       <ConfirmDialog
         terbuka={konfirmasiHapus !== null}

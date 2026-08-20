@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
+import { cn } from '@/lib/cn';
 import { SpectacularButton } from '@/components/ui/spectacular-button';
 import { Stepper } from '@/components/ui/stepper';
 import { geserArah } from '@/lib/gerak';
@@ -37,6 +38,18 @@ interface WizardProps {
    * langkah yang sama tetap terbaca sebagai permintaan baru.
    */
   lompatKe?: { langkah: number; nonce: number };
+  /**
+   * Menempelkan baris tombol ke dasar wadahnya.
+   *
+   * Dipakai wizard yang isinya dapat tumbuh jauh melebihi satu layar —
+   * penyusun template dengan 27 kolom, misalnya. Tanpa ini tombol Simpan
+   * tergulir keluar dan pengguna mengira wizardnya tidak punya tombol, alasan
+   * yang sama yang membuat footer Modal dipatok di docs/standar-ui-ux.md §7.2.
+   *
+   * Tidak dinyalakan bawaan: pada wizard yang isinya pendek, bar menempel hanya
+   * memakan ruang tanpa menyelesaikan apa pun.
+   */
+  aksiMenempel?: boolean;
 }
 
 /**
@@ -52,6 +65,7 @@ export function Wizard({
   labelSelesai = 'Simpan',
   onBatal,
   lompatKe,
+  aksiMenempel = false,
 }: WizardProps) {
   const [aktif, setAktif] = useState(0);
   const [memproses, setMemproses] = useState(false);
@@ -115,7 +129,15 @@ export function Wizard({
         </AnimatePresence>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+      <div
+        className={cn(
+          'flex items-center justify-between gap-2 border-t border-line pt-3',
+          // `z-20`: di bawah kerangka aplikasi (z-30/z-40, §13), di atas header
+          // tabel yang menempel. Jarak bawah pada layar sempit menghindari dock.
+          aksiMenempel &&
+            'sticky bottom-0 z-20 -mx-1 bg-surface/95 px-1 pb-3 backdrop-blur max-md:mb-16',
+        )}
+      >
         <div>
           {onBatal && (
             <button type="button" onClick={onBatal} className="btn-ghost btn-sm">

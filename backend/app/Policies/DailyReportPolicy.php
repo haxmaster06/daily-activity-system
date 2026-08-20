@@ -33,11 +33,26 @@ class DailyReportPolicy
             return false;
         }
 
+        // Super Admin melihat segalanya, termasuk draf orang lain. Harus sejalan
+        // dengan DailyReport::scopeVisibleTo() — daftar dan detail wajib sepakat.
+        if ($user->is_system) {
+            return true;
+        }
+
         $jangkauan = $user->jangkauan();
 
-        return $jangkauan->korporat()
+        $dalamJangkauan = $jangkauan->korporat()
             || $report->user_id === $user->getKey()
             || $jangkauan->mencakupDepartemen($report->department_id);
+
+        if (! $dalamJangkauan) {
+            return false;
+        }
+
+        // Draf berarti belum dipublikasikan: hanya pembuatnya yang boleh
+        // membukanya. Berlaku bagi jangkauan korporat sekalipun (Management).
+        return $report->status !== DailyReport::STATUS_DRAF
+            || $report->user_id === $user->getKey();
     }
 
     public function create(User $user): bool
@@ -67,19 +82,46 @@ class DailyReportPolicy
             && $report->user_id === $user->getKey();
     }
 
+    /**
+     * Menghapus laporan permanen.
+     *
+     * Dua batasan dicabut sekaligus, keduanya sudah tidak berpijak pada apa pun:
+     *
+     * `masihDraf()` — sejak laporan langsung terbit tanpa tahap draf, praktis
+     * tidak ada laporan berstatus draf, sehingga tidak ada yang dapat dihapus
+     * pemiliknya sendiri.
+     *
+     * Kepemilikan mutlak — Administrator memegang seluruh izin tetapi tetap
+     * gagal pada `user_id === getKey()`, jadi tidak ada satu pun jalan
+     * membersihkan laporan yang salah masuk.
+     *
+     * Jangkauan Korporat dipakai sebagai penggantinya, bukan izin baru: yang
+     * berjangkauan Korporat sudah melihat seluruh laporan lewat
+     * `scopeVisibleTo()`, jadi siapa yang boleh menyentuh apa tetap diputuskan
+     * satu acuan. Jangkauan departemen sengaja TIDAK cukup — melihat laporan
+     * rekan sedepartemen adalah satu hal, menghapusnya hal lain.
+     */
     public function delete(User $user, DailyReport $report): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_HAPUS_SENDIRI)
-            && $report->user_id === $user->getKey()
-            && $report->masihDraf();
+            && ($report->user_id === $user->getKey() || $user->jangkauan()->korporat());
     }
 
-    /** Mengirim laporan: hanya pemiliknya, dan hanya sekali. */
+    /**
+     * Mengirim laporan — hanya pemiliknya, dan boleh berulang kali.
+     *
+     * Batasan "hanya sekali" dicabut menyusul dibukanya penyuntingan sesudah
+     * kirim. Selama laporan masih dapat berubah, harus ada cara menyatakan
+     * bahwa isinya berubah; tanpa itu suntingan mendarat diam-diam dan
+     * peninjau tidak pernah tahu.
+     *
+     * Statusnya karena itu tidak dibatasi. Yang dibatasi tetap kepemilikannya:
+     * mengirim laporan orang lain berarti menyatakan atas nama orang itu.
+     */
     public function kirim(User $user, DailyReport $report): bool
     {
         return $user->boleh(KatalogIzin::LAPORAN_KIRIM)
-            && $report->user_id === $user->getKey()
-            && $report->masihDraf();
+            && $report->user_id === $user->getKey();
     }
 
     /**

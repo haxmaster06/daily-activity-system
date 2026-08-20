@@ -105,31 +105,50 @@ class DailyReport extends Model
      */
     public function scopeVisibleTo(Builder $query, User $user): void
     {
-        $jangkauan = $user->jangkauan();
-
-        if ($jangkauan->korporat()) {
+        /*
+         * Super Admin (akun sistem) melihat segalanya, termasuk draf orang lain.
+         * Ia satu-satunya pengecualian dari aturan "draf hanya untuk pembuatnya".
+         */
+        if ($user->is_system) {
             return;
         }
 
-        $departemen = $jangkauan->departemenId;
+        $jangkauan = $user->jangkauan();
 
         /*
+         * Jangkauan menentukan laporan SIAPA yang terlihat. Korporat tak dibatasi
+         * departemen, jadi tak perlu klausa jangkauan sama sekali.
+         *
          * Kurungnya wajib. Tanpa closure pembungkus, `orWhereIn` di dalamnya
          * lepas dari seluruh penyaringan lain pada query pemanggil — status,
          * rentang tanggal, kata pencarian — dan mengembalikan seluruh laporan
          * departemen itu.
          */
-        $query->where(function (Builder $sub) use ($user, $departemen): void {
-            /*
-             * Laporan sendiri selalu terlihat, termasuk yang dibuat sebelum
-             * pengguna dipindah departemen: `department_id` laporan disalin
-             * saat laporan dibuat dan tidak ikut berpindah.
-             */
-            $sub->where('user_id', $user->getKey());
+        if (! $jangkauan->korporat()) {
+            $departemen = $jangkauan->departemenId;
 
-            if ($departemen !== []) {
-                $sub->orWhereIn('department_id', $departemen);
-            }
+            $query->where(function (Builder $sub) use ($user, $departemen): void {
+                /*
+                 * Laporan sendiri selalu terlihat, termasuk yang dibuat sebelum
+                 * pengguna dipindah departemen: `department_id` laporan disalin
+                 * saat laporan dibuat dan tidak ikut berpindah.
+                 */
+                $sub->where('user_id', $user->getKey());
+
+                if ($departemen !== []) {
+                    $sub->orWhereIn('department_id', $departemen);
+                }
+            });
+        }
+
+        /*
+         * Draf berarti belum dipublikasikan: hanya pembuatnya yang boleh
+         * melihatnya (Super Admin sudah lolos di atas). Berlaku bagi jangkauan
+         * korporat sekalipun — Management pun tak melihat draf orang lain.
+         */
+        $query->where(function (Builder $sub) use ($user): void {
+            $sub->where('status', '!=', self::STATUS_DRAF)
+                ->orWhere('user_id', $user->getKey());
         });
     }
 

@@ -41,6 +41,18 @@ class ReportTemplateRequest extends FormRequest
             'is_active' => ['sometimes', 'boolean'],
             'bentuk_pengisian' => ['sometimes', 'string', Rule::in(['grid', 'baris'])],
 
+            /*
+             * Template yang sedang disalin, bila ini duplikat.
+             *
+             * Dipakai HANYA untuk menurunkan kode. Nama salinan biasanya
+             * berakhiran "(Salinan)", dan menurunkan kode dari nama itu
+             * menghasilkan `PROD_PROSES_SALINAN` — penanda teknis yang membawa
+             * kata yang tidak berarti apa-apa selamanya, sebab kode tidak
+             * pernah berubah lagi setelah dibuat. Dengan ini kodenya tetap satu
+             * keluarga dengan sumbernya, dibedakan nomor: PROD_PROSES_2.
+             */
+            'salin_dari' => ['nullable', 'integer', 'exists:report_templates,id'],
+
             'fields' => ['required', 'array', 'min:1', 'max:60'],
             'fields.*.key' => ['required', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_]*$/'],
             'fields.*.label' => ['required', 'string', 'max:100'],
@@ -64,6 +76,7 @@ class ReportTemplateRequest extends FormRequest
             'fields.*.master_type_id' => ['nullable', 'integer', 'exists:master_types,id'],
             'fields.*.master_induk_key' => ['nullable', 'string', 'max:64'],
             'fields.*.beku' => ['sometimes', 'boolean'],
+            'fields.*.total' => ['sometimes', 'boolean'],
             'fields.*.tampilan' => ['nullable', 'string', 'max:24'],
         ];
     }

@@ -22,6 +22,12 @@ final class DataExport
     /** Batas baris per export. Melewati ini, permintaan ditolak. */
     public const BATAS_BARIS = 5000;
 
+    /** Tanggal, penyusun, departemen, status — diulang pada tiap kelompok. */
+    public const KOLOM_IDENTITAS = 4;
+
+    /** Bersama kolom identitas menjadi 12 kolom; masih terbaca di A4 landscape. */
+    public const KOLOM_DATA_PER_HALAMAN = 8;
+
     /**
      * @param  array<string, mixed>  $filter
      * @return array<string, mixed>
@@ -67,6 +73,7 @@ final class DataExport
          * Bila template tidak dipilih, dipakai template yang paling banyak
          * muncul pada hasil penyaringan.
          */
+        $sebaran = self::sebaranTemplate($laporan);
         $templateTerpakai = $template ?? self::templateTerbanyak($laporan);
 
         if ($templateTerpakai === null) {
@@ -74,9 +81,12 @@ final class DataExport
                 'rentang' => self::rentang($dari, $sampai),
                 'template' => null,
                 'kolom' => [],
+                'kelompok_kolom' => [],
+                'total' => null,
                 'baris' => [],
                 'jumlah_baris' => 0,
                 'jumlah_laporan' => 0,
+                'template_lain' => [],
                 'terpotong' => false,
             ];
         }
@@ -94,9 +104,35 @@ final class DataExport
                 'nama' => $templateTerpakai->name,
             ],
             'kolom' => $kolom,
+            /*
+             * Kolom yang sudah dipecah per halaman cetak; tiap kelompok sudah
+             * memuat kolom identitasnya sendiri.
+             *
+             * Dihitung di sini, bukan di pemakainya: berkas PDF dan pratinjau
+             * layar harus memecah dengan cara yang sama persis. Dua tempat
+             * untuk aturan yang sama lambat laun berbeda, dan yang berbeda pada
+             * cetakan tidak akan disadari siapa pun sampai lembarnya sudah
+             * dibagikan.
+             */
+            'kelompok_kolom' => self::kelompokKolom($kolom),
+            'total' => self::total($laporan, $templateTerpakai),
             'baris' => $terpotong ? array_slice($baris, 0, self::BATAS_BARIS) : $baris,
             'jumlah_baris' => count($baris),
             'jumlah_laporan' => $laporan->count(),
+            /*
+             * Template lain yang ada di hasil penyaringan tetapi tidak ikut
+             * terexport.
+             *
+             * Tanpa ini layar hanya menampilkan "6 baris dari 10 laporan" dan
+             * terbaca sebagai data yang hilang — padahal empat laporan sisanya
+             * memakai template berbeda, dan satu berkas export memang hanya
+             * memuat satu bentuk tabel. Yang kurang bukan datanya, melainkan
+             * keterangannya.
+             */
+            'template_lain' => collect($sebaran)
+                ->reject(fn (array $satu) => $satu['id'] === $templateTerpakai->id)
+                ->values()
+                ->all(),
             'terpotong' => $terpotong,
         ];
     }
@@ -116,6 +152,61 @@ final class DataExport
     /**
      * @param  Collection<int, DailyReport>  $laporan
      */
+    /**
+     * Template apa saja yang muncul pada hasil penyaringan, beserta jumlahnya.
+     *
+     * @return array<int, array{id: int, nama: string, jumlah_baris: int, jumlah_laporan: int}>
+     */
+    /**
+     * Memecah kolom menjadi kelompok selebar satu halaman cetak.
+     *
+     * Kolom identitas diulang pada tiap kelompok supaya tiap halaman dapat
+     * dibaca sendiri — tanpa itu halaman kedua hanya berisi deretan angka tanpa
+     * keterangan itu milik siapa dan tanggal berapa.
+     *
+     * @param  array<int, array<string, mixed>>  $kolom
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private static function kelompokKolom(array $kolom): array
+    {
+        $tetap = array_slice($kolom, 0, self::KOLOM_IDENTITAS);
+        $data = array_slice($kolom, self::KOLOM_IDENTITAS);
+
+        if ($data === []) {
+            return [$tetap];
+        }
+
+        return array_map(
+            fn (array $bagian) => array_merge($tetap, $bagian),
+            array_chunk($data, self::KOLOM_DATA_PER_HALAMAN),
+        );
+    }
+
+    private static function sebaranTemplate(Collection $laporan): array
+    {
+        $sebaran = [];
+
+        foreach ($laporan as $item) {
+            foreach ($item->sections as $bagian) {
+                $id = $bagian->report_template_id;
+
+                $sebaran[$id] ??= [
+                    'id' => $id,
+                    'nama' => $bagian->template?->name ?? '—',
+                    'jumlah_baris' => 0,
+                    'jumlah_laporan' => 0,
+                ];
+
+                $sebaran[$id]['jumlah_baris'] += $bagian->items->count();
+                $sebaran[$id]['jumlah_laporan']++;
+            }
+        }
+
+        usort($sebaran, fn (array $a, array $b) => $b['jumlah_baris'] <=> $a['jumlah_baris']);
+
+        return $sebaran;
+    }
+
     private static function templateTerbanyak(Collection $laporan): ?ReportTemplate
     {
         $hitung = [];
@@ -165,6 +256,54 @@ final class DataExport
         }
 
         return $kolom;
+    }
+
+    /**
+     * Baris total: jumlah ke bawah tiap kolom bertanda `total`. Null bila
+     * template tak punya kolom total. Kolom rumus menyimpan nilai hitungannya di
+     * `data` (dihitung server saat simpan), jadi ikut terjumlah apa adanya.
+     *
+     * @param  Collection<int, DailyReport>  $laporan
+     * @return array<string, mixed>|null
+     */
+    private static function total(Collection $laporan, ReportTemplate $template): ?array
+    {
+        $kolomTotal = $template->fields->filter(fn (TemplateField $field) => $field->total);
+
+        if ($kolomTotal->isEmpty()) {
+            return null;
+        }
+
+        $jumlah = [];
+
+        foreach ($laporan as $item) {
+            foreach ($item->sections as $bagian) {
+                if ($bagian->report_template_id !== $template->id) {
+                    continue;
+                }
+
+                foreach ($bagian->items as $isi) {
+                    foreach ($kolomTotal as $field) {
+                        $nilai = $isi->data[$field->key] ?? null;
+
+                        if (is_numeric($nilai)) {
+                            $jumlah[$field->key] = ($jumlah[$field->key] ?? 0) + (float) $nilai;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Sejajar dengan kolom: identitas kosong, sel pertama diberi label "Total".
+        $baris = ['_tanggal' => 'Total', '_penyusun' => '', '_departemen' => '', '_status' => ''];
+
+        foreach ($template->fields as $field) {
+            $baris[$field->key] = ($field->total && isset($jumlah[$field->key]))
+                ? round($jumlah[$field->key], $field->type === TemplateField::TIPE_INTEGER ? 0 : ($field->desimal ?? 2))
+                : '';
+        }
+
+        return $baris;
     }
 
     /**

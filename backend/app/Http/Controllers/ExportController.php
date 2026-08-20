@@ -138,7 +138,20 @@ class ExportController extends Controller
         // Tabel export lebar; potret akan memotong kolomnya.
         $pdf->setPaper('a4', 'landscape');
 
-        return $pdf->download($this->namaBerkas($data, 'pdf'));
+        /*
+         * `inline` dipakai tombol Cetak: berkasnya dibuka di penampil PDF
+         * peramban, lalu pengguna mencetak dari sana.
+         *
+         * Sebelumnya Cetak memakai `window.print()` atas halaman pratinjau, dan
+         * pada template berkolom banyak hasilnya tidak terbaca — kolomnya
+         * dipadatkan sampai beberapa milimeter. Dengan satu jalur ini, yang
+         * tercetak selalu sama dengan yang diunduh.
+         */
+        $nama = $this->namaBerkas($data, 'pdf');
+
+        return $request->boolean('inline')
+            ? $pdf->stream($nama)
+            : $pdf->download($nama);
     }
 
     /**

@@ -1,10 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Alert } from '@/components/ui/alert';
-import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { Wizard } from '@/components/ui/wizard';
 import type { Departemen } from '@/lib/master-data';
@@ -15,20 +14,29 @@ import {
   KOLOM_KOSONG,
   kunciDariLabel,
   PenyusunKolom,
+  uidBaru,
   type DraftKolom,
   type RingkasanJenisMaster,
 } from './penyusun-kolom';
 import { rumusSah } from './penyusun-rumus';
 
-interface TemplateWizardProps {
-  terbuka: boolean;
-  onTutup: () => void;
+interface PenyusunTemplateProps {
   /** Kosong berarti membuat template baru. */
   template: Template | null;
+  /**
+   * Template yang sedang disalin.
+   *
+   * Isinya mengisi form seperti `template`, tetapi id-nya tidak dibawa: yang
+   * tersimpan nanti adalah template baru. Kodenya pun tidak disalin — server
+   * membangkitkannya sendiri dari nama akhir.
+   */
+  salinanDari: Template | null;
   departemen: Departemen[];
   opsi: OpsiPenyusunKolom;
   jenisMaster: RingkasanJenisMaster[];
 }
+
+const DAFTAR = '/pengaturan/template';
 
 const bertipeAngka = (tipe: TipeKolom): boolean => TIPE_ANGKA.includes(tipe);
 
@@ -68,63 +76,82 @@ const IDENTITAS_KOSONG: Identitas = {
  * identitas templatenya jelas, dan tinjauan akhir hanya berguna setelah
  * keduanya terisi. Karena itu wizard, bukan satu form panjang.
  */
-export function TemplateWizard({
-  terbuka,
-  onTutup,
+/** Nama salinan; wajib diubah pengguna sebelum disimpan. */
+function namaSalinan(nama: string): string {
+  return `${nama} (Salinan)`;
+}
+
+function identitasDari(sumber: Template | null, salinan: boolean): Identitas {
+  if (sumber === null) return IDENTITAS_KOSONG;
+
+  return {
+    name: salinan ? namaSalinan(sumber.nama) : sumber.nama,
+    description: sumber.keterangan ?? '',
+    department_id: String(sumber.departemen?.id ?? ''),
+    is_active: sumber.aktif,
+    bentuk_pengisian: sumber.bentuk_pengisian,
+  };
+}
+
+function kolomDari(sumber: Template | null): DraftKolom[] {
+  if (sumber === null || (sumber.kolom ?? []).length === 0) {
+    return [{ ...KOLOM_KOSONG, uid: uidBaru() }];
+  }
+
+  return (sumber.kolom ?? []).map((k) => ({
+    uid: uidBaru(),
+    key: k.kunci,
+    label: k.label,
+    group_label: k.grup ?? '',
+    type: k.tipe,
+    is_required: k.wajib,
+    unit: k.satuan ?? '',
+    help_text: k.bantuan ?? '',
+    options: (k.pilihan ?? []).map((p) => p.label).join(', '),
+    lookup_source: k.sumber_master ?? '',
+    computed_from: k.rumus ?? '',
+    total: k.total,
+    placeholder: k.placeholder ?? '',
+    master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
+    master_induk_key: k.master_induk_kunci ?? '',
+    beku: k.beku,
+    tampilan: k.tampilan ?? '',
+    min_value: k.nilai_min === null ? '' : String(k.nilai_min),
+    max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
+    desimal: k.desimal === null ? '' : String(k.desimal),
+  }));
+}
+
+/**
+ * Penyusun template — halaman tersendiri, bukan modal.
+ *
+ * Formnya jauh melewati delapan field (identitas + belasan atribut per kolom,
+ * dan template terbesar punya 27 kolom), jadi halaman tersendiri sesuai
+ * docs/standar-ui-ux.md §7.1. Wizard tiga langkahnya dipertahankan — §3 menyebut
+ * alur ini sebagai contoh sah: identitas, susun kolom, tinjau.
+ */
+export function PenyusunTemplate({
   template,
+  salinanDari,
   departemen,
   opsi,
   jenisMaster,
-}: TemplateWizardProps) {
+}: PenyusunTemplateProps) {
   const router = useRouter();
   const sedangUbah = template !== null;
+  const sumber = template ?? salinanDari;
 
-  const [identitas, setIdentitas] = useState<Identitas>(IDENTITAS_KOSONG);
-  const [kolom, setKolom] = useState<DraftKolom[]>([{ ...KOLOM_KOSONG }]);
+  const [identitas, setIdentitas] = useState<Identitas>(() =>
+    identitasDari(sumber, salinanDari !== null),
+  );
+  const [kolom, setKolom] = useState<DraftKolom[]>(() => kolomDari(sumber));
   const [galat, setGalat] = useState<string | null>(null);
   const [galatKolom, setGalatKolom] = useState<Record<string, string[]>>({});
+  const [lompatKe, setLompatKe] = useState<{ langkah: number; nonce: number }>();
 
-  useEffect(() => {
-    if (!terbuka) return;
-
-    setGalat(null);
-    setGalatKolom({});
-
-    if (template) {
-      setIdentitas({
-        name: template.nama,
-        description: template.keterangan ?? '',
-        department_id: String(template.departemen?.id ?? ''),
-        is_active: template.aktif,
-        bentuk_pengisian: template.bentuk_pengisian,
-      });
-      setKolom(
-        (template.kolom ?? []).map((k) => ({
-          key: k.kunci,
-          label: k.label,
-          group_label: k.grup ?? '',
-          type: k.tipe,
-          is_required: k.wajib,
-          unit: k.satuan ?? '',
-          help_text: k.bantuan ?? '',
-          options: (k.pilihan ?? []).map((p) => p.label).join(', '),
-          lookup_source: k.sumber_master ?? '',
-          computed_from: k.rumus ?? '',
-          placeholder: k.placeholder ?? '',
-          master_type_id: k.master_jenis_id === null ? '' : String(k.master_jenis_id),
-          master_induk_key: k.master_induk_kunci ?? '',
-          beku: k.beku,
-          tampilan: k.tampilan ?? '',
-          min_value: k.nilai_min === null ? '' : String(k.nilai_min),
-          max_value: k.nilai_maks === null ? '' : String(k.nilai_maks),
-          desimal: k.desimal === null ? '' : String(k.desimal),
-        })),
-      );
-    } else {
-      setIdentitas(IDENTITAS_KOSONG);
-      setKolom([{ ...KOLOM_KOSONG }]);
-    }
-  }, [terbuka, template]);
+  function kembali() {
+    router.push(DAFTAR);
+  }
 
   function validasiIdentitas(): boolean {
     if (identitas.name.trim() === '') {
@@ -181,6 +208,7 @@ export function TemplateWizard({
     return true;
   }
 
+  /** `uid` sengaja tidak ikut: itu penanda milik layar, bukan milik data. */
   function keKiriman(): KiriKolom[] {
     return kolom.map((k) => ({
       key: k.key.trim(),
@@ -209,6 +237,8 @@ export function TemplateWizard({
       master_type_id: k.type === 'master' && k.master_type_id ? Number(k.master_type_id) : null,
       master_induk_key: k.type === 'master' ? k.master_induk_key || null : null,
       beku: k.beku,
+      // Total hanya berarti untuk kolom angka.
+      total: bertipeAngka(k.type) ? k.total : false,
       tampilan: k.tampilan || null,
     }));
   }
@@ -224,6 +254,12 @@ export function TemplateWizard({
       is_active: identitas.is_active,
       bentuk_pengisian: identitas.bentuk_pengisian,
       fields: keKiriman(),
+      /*
+       * Dipakai server HANYA untuk menurunkan kode: salinan mewarisi kode
+       * sumbernya lalu dibedakan nomor (PROD_PROSES_2), bukan mengambilnya dari
+       * nama yang berakhiran "(Salinan)".
+       */
+      ...(salinanDari ? { salin_dari: salinanDari.id } : {}),
     };
 
     const hasil = sedangUbah
@@ -233,10 +269,21 @@ export function TemplateWizard({
     if (!hasil.berhasil) {
       setGalat(hasil.pesan);
       setGalatKolom(hasil.errors ?? {});
+
+      /*
+       * Galat per kolom berada di langkah 2, sedangkan penyimpanan selalu
+       * ditekan dari langkah 3. Tanpa lompatan ini pengguna hanya melihat
+       * spanduk umum dan harus menebak sendiri kolom mana yang ditolak —
+       * dilarang docs/standar-ui-ux.md §12.5.
+       */
+      if (Object.keys(hasil.errors ?? {}).some((kunci) => kunci.startsWith('fields.'))) {
+        setLompatKe((sebelumnya) => ({ langkah: 1, nonce: (sebelumnya?.nonce ?? 0) + 1 }));
+      }
+
       return;
     }
 
-    onTutup();
+    router.push(DAFTAR);
     router.refresh();
   }
 
@@ -245,18 +292,22 @@ export function TemplateWizard({
     'Semua departemen';
 
   return (
-    <Modal
-      terbuka={terbuka}
-      onTutup={onTutup}
-      judul={sedangUbah ? 'Ubah Template' : 'Buat Template'}
-      lebar="lebar"
-      aksi={null}
-    >
+    <>
+      {salinanDari && (
+        <Alert
+          jenis="berhasil"
+          pesan={`Salinan dari ${salinanDari.nama}. Belum tersimpan — ubah seperlunya lalu tekan Buat Template.`}
+          className="mb-3"
+        />
+      )}
+
       {galat && <Alert jenis="galat" pesan={galat} className="mb-3" />}
 
       <Wizard
-        onBatal={onTutup}
+        onBatal={kembali}
         onSelesai={simpan}
+        aksiMenempel
+        lompatKe={lompatKe}
         labelSelesai={sedangUbah ? 'Simpan Perubahan' : 'Buat Template'}
         langkah={[
           {
@@ -433,6 +484,6 @@ export function TemplateWizard({
           },
         ]}
       />
-    </Modal>
+    </>
   );
 }

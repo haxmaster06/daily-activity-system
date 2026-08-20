@@ -43,6 +43,10 @@ export interface RingkasanMonitoring {
     jumlah_draf: number;
     jumlah_ditinjau: number;
     hari_tanpa_laporan: number;
+    /* Keduanya dihitung untuk HARI INI, lepas dari rentang yang dilihat —
+       pengingatnya memang selalu tentang hari ini. */
+    sudah_melapor_hari_ini: boolean;
+    sudah_diingatkan_hari_ini: boolean;
   }[];
 }
 

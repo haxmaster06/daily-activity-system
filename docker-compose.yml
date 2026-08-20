@@ -41,10 +41,17 @@
 # Satu pintu masuk
 # ---------------------------------------------------------------------------
 #
-# Hanya `proxy` yang dipublikasikan ke seluruh antarmuka. Layanan lain diikat ke
-# 127.0.0.1 — masih dapat diperiksa dari dalam server lewat SSH, tetapi tidak
-# terjangkau dari internet. MySQL dan Redis yang terbuka ke publik melanggar
-# non-fungsional §13.
+# Tidak satu pun port di sini terbuka ke internet — termasuk `proxy`.
+#
+# Sejak naik ke https://daily.hbmnet.co.id, jalan masuk satu-satunya adalah
+# Apache2 di host: ia yang mengakhiri TLS lalu meneruskan ke 127.0.0.1:13001
+# (/etc/apache2/sites-available/daily.hbmnet.co.id.conf). Membiarkan 13001
+# terbuka berarti aplikasinya tetap dapat dicapai lewat http polos di alamat IP,
+# melewati Cloudflare sekaligus Apache — tanpa enkripsi, dan tanpa
+# X-Forwarded-Proto sehingga cookie ber-flag Secure dibuang peramban tanpa satu
+# pun pesan galat.
+#
+# MySQL dan Redis yang terbuka ke publik melanggar non-fungsional §13.
 #
 # ---------------------------------------------------------------------------
 # Nama container ditulis eksplisit
@@ -347,7 +354,7 @@ services:
       # menelusuri satu permintaan yang sama.
       TZ: Asia/Jakarta
     ports:
-      - '13001:80'
+      - '127.0.0.1:13001:80'
     volumes:
       - ./docker/nginx/proxy.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

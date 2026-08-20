@@ -43,10 +43,25 @@ export async function GET(
     );
   }
 
-  // Hanya parameter penyaringan yang diteruskan; sisanya diabaikan.
+  /*
+   * Hanya parameter yang dikenal yang diteruskan; sisanya diabaikan.
+   *
+   * `inline` termasuk: tanpanya backend selalu menjawab
+   * `Content-Disposition: attachment`, dan tombol Cetak berakhir sebagai
+   * unduhan — persis yang terjadi sebelum ini. Daftar putih di sini adalah
+   * penjaga, tetapi penjaga yang membuang parameter sah adalah bug.
+   */
   const asal = new URL(request.url);
   const query = new URLSearchParams();
-  for (const kunci of ['dari', 'sampai', 'status', 'departemen_id', 'pengguna_id', 'template_id']) {
+  for (const kunci of [
+    'dari',
+    'sampai',
+    'status',
+    'departemen_id',
+    'pengguna_id',
+    'template_id',
+    'inline',
+  ]) {
     const nilai = asal.searchParams.get(kunci);
     if (nilai) query.set(kunci, nilai);
   }

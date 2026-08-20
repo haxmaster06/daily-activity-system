@@ -30,6 +30,7 @@ export interface KiriKolom {
   master_type_id: number | null;
   master_induk_key: string | null;
   beku: boolean;
+  total: boolean;
   tampilan: string | null;
 }
 
@@ -40,6 +41,8 @@ export interface KiriTemplate {
   is_active: boolean;
   bentuk_pengisian: string;
   fields: KiriKolom[];
+  /** Hanya pada duplikat; dipakai server untuk menurunkan kode dari sumbernya. */
+  salin_dari?: number;
 }
 
 export async function buatTemplate(data: KiriTemplate): Promise<HasilAksi> {

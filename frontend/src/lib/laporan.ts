@@ -62,6 +62,8 @@ export interface Laporan {
   ditinjau_pada: string | null;
   catatan_tinjauan: string | null;
   dapat_disunting: boolean;
+  dapat_dikirim: boolean;
+  dapat_dihapus: boolean;
   penyusun?: { id: number; nama: string };
   departemen?: { id: number; nama: string };
   peninjau?: { id: number; nama: string } | null;
@@ -175,6 +177,20 @@ export function hitungPratinjau(rumus: string, nilai: NilaiBaris): number | null
   if (tumpukan.length !== 1 || !Number.isFinite(tumpukan[0])) return null;
 
   return Math.round(tumpukan[0] * 1000) / 1000;
+}
+
+/**
+ * Jumlah satu kolom ke bawah, untuk baris Total (kolom bertanda `total`).
+ *
+ * Menerima angka desimal apa adanya. Kolom rumus dijumlahkan dari hasil
+ * hitungannya per baris, bukan dari nilai tersimpan (rumus tak menyimpan nilai).
+ */
+export function totalKolom(kolom: KolomTemplate, baris: NilaiBaris[]): number {
+  return baris.reduce((jumlah, satu) => {
+    const nilai = kolom.rumus ? hitungPratinjau(kolom.rumus, satu) : satu[kolom.kunci];
+
+    return jumlah + (typeof nilai === 'number' ? nilai : Number(nilai) || 0);
+  }, 0);
 }
 
 /**

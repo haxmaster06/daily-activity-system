@@ -24,6 +24,7 @@ function kolom(sebagian: Partial<KolomTemplate> & Pick<KolomTemplate, 'kunci' | 
     master_jenis: null,
     master_induk_kunci: null,
     beku: false,
+    total: false,
     tampilan: null,
     ...sebagian,
   };
@@ -59,6 +60,8 @@ const LAPORAN: Laporan = {
   ditinjau_pada: null,
   catatan_tinjauan: null,
   dapat_disunting: false,
+  dapat_dikirim: false,
+  dapat_dihapus: false,
   penyusun: { id: 3, nama: 'Penyusun Contoh' },
   departemen: { id: 1, nama: 'Produksi' },
   bagian: [

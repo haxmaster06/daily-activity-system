@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'key', 'label', 'group_label', 'type', 'is_required', 'sort_order',
     'unit', 'placeholder', 'help_text', 'options', 'lookup_source',
     'computed_from', 'min_value', 'max_value', 'desimal',
-    'master_type_id', 'master_induk_key', 'beku', 'tampilan',
+    'master_type_id', 'master_induk_key', 'beku', 'total', 'tampilan',
 ])]
 class TemplateField extends Model
 {
@@ -122,6 +122,7 @@ class TemplateField extends Model
             'max_value' => 'decimal:3',
             'desimal' => 'integer',
             'beku' => 'boolean',
+            'total' => 'boolean',
         ];
     }
 

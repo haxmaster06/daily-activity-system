@@ -95,13 +95,29 @@ class ReportTemplateController extends Controller
     {
         $data = $request->validated();
 
-        // Kode diturunkan dari nama, tidak pernah diketik pengguna
-        // (docs/standar-ui-ux.md §1.5).
+        /*
+         * Kode diturunkan dari nama, tidak pernah diketik pengguna
+         * (docs/standar-ui-ux.md §1.5).
+         *
+         * Kecuali pada duplikat: dasarnya kode SUMBER, bukan namanya. Nama
+         * salinan berakhiran "(Salinan)", dan menurunkan kode dari nama itu
+         * menghasilkan PROD_PROSES_SALINAN — penanda teknis yang memikul kata
+         * tak berarti selamanya, sebab kode tidak pernah berubah lagi setelah
+         * dibuat. `KodeOtomatis` sendiri yang menambahkan nomor saat bentrok,
+         * jadi yang keluar PROD_PROSES_2.
+         */
+        $dasarKode = isset($data['salin_dari'])
+            ? ReportTemplate::whereKey($data['salin_dari'])->value('code') ?? $data['name']
+            : $data['name'];
+
         $data['code'] = KodeOtomatis::dariNama(
-            $data['name'],
+            $dasarKode,
             ReportTemplate::query(),
             panjangMaksimal: 48,
         );
+
+        // Penanda sumber hanya dipakai menurunkan kode; bukan kolom tabel.
+        unset($data['salin_dari']);
 
         $template = DB::transaction(function () use ($data) {
             $template = ReportTemplate::create(collect($data)->except('fields')->all());

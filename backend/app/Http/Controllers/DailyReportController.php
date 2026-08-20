@@ -12,10 +12,11 @@ use App\Notifications\LaporanDikirim;
 use App\Notifications\LaporanDitinjau;
 use App\Rules\PanjangTeksKaya;
 use App\Support\ApiResponse;
-use App\Support\HtmlAman;
 use App\Support\Audit;
+use App\Support\HtmlAman;
 use App\Support\JangkauanData;
 use App\Support\KatalogIzin;
+use App\Support\PenjagaIdentitasLaporan;
 use App\Support\ValidasiIsianTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -123,8 +124,10 @@ class DailyReportController extends Controller
     /**
      * Memperbarui isi laporan.
      *
-     * Hanya selama masih draf — dijaga Policy. Tanggalnya tidak ikut berubah:
-     * laporan tanggal lain adalah laporan yang berbeda.
+     * Statusnya tidak membatasi — laporan yang sudah dikirim pun masih dapat
+     * diperbaiki pemiliknya. Yang membatasi hanyalah kepemilikan, dijaga
+     * Policy. Tanggalnya tidak ikut berubah: laporan tanggal lain adalah
+     * laporan yang berbeda.
      */
     public function update(DailyReportRequest $request, DailyReport $laporan): JsonResponse
     {
@@ -152,9 +155,11 @@ class DailyReportController extends Controller
     }
 
     /**
-     * Mengirim laporan.
+     * Mengirim laporan, dan mengirimnya kembali sesudah disunting.
      *
-     * Setelah dikirim, laporan menjadi catatan dan tidak dapat disunting lagi.
+     * Boleh berulang kali. Selama laporan masih dapat disunting sesudah
+     * dikirim, harus ada cara menyatakan bahwa isinya berubah — tanpa itu
+     * suntingan mendarat diam-diam dan peninjau tidak pernah tahu.
      */
     public function kirim(Request $request, DailyReport $laporan): JsonResponse
     {
@@ -164,15 +169,30 @@ class DailyReportController extends Controller
             return ApiResponse::error('Laporan masih kosong. Isi minimal satu bagian.', 422);
         }
 
+        $ulang = ! $laporan->masihDraf();
+
+        /*
+         * Tinjauan lama dihapus, bukan dibiarkan menempel.
+         *
+         * Tinjauan menyatakan seseorang sudah membaca ISI TERTENTU. Begitu isi
+         * itu dikirim ulang, pernyataannya tidak lagi berlaku atas apa pun —
+         * membiarkannya berarti badge "Ditinjau" terpasang pada isi yang bukan
+         * itu yang disetujui, dan justru itulah keadaan yang paling menyesatkan
+         * karena tampak sudah beres.
+         */
         $laporan->forceFill([
             'status' => DailyReport::STATUS_DIKIRIM,
             'submitted_at' => now(),
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'review_note' => null,
         ])->save();
 
         Audit::catat(
-            'dikirim',
+            $ulang ? 'dikirim_ulang' : 'dikirim',
             Audit::MODUL_LAPORAN,
-            'Mengirim laporan '.$laporan->report_date->translatedFormat('d F Y'),
+            ($ulang ? 'Mengirim ulang laporan ' : 'Mengirim laporan ')
+                .$laporan->report_date->translatedFormat('d F Y'),
             $laporan,
         );
 
@@ -180,7 +200,9 @@ class DailyReportController extends Controller
 
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan)),
-            'Laporan berhasil dikirim.',
+            $ulang
+                ? 'Laporan berhasil dikirim ulang. Peninjau diberi tahu bahwa isinya berubah.'
+                : 'Laporan berhasil dikirim.',
         );
     }
 
@@ -287,10 +309,10 @@ class DailyReportController extends Controller
         Audit::catat(
             Audit::AKSI_DIHAPUS,
             Audit::MODUL_LAPORAN,
-            "Menghapus draf laporan {$tanggal}",
+            "Menghapus laporan {$tanggal}",
         );
 
-        return ApiResponse::ok(null, 'Draf laporan berhasil dihapus.');
+        return ApiResponse::ok(null, 'Laporan berhasil dihapus.');
     }
 
     /**
@@ -325,14 +347,27 @@ class DailyReportController extends Controller
                 "sections.{$urutan}.items",
             );
 
+            $bersihSemua = array_map(
+                fn ($isiBaris) => ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris),
+                array_values($isiBagian['items']),
+            );
+
+            // Cegah satu catatan produksi (mis. LOT + tanggal) tercatat dua kali
+            // oleh orang berbeda — jika tidak, angka analitik menggelembung.
+            PenjagaIdentitasLaporan::periksa(
+                $template,
+                $bersihSemua,
+                $pengguna,
+                $laporan->id,
+                "sections.{$urutan}.items",
+            );
+
             $section = $laporan->sections()->create([
                 'report_template_id' => $template->id,
                 'sort_order' => $urutan,
             ]);
 
-            foreach (array_values($isiBagian['items']) as $nomorBaris => $isiBaris) {
-                $bersih = ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris);
-
+            foreach ($bersihSemua as $nomorBaris => $bersih) {
                 $section->items()->create([
                     'data' => $bersih,
                     'progress_status' => ValidasiIsianTemplate::statusBaris($template, $bersih),

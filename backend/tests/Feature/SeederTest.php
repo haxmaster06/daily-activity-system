@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Department;
+use App\Models\MasterData;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\AdministratorSeeder;
@@ -85,7 +86,7 @@ it('memberi administrator awal role administrator', function (): void {
 it('tidak menghidupkan kembali departemen yang sengaja dinonaktifkan', function (): void {
     $this->seed(DepartmentSeeder::class);
 
-    $departemen = App\Models\Department::where('code', 'PURCHASING')->firstOrFail();
+    $departemen = Department::where('code', 'PURCHASING')->firstOrFail();
     $departemen->forceFill(['is_active' => false])->save();
 
     $this->seed(DepartmentSeeder::class);
@@ -96,7 +97,7 @@ it('tidak menghidupkan kembali departemen yang sengaja dinonaktifkan', function 
 it('tetap memperbarui nama dan keterangan departemen', function (): void {
     $this->seed(DepartmentSeeder::class);
 
-    $departemen = App\Models\Department::where('code', 'PURCHASING')->firstOrFail();
+    $departemen = Department::where('code', 'PURCHASING')->firstOrFail();
     $departemen->forceFill(['name' => 'Nama Lama'])->save();
 
     $this->seed(DepartmentSeeder::class);
@@ -107,7 +108,7 @@ it('tetap memperbarui nama dan keterangan departemen', function (): void {
 it('tidak menghidupkan kembali baris master yang sengaja dinonaktifkan', function (): void {
     $this->seed(MasterDataSeeder::class);
 
-    $baris = App\Models\MasterData::whereNotNull('code')->firstOrFail();
+    $baris = MasterData::whereNotNull('code')->firstOrFail();
     $baris->forceFill(['is_active' => false])->save();
 
     $this->seed(MasterDataSeeder::class);
