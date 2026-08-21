@@ -39,6 +39,16 @@ export function kunciDraf(laporanId?: number): string {
   return laporanId === undefined ? `${AWALAN}-baru` : `${AWALAN}-ubah-${laporanId}`;
 }
 
+/**
+ * Kunci draf di server — tanpa awalan peramban.
+ *
+ * Cocok dengan pola yang divalidasi backend (`baru` atau `ubah-<id>`), dipakai
+ * auto-save latar ke server agar draf bertahan lintas perangkat.
+ */
+export function kunciServerDraf(laporanId?: number): string {
+  return laporanId === undefined ? 'baru' : `ubah-${laporanId}`;
+}
+
 function tersedia(): boolean {
   try {
     return typeof window !== 'undefined' && window.localStorage !== null;

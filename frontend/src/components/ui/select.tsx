@@ -78,10 +78,15 @@ export function Select({
          * terlihat kosong.
          *
          * Radix melarang Item bernilai string kosong, jadi '' tidak pernah
-         * dapat berasal dari pilihan pengguna. Menolaknya aman.
+         * dapat berasal dari pilihan pengguna. Penolakan itu hanya aman bila '' bukan
+         * opsi nyata; lihat handler di bawah.
          */
         onValueChange={(baru) => {
-          if (baru === '' && nilai !== '') return;
+          // '' sengaja jadi opsi "Semua…" di sebagian Select (mis. penyaring
+          // pelapor). Di situ '' pilihan sah — hanya tolak '' palsu dari
+          // remount modal, yakni saat '' bukan opsi nyata.
+          const kosongValid = opsi.some((item) => item.nilai === '');
+          if (baru === '' && nilai !== '' && !kosongValid) return;
 
           onUbah(baru);
         }}

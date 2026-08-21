@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { panggilApi } from '@/lib/api';
 import { hasilBerhasil, hasilGalat, type HasilAksi } from '@/lib/aksi';
+import type { IsiDraf } from '@/lib/draf-laporan';
 import type { NilaiBaris } from '@/lib/laporan';
 
 const HALAMAN = '/laporan';
@@ -111,6 +112,50 @@ export async function hapusLaporan(id: number): Promise<HasilAksi> {
     return hasilBerhasil(message || 'Laporan berhasil dihapus.');
   } catch (galat) {
     return hasilGalat(galat);
+  }
+}
+
+/* --------------------------------------------------- Auto-save draf ke server
+ *
+ * Jaring pemulihan lintas perangkat. Terpisah dari simpan laporan resmi karena
+ * tak divalidasi per sel — form setengah jadi pun tersimpan. Kegagalan ditelan
+ * diam-diam: auto-save latar tak boleh menampilkan galat atau memicu banner
+ * versi. Tak ada revalidatePath — form tak boleh ikut ter-refresh.
+ */
+
+export type PayloadDrafServer = Omit<IsiDraf, 'disimpanPada'>;
+
+export interface DrafServer {
+  payload: PayloadDrafServer;
+  disimpanPada: string;
+}
+
+export async function bacaDrafServer(kunci: string): Promise<DrafServer | null> {
+  try {
+    const { data } = await panggilApi<{
+      payload: PayloadDrafServer;
+      disimpan_pada: string;
+    } | null>(`/draf-laporan/${kunci}`);
+
+    return data ? { payload: data.payload, disimpanPada: data.disimpan_pada } : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function simpanDrafServer(kunci: string, payload: PayloadDrafServer): Promise<void> {
+  try {
+    await panggilApi(`/draf-laporan/${kunci}`, { method: 'PUT', body: { payload } });
+  } catch {
+    // Diam-diam disengaja.
+  }
+}
+
+export async function hapusDrafServer(kunci: string): Promise<void> {
+  try {
+    await panggilApi(`/draf-laporan/${kunci}`, { method: 'DELETE' });
+  } catch {
+    // Diam-diam disengaja.
   }
 }
 

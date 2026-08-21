@@ -138,4 +138,39 @@ describe('Select dengan nilai yang sudah terisi', () => {
 
     expect(diterima).not.toContain('');
   });
+
+  /*
+   * Regresi: penyaring seperti "Semua pelapor" memakai opsi bernilai ''. Setelah
+   * memilih satu nilai, kembali ke opsi kosong itu sempat tak bisa — penjagaan
+   * di atas menolak semua '' tanpa peduli apakah ia opsi nyata.
+   */
+  it('memilih ulang opsi kosong yang memang tersedia', async () => {
+    const user = userEvent.setup();
+    const diterima: string[] = [];
+
+    function SelectSemua() {
+      const [nilai, setNilai] = useState('d3');
+
+      return (
+        <Select
+          id="uji-semua"
+          label="Pelapor"
+          opsi={[{ nilai: '', label: 'Semua pelapor' }, ...BANYAK_OPSI]}
+          nilai={nilai}
+          onUbah={(baru) => {
+            diterima.push(baru);
+            setNilai(baru);
+          }}
+        />
+      );
+    }
+
+    render(<SelectSemua />);
+
+    await user.click(screen.getByRole('combobox'));
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeInTheDocument());
+    await user.click(screen.getByRole('option', { name: 'Semua pelapor' }));
+
+    expect(diterima).toContain('');
+  });
 });

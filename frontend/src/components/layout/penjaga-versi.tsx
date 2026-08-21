@@ -20,8 +20,10 @@ import { RefreshCw } from 'lucide-react';
  * ditangkap adalah penolakan yang lolos dari seluruh pemanggil, dan menambahkan
  * try/catch di puluhan tempat hanya membuat sebagian di antaranya terlewat.
  *
- * Tidak memuat ulang sendiri. Isian yang belum tersimpan akan hilang, dan
- * memutuskan hal itu adalah hak pengguna, bukan hak kode ini.
+ * Tidak memuat ulang sendiri — memutuskan hal itu hak pengguna. Bannernya
+ * menempel tepat di bawah header (bukan di bawah layar) supaya tidak menutupi
+ * tombol simpan; form laporan pun kini menyimpan isian otomatis, jadi memuat
+ * ulang tidak lagi berarti kehilangan ketikan.
  */
 export function PenjagaVersi() {
   const [usang, setUsang] = useState(false);
@@ -57,12 +59,15 @@ export function PenjagaVersi() {
   return (
     <div
       role="alert"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-accent/40 bg-accent-subtle px-4 py-2.5 max-md:bottom-16"
+      // top-[52px] = tepat di bawah header (h-nav) supaya banner tak menutupi
+      // tombol simpan di bawah layar — penyebab utama salah tekan "Muat Ulang".
+      className="fixed inset-x-0 top-[52px] z-40 border-b border-accent/40 bg-accent-subtle px-4 py-2.5"
     >
       <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2">
         <p className="text-body text-ink">
           Aplikasi baru saja diperbarui, sehingga halaman ini sudah tidak sejalan
-          dengan server. Muat ulang untuk melanjutkan.
+          dengan server. Muat ulang untuk melanjutkan — isian laporan yang sedang
+          dikerjakan tersimpan otomatis.
         </p>
         <button
           type="button"

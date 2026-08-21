@@ -12,7 +12,6 @@ import type {
   DataDepartemen,
   KeadaanDepartemen,
   RingkasLaporan,
-  SorotanAngka,
   SorotanDepartemen,
 } from '@/lib/analitik';
 import { cn } from '@/lib/cn';
@@ -155,25 +154,6 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
   );
 }
 
-/**
- * Angka terbesar departemen — isyarat "berapa" yang paling mudah dipindai.
- *
- * Sengaja yang terbesar, bukan yang pertama: kolom pertama sebuah template
- * kerap berupa susut/waste yang nol, dan menampilkan "0 kg" sebagai kepala
- * baris membuat departemen yang sibuk tampak menganggur.
- *
- * ponytail: heuristik lintas-satuan (kg vs box vs %) — bukan perbandingan
- * bermakna antar kolom, hanya memilih figur paling menonjol untuk sekilas.
- */
-function sorotanUtama(sorotan: SorotanDepartemen[]): SorotanAngka | null {
-  const angka = sorotan.filter((satu): satu is SorotanAngka => satu.jenis === 'angka');
-
-  return angka.reduce<SorotanAngka | null>(
-    (besar, satu) => (besar === null || satu.total > besar.total ? satu : besar),
-    null,
-  );
-}
-
 function BarisDepartemen({
   keadaan,
   terbuka,
@@ -185,7 +165,6 @@ function BarisDepartemen({
   onAlih: () => void;
   onBuka: (laporan: RingkasLaporan) => void;
 }) {
-  const utama = sorotanUtama(keadaan.sorotan);
   const panelId = `dept-panel-${keadaan.departemen_id}`;
 
   return (
@@ -209,34 +188,25 @@ function BarisDepartemen({
           )}
         />
 
-        <span className="min-w-0 flex-1">
-          <span className="font-heading text-body-lg font-semibold text-ink">
-            {keadaan.departemen}
-          </span>
-          {utama && (
-            <span className="ml-2 text-caption text-ink-soft">
-              {utama.label}
-            </span>
-          )}
+        <span className="min-w-0 flex-1 font-heading text-body-lg font-semibold text-ink">
+          {keadaan.departemen}
         </span>
 
-        {/* Isyarat khas departemen — angka utamanya, disejajarkan ke kanan. */}
-        {utama ? (
-          <span className="shrink-0 text-right tabular-nums">
-            <span className="text-body-lg font-semibold text-ink">
-              {formatAngka(utama.total, Number.isInteger(utama.total) ? 0 : 2)}
-            </span>{' '}
-            <span className="text-caption font-normal text-ink-soft">{utama.satuan}</span>
-          </span>
-        ) : (
-          <span className="shrink-0 text-caption text-ink-soft">
-            {formatAngka(keadaan.sorotan.length)} ringkasan
-          </span>
-        )}
-
-        <span className="hidden shrink-0 items-baseline gap-1 text-caption text-ink-soft tabular-nums sm:flex">
-          <span className="font-medium text-ink-muted">{formatAngka(keadaan.jumlah_laporan)}</span>
+        {/*
+          Hanya fakta yang setara dan bisa dibandingkan antar departemen: jumlah
+          laporan, jumlah baris, dan kapan terakhir. Tak ada satu angka isi yang
+          "dipilih" jadi kepala baris — angka tiap kolom, dengan satuan dan
+          konteksnya, ada di panel yang terbuka.
+        */}
+        <span className="shrink-0 text-caption text-ink-soft tabular-nums">
+          <span className="font-medium text-ink-muted">
+            {formatAngka(keadaan.jumlah_laporan)}
+          </span>{' '}
           laporan
+          <span className="hidden sm:inline">
+            {' · '}
+            {formatAngka(keadaan.jumlah_baris)} baris
+          </span>
         </span>
 
         <span className="hidden w-20 shrink-0 text-right text-caption text-ink-soft sm:block">

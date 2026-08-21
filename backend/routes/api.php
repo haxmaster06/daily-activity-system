@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DrafLaporanController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ImportLaporanController;
@@ -275,6 +276,20 @@ Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', '
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
         ->name('laporan.tinjau');
+
+    /*
+     * Auto-save draf isian di latar. Jalur terpisah dari laporan resmi karena
+     * tak memvalidasi isi sel — lihat DrafLaporanController. Kunci `baru` atau
+     * `ubah-<id>`, dijaga per pemilik. Simpan dibatasi lebih longgar karena
+     * dipanggil berkala saat mengetik.
+     */
+    Route::get('/draf-laporan/{kunci}', [DrafLaporanController::class, 'show'])
+        ->name('draf-laporan.show');
+    Route::put('/draf-laporan/{kunci}', [DrafLaporanController::class, 'simpan'])
+        ->middleware('throttle:120,1')
+        ->name('draf-laporan.simpan');
+    Route::delete('/draf-laporan/{kunci}', [DrafLaporanController::class, 'destroy'])
+        ->name('draf-laporan.destroy');
 
     /*
      * Lampiran. Izinnya mengikuti laporannya lewat AttachmentPolicy.

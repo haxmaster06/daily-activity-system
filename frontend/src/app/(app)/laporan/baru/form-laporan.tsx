@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Check, Layers, Plus, X } from 'lucide-react';
+import { Check, CloudCheck, Layers, Plus, RotateCcw, X } from 'lucide-react';
 
 import { TabelIsian } from '@/components/laporan/tabel-isian';
 import { Alert } from '@/components/ui/alert';
@@ -13,13 +13,21 @@ import {
   bacaDraf,
   drafBerisi,
   hapusDraf,
+  kunciServerDraf,
   simpanDraf,
   type IsiDraf,
 } from '@/lib/draf-laporan';
-import { formatTanggal, formatTanggalWaktu, hariIniApi } from '@/lib/format';
+import { formatTanggal, formatTanggalWaktu, formatWaktu, hariIniApi } from '@/lib/format';
 import { barisKosong, type NilaiBaris } from '@/lib/laporan';
 import type { Template } from '@/lib/template';
-import { perbaruiLaporan, simpanLaporanBaru, type KiriBagian } from '../actions';
+import {
+  bacaDrafServer,
+  hapusDrafServer,
+  perbaruiLaporan,
+  simpanDrafServer,
+  simpanLaporanBaru,
+  type KiriBagian,
+} from '../actions';
 
 interface BagianTerisi {
   template: Template;
@@ -46,8 +54,11 @@ function templateUtama(daftar: Template[]): Template | undefined {
   return daftar.find((satu) => !satu.berlaku_umum) ?? daftar[0];
 }
 
-/** Jeda setelah ketikan berhenti sebelum draf ditulis. */
+/** Jeda setelah ketikan berhenti sebelum draf ditulis ke peramban. */
 const JEDA_SIMPAN_DRAF = 800;
+
+/** Draf ke server didorong lebih jarang — cukup untuk pemulihan lintas perangkat. */
+const JEDA_SIMPAN_SERVER = 3000;
 
 /**
  * Memindahkan fokus ke isian bermasalah pertama.
@@ -115,14 +126,35 @@ export function FormLaporan({
   /** Draf tersimpan yang ditemukan saat halaman dibuka, sebelum diputuskan. */
   const [drafTertunda, setDrafTertunda] = useState<IsiDraf | null>(null);
 
+  /** Kapan draf terakhir tersimpan otomatis — untuk indikator kepercayaan. */
+  const [tersimpanPada, setTersimpanPada] = useState<string | null>(null);
+
   /*
    * Draf hanya dibaca sekali, saat halaman dibuka. Membacanya ulang setiap
    * render akan menawarkan pemulihan lagi setelah pengguna menolaknya.
    */
   useEffect(() => {
-    const draf = bacaDraf(laporanId);
+    let batal = false;
 
-    if (draf && drafBerisi(draf)) setDrafTertunda(draf);
+    void (async () => {
+      // Draf server didahulukan supaya isian yang ditinggalkan di perangkat lain
+      // ikut tertawarkan; draf peramban jadi cadangan bila server tak punya.
+      const server = await bacaDrafServer(kunciServerDraf(laporanId));
+      if (batal) return;
+
+      if (server && drafBerisi(server.payload)) {
+        setDrafTertunda({ ...server.payload, disimpanPada: server.disimpanPada });
+
+        return;
+      }
+
+      const lokal = bacaDraf(laporanId);
+      if (!batal && lokal && drafBerisi(lokal)) setDrafTertunda(lokal);
+    })();
+
+    return () => {
+      batal = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -140,8 +172,31 @@ export function FormLaporan({
         bagian: bagian.map((b) => ({ templateId: b.template.id, baris: b.baris })),
       };
 
-      if (drafBerisi(isi)) simpanDraf(laporanId, isi);
+      if (!drafBerisi(isi)) return;
+
+      simpanDraf(laporanId, isi);
+      setTersimpanPada(new Date().toISOString());
     }, JEDA_SIMPAN_DRAF);
+
+    return () => clearTimeout(jeda);
+  }, [tanggal, bagian, laporanId, drafTertunda]);
+
+  /*
+   * Salinan ke server, didorong lebih jarang. Gunanya pemulihan lintas
+   * perangkat — bukan jaminan tiap ketikan. Kegagalannya ditelan di dalam
+   * `simpanDrafServer`, jadi auto-save latar tak pernah mengganggu pengisi.
+   */
+  useEffect(() => {
+    if (drafTertunda !== null) return;
+
+    const jeda = setTimeout(() => {
+      const isi = {
+        tanggal,
+        bagian: bagian.map((b) => ({ templateId: b.template.id, baris: b.baris })),
+      };
+
+      if (drafBerisi(isi)) void simpanDrafServer(kunciServerDraf(laporanId), isi);
+    }, JEDA_SIMPAN_SERVER);
 
     return () => clearTimeout(jeda);
   }, [tanggal, bagian, laporanId, drafTertunda]);
@@ -190,6 +245,7 @@ export function FormLaporan({
 
   function buangDraf() {
     hapusDraf(laporanId);
+    void hapusDrafServer(kunciServerDraf(laporanId));
     setDrafTertunda(null);
   }
 
@@ -285,6 +341,7 @@ export function FormLaporan({
     // Laporan sudah tersimpan di server; drafnya tidak berguna lagi, dan
     // membiarkannya berarti menyimpan isi laporan di peramban tanpa alasan.
     hapusDraf(laporanId);
+    void hapusDrafServer(kunciServerDraf(laporanId));
 
     const tujuan = sedangUbah ? laporanId : (hasil as { id?: number }).id;
     router.push(tujuan ? `/laporan/${tujuan}` : '/laporan');
@@ -304,11 +361,14 @@ export function FormLaporan({
       {drafTertunda && (
         <div
           role="status"
-          className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-input border border-line bg-surface-muted px-3 py-2"
+          className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-card border border-primary/40 bg-primary-subtle px-3 py-2.5"
         >
-          <p className="text-body text-ink">
-            Ada isian yang belum sempat dikirim, tersimpan{' '}
-            {formatTanggalWaktu(drafTertunda.disimpanPada)}.
+          <p className="flex items-center gap-2 text-body text-primary-text">
+            <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
+            <span>
+              Isian yang belum sempat dikirim tersimpan otomatis{' '}
+              {formatTanggalWaktu(drafTertunda.disimpanPada)}. Lanjutkan dari sana?
+            </span>
           </p>
 
           <span className="flex shrink-0 items-center gap-2">
@@ -322,10 +382,19 @@ export function FormLaporan({
         </div>
       )}
 
+      {/* Isyarat kepercayaan: pengisi tahu isiannya sudah aman tanpa menekan apa pun. */}
+      {tersimpanPada && !drafTertunda && (
+        <p className="mb-3 flex items-center justify-end gap-1.5 text-caption text-ink-soft">
+          <CloudCheck aria-hidden="true" className="size-3.5" />
+          Tersimpan otomatis {formatWaktu(tersimpanPada)}
+        </p>
+      )}
+
       <Wizard
         lompatKe={{ langkah: 1, nonce: nonceGalat }}
         onBatal={() => router.push('/laporan')}
         onSelesai={simpan}
+        aksiMenempel
         labelSelesai={sedangUbah ? 'Simpan Perubahan' : 'Simpan Draf'}
         langkah={[
           {
