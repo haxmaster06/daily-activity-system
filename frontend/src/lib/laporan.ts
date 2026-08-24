@@ -64,6 +64,8 @@ export interface Laporan {
   dapat_disunting: boolean;
   dapat_dikirim: boolean;
   dapat_dihapus: boolean;
+  /** Pengguna boleh menandai laporan ini (milik orang lain, sudah dikirim) ditinjau. */
+  dapat_ditinjau?: boolean;
   penyusun?: { id: number; nama: string };
   departemen?: { id: number; nama: string };
   peninjau?: { id: number; nama: string } | null;

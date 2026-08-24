@@ -276,6 +276,11 @@ Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', '
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
         ->name('laporan.tinjau');
+    // Tandai beberapa laporan ditinjau sekaligus. Digerbang izin di sini; tiap
+    // laporan tetap diperiksa Policy di controller (deny by default).
+    Route::post('/laporan/tinjau-massal', [DailyReportController::class, 'tinjauMassal'])
+        ->middleware('izin:laporan.tinjau')
+        ->name('laporan.tinjau-massal');
 
     /*
      * Auto-save draf isian di latar. Jalur terpisah dari laporan resmi karena

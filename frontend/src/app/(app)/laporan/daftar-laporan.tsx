@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { FileText, Plus, Upload } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CheckCheck, FileText, Plus, Upload } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -20,7 +20,7 @@ import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatTanggal } from '@/lib/format';
 import { RAGAM_STATUS, type Laporan } from '@/lib/laporan';
-import { hapusLaporan } from './actions';
+import { hapusLaporan, tinjauMassal } from './actions';
 import { ImportLaporanDialog, type PilihanTemplateImport } from './import-laporan-dialog';
 
 interface DaftarLaporanProps {
@@ -47,6 +47,54 @@ export function DaftarLaporan({
     jenis: 'galat' | 'berhasil';
     pesan: string;
   } | null>(null);
+  const [terpilih, setTerpilih] = useState<Set<number>>(new Set());
+  const [konfirmasiTinjau, setKonfirmasiTinjau] = useState(false);
+  const [sedangTinjau, setSedangTinjau] = useState(false);
+
+  // Laporan yang boleh ditinjau pengguna ini — milik orang lain dan sudah
+  // dikirim. Penanda `dapat_ditinjau` dihitung server lewat DailyReportPolicy.
+  const idDapatDitinjau = laporan.filter((l) => l.dapat_ditinjau).map((l) => l.id);
+  const adaYangDapatDitinjau = idDapatDitinjau.length > 0;
+
+  // Pilihan direset tiap kali isi daftar berubah (ganti halaman, saring, muat
+  // ulang) supaya id dari halaman lama tak ikut terkirim tanpa terlihat.
+  const tandaHalaman = laporan.map((l) => l.id).join(',');
+  useEffect(() => {
+    setTerpilih(new Set());
+  }, [tandaHalaman]);
+
+  function alihSatu(id: number) {
+    setTerpilih((sebelumnya) => {
+      const baru = new Set(sebelumnya);
+      if (baru.has(id)) baru.delete(id);
+      else baru.add(id);
+
+      return baru;
+    });
+  }
+
+  const semuaTerpilih =
+    adaYangDapatDitinjau && idDapatDitinjau.every((id) => terpilih.has(id));
+  const sebagianTerpilih = idDapatDitinjau.some((id) => terpilih.has(id)) && !semuaTerpilih;
+
+  function alihSemua() {
+    setTerpilih(semuaTerpilih ? new Set() : new Set(idDapatDitinjau));
+  }
+
+  async function tinjauTerpilih() {
+    setSedangTinjau(true);
+
+    const hasil = await tinjauMassal([...terpilih]);
+
+    setSedangTinjau(false);
+    setKonfirmasiTinjau(false);
+    setPemberitahuan({ jenis: hasil.ditinjau > 0 ? 'berhasil' : 'galat', pesan: hasil.pesan });
+
+    if (hasil.berhasil) {
+      setTerpilih(new Set());
+      router.refresh();
+    }
+  }
 
   async function hapus() {
     if (!konfirmasiHapus) return;
@@ -59,7 +107,7 @@ export function DaftarLaporan({
     if (hasil.berhasil) router.refresh();
   }
 
-  const jumlahKolom = tampilkanPenyusun ? 6 : 5;
+  const jumlahKolom = (tampilkanPenyusun ? 6 : 5) + (adaYangDapatDitinjau ? 1 : 0);
 
   return (
     <>
@@ -67,6 +115,17 @@ export function DaftarLaporan({
         <h1 className="text-page-title text-ink">{judul}</h1>
 
         <div className="flex shrink-0 items-center gap-2">
+          {terpilih.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setKonfirmasiTinjau(true)}
+              className="btn-primary btn-sm"
+            >
+              <CheckCheck aria-hidden="true" className="size-4" />
+              Tandai Ditinjau ({terpilih.size})
+            </button>
+          )}
+
           {templateImport.length > 0 && (
             <button
               type="button"
@@ -107,6 +166,20 @@ export function DaftarLaporan({
 
         <DataTable>
           <DataTableHead>
+            {adaYangDapatDitinjau && (
+              <Th className="w-9">
+                <input
+                  type="checkbox"
+                  aria-label="Pilih semua laporan yang dapat ditinjau"
+                  checked={semuaTerpilih}
+                  ref={(el) => {
+                    if (el) el.indeterminate = sebagianTerpilih;
+                  }}
+                  onChange={alihSemua}
+                  className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+                />
+              </Th>
+            )}
             <Th>Tanggal</Th>
             {tampilkanPenyusun && <Th>Penyusun</Th>}
             <Th>Departemen</Th>
@@ -137,6 +210,20 @@ export function DaftarLaporan({
                   aria-label={`Buka laporan ${formatTanggal(item.tanggal)}`}
                   className="cursor-pointer transition-colors duration-fast hover:bg-surface-muted/60 focus-visible:bg-surface-muted focus-visible:outline-none"
                 >
+                  {adaYangDapatDitinjau && (
+                    <Td>
+                      {item.dapat_ditinjau && (
+                        <input
+                          type="checkbox"
+                          aria-label={`Pilih laporan ${formatTanggal(item.tanggal)} untuk ditinjau`}
+                          checked={terpilih.has(item.id)}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => alihSatu(item.id)}
+                          className="size-3.5 rounded-sm border-line text-primary focus:ring-primary"
+                        />
+                      )}
+                    </Td>
+                  )}
                   <Td className="font-medium">{formatTanggal(item.tanggal)}</Td>
                   {tampilkanPenyusun && (
                     <Td className="text-ink-muted">{item.penyusun?.nama ?? '—'}</Td>
@@ -203,6 +290,15 @@ export function DaftarLaporan({
         pesan={`Laporan ${formatTanggal(konfirmasiHapus?.tanggal ?? null)} beserta seluruh isinya akan dihapus permanen.`}
         labelAksi="Hapus"
         berisiko
+      />
+
+      <ConfirmDialog
+        terbuka={konfirmasiTinjau}
+        onTutup={() => !sedangTinjau && setKonfirmasiTinjau(false)}
+        onSetuju={tinjauTerpilih}
+        judul="Tandai Sudah Ditinjau"
+        pesan={`${terpilih.size} laporan ditandai sudah ditinjau sekaligus. Tiap penyusun diberi tahu laporannya sudah dibaca. Catatan tinjauan hanya tersedia saat meninjau satu per satu.`}
+        labelAksi={sedangTinjau ? 'Menandai...' : 'Tandai Ditinjau'}
       />
     </>
   );

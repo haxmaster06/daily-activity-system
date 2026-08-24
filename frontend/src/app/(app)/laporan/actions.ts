@@ -104,6 +104,33 @@ export async function tinjauLaporan(id: number, catatan: string): Promise<HasilA
   }
 }
 
+/**
+ * Menandai beberapa laporan sudah ditinjau sekaligus.
+ *
+ * Catatan tinjauan bersifat per laporan, jadi jalur massal ini tidak
+ * menyertakannya — yang tak memenuhi syarat dilewati di server, bukan
+ * menggagalkan seluruh permintaan.
+ */
+export async function tinjauMassal(
+  ids: number[],
+): Promise<HasilAksi & { ditinjau: number; dilewati: number }> {
+  try {
+    const { message, data } = await panggilApi<{
+      ditinjau: number;
+      dilewati: { tanggal: string; penyusun: string | null; alasan: string }[];
+    }>('/laporan/tinjau-massal', { method: 'POST', body: { laporan_id: ids } });
+    revalidatePath(HALAMAN);
+
+    return {
+      ...hasilBerhasil(message || 'Laporan ditandai sudah ditinjau.'),
+      ditinjau: data?.ditinjau ?? 0,
+      dilewati: data?.dilewati?.length ?? 0,
+    };
+  } catch (galat) {
+    return { ...hasilGalat(galat), ditinjau: 0, dilewati: 0 };
+  }
+}
+
 export async function hapusLaporan(id: number): Promise<HasilAksi> {
   try {
     const { message } = await panggilApi(`/laporan/${id}`, { method: 'DELETE' });

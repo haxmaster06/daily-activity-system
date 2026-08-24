@@ -222,11 +222,76 @@ class DailyReportController extends Controller
             attributes: ['catatan' => 'catatan tinjauan'],
         );
 
+        $this->terapkanTinjau($laporan, $request->user(), $data['catatan'] ?? null);
+
+        return ApiResponse::ok(
+            new DailyReportResource($this->muatLengkap($laporan)),
+            'Laporan ditandai sudah ditinjau.',
+        );
+    }
+
+    /**
+     * Menandai banyak laporan sudah ditinjau sekaligus.
+     *
+     * Peninjau kerap menghadapi antrean berisi banyak laporan yang sama-sama
+     * hanya perlu ditandai "sudah dibaca" — membukanya satu per satu memakan
+     * waktu tanpa menambah makna. Yang tak memenuhi syarat (milik sendiri, belum
+     * dikirim, sudah ditinjau, atau di luar wewenang) dilewati beserta alasannya,
+     * bukan menggagalkan seluruh permintaan.
+     *
+     * Catatan tinjauan bersifat per laporan — satu catatan untuk banyak laporan
+     * tidak bermakna — jadi jalur massal ini sengaja tidak menyertakannya.
+     */
+    public function tinjauMassal(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'laporan_id' => ['required', 'array', 'min:1', 'max:100'],
+            'laporan_id.*' => ['integer'],
+        ], attributes: ['laporan_id' => 'laporan']);
+
+        $peninjau = $request->user();
+        $ditinjau = 0;
+        $dilewati = [];
+
+        $daftar = DailyReport::with('user')
+            ->whereIn('id', array_values(array_unique($data['laporan_id'])))
+            ->get();
+
+        foreach ($daftar as $laporan) {
+            $alasan = $this->alasanTakDapatTinjau($peninjau, $laporan);
+
+            if ($alasan !== null) {
+                $dilewati[] = [
+                    'tanggal' => $laporan->report_date->translatedFormat('d F Y'),
+                    'penyusun' => $laporan->user?->name,
+                    'alasan' => $alasan,
+                ];
+
+                continue;
+            }
+
+            $this->terapkanTinjau($laporan, $peninjau, null);
+            $ditinjau++;
+        }
+
+        return ApiResponse::ok(
+            ['ditinjau' => $ditinjau, 'dilewati' => $dilewati],
+            $this->pesanTinjauMassal($ditinjau, count($dilewati)),
+        );
+    }
+
+    /**
+     * Menerapkan tinjauan pada satu laporan: ubah status, catat audit, beri tahu
+     * penyusun. Dipakai jalur tunggal maupun massal supaya keduanya tak pernah
+     * menyimpang.
+     */
+    private function terapkanTinjau(DailyReport $laporan, User $peninjau, ?string $catatan): void
+    {
         $laporan->forceFill([
             'status' => DailyReport::STATUS_DITINJAU,
-            'reviewed_by' => $request->user()->id,
+            'reviewed_by' => $peninjau->id,
             'reviewed_at' => now(),
-            'review_note' => $data['catatan'] ?? null,
+            'review_note' => $catatan,
         ])->save();
 
         Audit::catat(
@@ -238,14 +303,41 @@ class DailyReportController extends Controller
         );
 
         // Penyusun perlu tahu laporannya sudah dibaca, terlebih bila ada catatan.
-        $laporan->user?->notify(
-            new LaporanDitinjau($laporan, $request->user(), $data['catatan'] ?? null),
-        );
+        $laporan->user?->notify(new LaporanDitinjau($laporan, $peninjau, $catatan));
+    }
 
-        return ApiResponse::ok(
-            new DailyReportResource($this->muatLengkap($laporan)),
-            'Laporan ditandai sudah ditinjau.',
-        );
+    /** Alasan singkat sebuah laporan tak dapat ditinjau, atau null bila boleh. */
+    private function alasanTakDapatTinjau(User $peninjau, DailyReport $laporan): ?string
+    {
+        if ($laporan->user_id === $peninjau->getKey()) {
+            return 'Laporan sendiri.';
+        }
+
+        if ($laporan->status === DailyReport::STATUS_DRAF) {
+            return 'Masih draf.';
+        }
+
+        if ($laporan->status === DailyReport::STATUS_DITINJAU) {
+            return 'Sudah ditinjau.';
+        }
+
+        // Sisanya (izin dan jangkauan) ditentukan Policy — satu sumber kebenaran.
+        if (! $peninjau->can('tinjau', $laporan)) {
+            return 'Di luar wewenang.';
+        }
+
+        return null;
+    }
+
+    private function pesanTinjauMassal(int $ditinjau, int $dilewati): string
+    {
+        if ($ditinjau === 0) {
+            return 'Tidak ada laporan yang dapat ditinjau dari pilihan itu.';
+        }
+
+        $pesan = $ditinjau.' laporan ditandai sudah ditinjau.';
+
+        return $dilewati > 0 ? $pesan.' '.$dilewati.' dilewati.' : $pesan;
     }
 
     /**

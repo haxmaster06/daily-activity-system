@@ -43,6 +43,9 @@ class DailyReportResource extends JsonResource
             // tombol hapus dengan `dapat_disunting` membuatnya tampil pada
             // laporan yang penolakannya sudah pasti.
             'dapat_dihapus' => $request->user()?->can('delete', $this->resource) ?? false,
+            // Menandai laporan orang lain sudah ditinjau — dipakai daftar untuk
+            // menawarkan pilihan tandai massal hanya pada laporan yang memenuhi.
+            'dapat_ditinjau' => $request->user()?->can('tinjau', $this->resource) ?? false,
 
             'penyusun' => $this->whenLoaded('user', fn () => [
                 'id' => $this->user->id,
