@@ -20,6 +20,7 @@ import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatTanggal } from '@/lib/format';
 import { RAGAM_STATUS, type Laporan } from '@/lib/laporan';
+import type { Departemen } from '@/lib/master-data';
 import { hapusLaporan, tinjauMassal } from './actions';
 import { ImportLaporanDialog, type PilihanTemplateImport } from './import-laporan-dialog';
 
@@ -31,6 +32,10 @@ interface DaftarLaporanProps {
   judul: string;
   /** Template yang boleh dipakai import. Kosong berarti tombolnya tidak ada. */
   templateImport: PilihanTemplateImport[];
+  /** Departemen yang dapat dipilih pada filter; kosong bila tak berhak. */
+  departemen: Departemen[];
+  /** Menawarkan filter departemen hanya bila jangkauannya lebih dari satu. */
+  dapatPilihDepartemen: boolean;
 }
 
 export function DaftarLaporan({
@@ -39,6 +44,8 @@ export function DaftarLaporan({
   tampilkanPenyusun,
   judul,
   templateImport,
+  departemen,
+  dapatPilihDepartemen,
 }: DaftarLaporanProps) {
   const router = useRouter();
   const [konfirmasiHapus, setKonfirmasiHapus] = useState<Laporan | null>(null);
@@ -151,6 +158,7 @@ export function DaftarLaporan({
       <div className="card overflow-hidden">
         <FilterBar
           placeholderCari={tampilkanPenyusun ? 'Cari nama penyusun...' : 'Cari...'}
+          rentangTanggal
           pilihan={[
             {
               kunci: 'status',
@@ -161,6 +169,15 @@ export function DaftarLaporan({
                 { nilai: 'ditinjau', label: 'Ditinjau' },
               ],
             },
+            ...(dapatPilihDepartemen
+              ? [
+                  {
+                    kunci: 'departemen_id',
+                    label: 'Departemen',
+                    opsi: departemen.map((d) => ({ nilai: String(d.id), label: d.nama })),
+                  },
+                ]
+              : []),
           ]}
         />
 
