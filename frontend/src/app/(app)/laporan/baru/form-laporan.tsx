@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Check, CloudCheck, Layers, Plus, RotateCcw, X } from 'lucide-react';
+import { Check, CloudCheck, Layers, Plus, RotateCcw, TriangleAlert, X } from 'lucide-react';
 
 import { TabelIsian } from '@/components/laporan/tabel-isian';
 import { Alert } from '@/components/ui/alert';
@@ -128,6 +128,11 @@ export function FormLaporan({
 
   /** Kapan draf terakhir tersimpan otomatis — untuk indikator kepercayaan. */
   const [tersimpanPada, setTersimpanPada] = useState<string | null>(null);
+
+  /** Terisi sesudah simpan berhasil DAN ada catatan LOT dobel yang perlu dilihat. */
+  const [tersimpan, setTersimpan] = useState<{ id: number | null; peringatan: string[] } | null>(
+    null,
+  );
 
   /*
    * Draf hanya dibaca sekali, saat halaman dibuka. Membacanya ulang setiap
@@ -357,12 +362,65 @@ export function FormLaporan({
     hapusDraf(laporanId);
     void hapusDrafServer(kunciServerDraf(laporanId));
 
-    const tujuan = sedangUbah ? laporanId : (hasil as { id?: number }).id;
+    const tujuan = sedangUbah ? laporanId : hasil.id;
+
+    // Ada catatan LOT yang juga dicatat pengguna lain: tampilkan dulu supaya
+    // pengisi tahu, jangan langsung pindah halaman — tak ada toast yang
+    // bertahan lintas navigasi.
+    if (hasil.peringatan && hasil.peringatan.length > 0) {
+      setTersimpan({ id: tujuan ?? null, peringatan: hasil.peringatan });
+
+      return;
+    }
+
     router.push(tujuan ? `/laporan/${tujuan}` : '/laporan');
     router.refresh();
   }
 
   const totalBaris = bagian.reduce((jumlah, b) => jumlah + b.baris.length, 0);
+
+  // Layar konfirmasi sesudah simpan berhasil yang punya catatan LOT dobel.
+  // Hanya muncul bila ada peringatan; simpan tanpa catatan tetap langsung pindah.
+  if (tersimpan) {
+    return (
+      <div className="mx-auto max-w-xl rounded-card border border-line bg-surface p-6 text-center">
+        <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-primary-subtle">
+          <Check aria-hidden="true" className="size-5 text-primary-text" />
+        </div>
+        <h2 className="font-heading text-section-title text-ink">
+          Laporan tersimpan sebagai draf
+        </h2>
+
+        <div className="mt-4 rounded-input border border-accent/40 bg-accent-subtle px-3 py-2.5 text-left">
+          <p className="flex items-center gap-1.5 text-body font-semibold text-accent-text">
+            <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+            Perlu diperhatikan
+          </p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-body text-ink">
+            {tersimpan.peringatan.map((satu, i) => (
+              <li key={i}>{satu}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-5 flex justify-center gap-2">
+          <button type="button" onClick={() => router.push('/laporan')} className="btn-ghost btn-sm">
+            Ke Daftar Laporan
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              router.push(tersimpan.id ? `/laporan/${tersimpan.id}` : '/laporan');
+              router.refresh();
+            }}
+            className="btn-primary btn-sm"
+          >
+            Lihat Laporan
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

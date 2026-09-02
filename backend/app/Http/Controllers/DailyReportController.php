@@ -92,7 +92,9 @@ class DailyReportController extends Controller
             );
         }
 
-        $laporan = DB::transaction(function () use ($data, $pengguna) {
+        $peringatan = [];
+
+        $laporan = DB::transaction(function () use ($data, $pengguna, &$peringatan) {
             $laporan = DailyReport::create([
                 'user_id' => $pengguna->id,
                 // Disalin, bukan dibaca lewat relasi: pengguna dapat dipindah
@@ -103,7 +105,7 @@ class DailyReportController extends Controller
                 'status' => DailyReport::STATUS_DRAF,
             ]);
 
-            $this->simpanBagian($laporan, $data['sections'], $pengguna);
+            $peringatan = $this->simpanBagian($laporan, $data['sections'], $pengguna);
 
             return $laporan;
         });
@@ -118,6 +120,7 @@ class DailyReportController extends Controller
         return ApiResponse::created(
             new DailyReportResource($this->muatLengkap($laporan)),
             'Laporan berhasil disimpan sebagai draf.',
+            $peringatan,
         );
     }
 
@@ -133,12 +136,14 @@ class DailyReportController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($laporan, $data, $request) {
+        $peringatan = [];
+
+        DB::transaction(function () use ($laporan, $data, $request, &$peringatan) {
             // Bagian lama dihapus lalu ditulis ulang. Menyunting per baris
             // memerlukan penanda baris yang stabil, dan bentuk isian yang
             // dinamis membuat penanda itu tidak dapat diandalkan.
             $laporan->sections()->delete();
-            $this->simpanBagian($laporan, $data['sections'], $request->user());
+            $peringatan = $this->simpanBagian($laporan, $data['sections'], $request->user());
         });
 
         Audit::catat(
@@ -151,6 +156,7 @@ class DailyReportController extends Controller
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan->fresh())),
             'Laporan berhasil diperbarui.',
+            peringatan: $peringatan,
         );
     }
 
@@ -414,8 +420,10 @@ class DailyReportController extends Controller
      *
      * @throws ValidationException
      */
-    private function simpanBagian(DailyReport $laporan, array $bagian, User $pengguna): void
+    private function simpanBagian(DailyReport $laporan, array $bagian, User $pengguna): array
     {
+        $peringatan = [];
+
         foreach (array_values($bagian) as $urutan => $isiBagian) {
             $template = ReportTemplate::with('fields')->findOrFail($isiBagian['report_template_id']);
 
@@ -444,14 +452,12 @@ class DailyReportController extends Controller
                 array_values($isiBagian['items']),
             );
 
-            // Cegah satu catatan produksi (mis. LOT + tanggal) tercatat dua kali
-            // oleh orang berbeda — jika tidak, angka analitik menggelembung.
-            PenjagaIdentitasLaporan::periksa(
-                $template,
-                $bersihSemua,
-                $pengguna,
-                $laporan->id,
-                "sections.{$urutan}.items",
+            // LOT + tanggal yang sama tidak lagi diblokir — beberapa staf memang
+            // menyentuh LOT yang sama. Pengisi hanya diberi tahu siapa yang lebih
+            // dulu mencatatnya; penghitungan ganda ditangani di lapisan analitik.
+            $peringatan = array_merge(
+                $peringatan,
+                PenjagaIdentitasLaporan::peringatan($template, $bersihSemua, $laporan->id),
             );
 
             $section = $laporan->sections()->create([
@@ -467,6 +473,8 @@ class DailyReportController extends Controller
                 ]);
             }
         }
+
+        return array_values(array_unique($peringatan));
     }
 
     private function muatLengkap(DailyReport $laporan): DailyReport

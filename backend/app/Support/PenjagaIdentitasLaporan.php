@@ -4,9 +4,7 @@ namespace App\Support;
 
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Mencegah satu catatan produksi fisik tercatat dua kali oleh orang berbeda.
@@ -50,30 +48,35 @@ final class PenjagaIdentitasLaporan
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $items  baris yang sudah dibersihkan
+     * Mencari peringatan (bukan menolak) untuk kombinasi identitas yang dobel.
      *
-     * @throws ValidationException
+     * Sejak keputusan pemilik: pengisi TIDAK diblokir bila LOT+tanggal yang sama
+     * sudah dicatat orang lain — beberapa staf memang menyentuh LOT yang sama.
+     * Ia hanya diberi tahu siapa yang lebih dulu mencatatnya; penghitungan ganda
+     * ditangani di lapisan analitik (diambil satu, jabatan tertinggi menang).
+     *
+     * @param  array<int, array<string, mixed>>  $items  baris yang sudah dibersihkan
+     * @return list<string> Pesan peringatan, kosong bila tak ada yang dobel.
      */
-    public static function periksa(
+    public static function peringatan(
         ReportTemplate $template,
         array $items,
-        User $pengguna,
         ?int $laporanId,
-        string $awalan,
-    ): void {
+    ): array {
         if (! in_array($template->code, self::TEMPLATE_DIJAGA, true)) {
-            return;
+            return [];
         }
 
         $kolom = self::kolomIdentitas($template);
 
         if ($kolom === []) {
-            return;
+            return [];
         }
 
+        $pesan = [];
         $sudahDiLaporanIni = [];
 
-        foreach (array_values($items) as $i => $baris) {
+        foreach (array_values($items) as $baris) {
             $identitas = self::identitas($kolom, (array) $baris);
 
             if ($identitas === null) {
@@ -83,20 +86,20 @@ final class PenjagaIdentitasLaporan
             $tanda = implode('|', $identitas);
 
             if (isset($sudahDiLaporanIni[$tanda])) {
-                throw ValidationException::withMessages([
-                    "{$awalan}.{$i}" => self::pesan($template, $identitas, null),
-                ]);
+                $pesan[] = self::pesan($template, $identitas, null);
+
+                continue;
             }
             $sudahDiLaporanIni[$tanda] = true;
 
             $bentrok = self::cariBentrok($template->id, $identitas, $laporanId);
 
             if ($bentrok !== null) {
-                throw ValidationException::withMessages([
-                    "{$awalan}.{$i}" => self::pesan($template, $identitas, $bentrok->nama),
-                ]);
+                $pesan[] = self::pesan($template, $identitas, $bentrok->nama);
             }
         }
+
+        return array_values(array_unique($pesan));
     }
 
     /**
@@ -162,10 +165,10 @@ final class PenjagaIdentitasLaporan
             ->join(' · ');
 
         if ($nama === null) {
-            return "Baris dengan {$ringkas} muncul lebih dari sekali pada laporan ini.";
+            return "{$ringkas} muncul lebih dari sekali pada laporan ini.";
         }
 
-        return "Kombinasi {$ringkas} sudah dicatat oleh {$nama}. "
-            .'Satu catatan produksi tidak boleh dobel — gunakan kombinasi lain.';
+        return "{$ringkas} juga dicatat oleh {$nama} pada tanggal yang sama. "
+            .'Pada analitik hanya satu yang dihitung.';
     }
 }

@@ -21,6 +21,8 @@ export interface EnvelopeApi<T> {
   message: string;
   data: T;
   errors?: Record<string, string[]>;
+  /** Pemberitahuan non-galat (mis. LOT juga dicatat pengguna lain). */
+  peringatan?: string[];
   reference?: string;
   meta?: {
     halaman_saat_ini: number;

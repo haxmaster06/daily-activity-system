@@ -22,29 +22,31 @@ export interface KiriLaporan {
 /** Hasil aksi yang perlu menyertakan id laporan yang baru dibuat. */
 export interface HasilSimpan extends HasilAksi {
   id?: number;
+  /** Pemberitahuan non-galat: LOT+tanggal juga dicatat pengguna lain. */
+  peringatan?: string[];
 }
 
 export async function simpanLaporanBaru(data: KiriLaporan): Promise<HasilSimpan> {
   try {
-    const { message, data: laporan } = await panggilApi<{ id: number }>('/laporan', {
+    const { message, data: laporan, peringatan } = await panggilApi<{ id: number }>('/laporan', {
       method: 'POST',
       body: data,
     });
     revalidatePath(HALAMAN);
 
-    return { ...hasilBerhasil(message || 'Laporan tersimpan.'), id: laporan.id };
+    return { ...hasilBerhasil(message || 'Laporan tersimpan.'), id: laporan.id, peringatan };
   } catch (galat) {
     return hasilGalat(galat);
   }
 }
 
-export async function perbaruiLaporan(id: number, data: KiriLaporan): Promise<HasilAksi> {
+export async function perbaruiLaporan(id: number, data: KiriLaporan): Promise<HasilSimpan> {
   try {
-    const { message } = await panggilApi(`/laporan/${id}`, { method: 'PUT', body: data });
+    const { message, peringatan } = await panggilApi(`/laporan/${id}`, { method: 'PUT', body: data });
     revalidatePath(HALAMAN);
     revalidatePath(`${HALAMAN}/${id}`);
 
-    return hasilBerhasil(message || 'Laporan berhasil diperbarui.');
+    return { ...hasilBerhasil(message || 'Laporan berhasil diperbarui.'), id, peringatan };
   } catch (galat) {
     return hasilGalat(galat);
   }

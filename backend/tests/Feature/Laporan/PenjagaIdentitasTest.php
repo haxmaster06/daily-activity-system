@@ -8,9 +8,10 @@ use Database\Seeders\DepartmentSeeder;
 use Laravel\Sanctum\Sanctum;
 
 /*
- * Proses Produksi diisi banyak pelapor. Penjaga identitas menolak satu catatan
- * fisik (kombinasi Tanggal Produksi + LOT) tercatat dua kali oleh orang berbeda,
- * supaya angka analitik tidak menggelembung.
+ * Proses Produksi diisi banyak pelapor. Sejak keputusan pemilik, LOT + tanggal
+ * yang sama TIDAK lagi diblokir — beberapa staf memang menyentuh LOT yang sama.
+ * Pengisi hanya diberi PERINGATAN siapa yang lebih dulu mencatatnya; penghitungan
+ * ganda ditangani di lapisan analitik.
  */
 
 function templateProsesIdentitas(): ReportTemplate
@@ -51,21 +52,22 @@ function muatanProses(int $templateId, array $item): array
     ];
 }
 
-it('menolak LOT + tanggal produksi yang sudah dicatat user lain', function (): void {
+it('mengizinkan LOT + tanggal yang sudah dicatat user lain, disertai peringatan', function (): void {
     $template = templateProsesIdentitas();
 
-    Sanctum::actingAs(penggunaProduksi());
+    $lebihDulu = penggunaProduksi();
+    Sanctum::actingAs($lebihDulu);
     $this->postJson('/api/laporan', muatanProses($template->id, [
         'tanggal_produksi' => '2026-08-01', 'lot' => 807, 'oven_keluar' => 100,
     ]))->assertCreated();
 
     Sanctum::actingAs(penggunaProduksi());
-    $errors = $this->postJson('/api/laporan', muatanProses($template->id, [
+    $peringatan = $this->postJson('/api/laporan', muatanProses($template->id, [
         'tanggal_produksi' => '2026-08-01', 'lot' => 807, 'oven_keluar' => 90,
-    ]))->assertStatus(422)->json('errors');
+    ]))->assertCreated()->json('peringatan');
 
-    expect($errors)->toHaveKey('sections.0.items.0')
-        ->and($errors['sections.0.items.0'][0])->toContain('sudah dicatat');
+    expect($peringatan)->toBeArray()->not->toBeEmpty();
+    expect($peringatan[0])->toContain('juga dicatat oleh')->toContain($lebihDulu->name);
 });
 
 it('mengizinkan LOT berbeda pada tanggal yang sama', function (): void {
@@ -82,11 +84,11 @@ it('mengizinkan LOT berbeda pada tanggal yang sama', function (): void {
     ]))->assertCreated();
 });
 
-it('menolak LOT dobel di dalam satu laporan', function (): void {
+it('mengizinkan LOT dobel di dalam satu laporan, disertai peringatan', function (): void {
     $template = templateProsesIdentitas();
 
     Sanctum::actingAs(penggunaProduksi());
-    $errors = $this->postJson('/api/laporan', [
+    $peringatan = $this->postJson('/api/laporan', [
         'report_date' => now()->toDateString(),
         'sections' => [[
             'report_template_id' => $template->id,
@@ -95,10 +97,10 @@ it('menolak LOT dobel di dalam satu laporan', function (): void {
                 ['tanggal_produksi' => '2026-08-01', 'lot' => 900, 'oven_keluar' => 60],
             ],
         ]],
-    ])->assertStatus(422)->json('errors');
+    ])->assertCreated()->json('peringatan');
 
-    expect($errors)->toHaveKey('sections.0.items.1')
-        ->and($errors['sections.0.items.1'][0])->toContain('lebih dari sekali');
+    expect($peringatan)->toBeArray()->not->toBeEmpty();
+    expect($peringatan[0])->toContain('lebih dari sekali');
 });
 
 it('mengizinkan pemilik menyunting laporannya sendiri dengan LOT yang sama', function (): void {
