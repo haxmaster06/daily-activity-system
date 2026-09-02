@@ -18,7 +18,7 @@ import {
   type IsiDraf,
 } from '@/lib/draf-laporan';
 import { formatTanggal, formatTanggalWaktu, formatWaktu, hariIniApi } from '@/lib/format';
-import { barisKosong, type NilaiBaris } from '@/lib/laporan';
+import { barisKosong, lengkapiTanggalWajib, type NilaiBaris } from '@/lib/laporan';
 import type { Template } from '@/lib/template';
 import {
   bacaDrafServer,
@@ -266,6 +266,20 @@ export function FormLaporan({
         : [{ template: utama, baris: [barisKosong(utama.kolom ?? [])] }],
     );
   }, [sedangUbah, bagianAwal, templateTersedia]);
+
+  /*
+   * Kolom tanggal wajib (mis. "Tanggal Produksi") diisi otomatis dengan tanggal
+   * laporan. Pada laporan harian, tanggal tiap baris memang tanggal laporannya;
+   * memaksa pengisi mengetiknya ulang per baris hanya menyisakan sel wajib yang
+   * kosong lalu memicu "Periksa kembali isian Anda." berulang kali.
+   *
+   * Hanya sel KOSONG yang diisi — nilai yang sudah diketik sendiri tak ditimpa,
+   * dan bila tak ada yang berubah referensinya dikembalikan apa adanya sehingga
+   * efek ini tidak memicu render berulang.
+   */
+  useEffect(() => {
+    setBagian((sebelumnya) => lengkapiTanggalWajib(sebelumnya, tanggal));
+  }, [tanggal, bagian]);
 
   const belumDipakai = templateTersedia.filter(
     (t) => !bagian.some((b) => b.template.id === t.id),

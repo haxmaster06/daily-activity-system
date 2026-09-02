@@ -98,6 +98,56 @@ export function barisKosong(kolom: KolomTemplate[]): NilaiBaris {
   return baris;
 }
 
+interface BagianDenganKolom {
+  template: { kolom?: KolomTemplate[] };
+  baris: NilaiBaris[];
+}
+
+/**
+ * Mengisi sel tanggal WAJIB yang masih kosong dengan tanggal laporan.
+ *
+ * Pada laporan harian, tanggal tiap baris (mis. "Tanggal Produksi") memang
+ * tanggal laporannya; memaksa pengisi mengetiknya ulang per baris hanya
+ * menyisakan sel wajib kosong lalu memicu galat "Periksa kembali isian Anda."
+ * Hanya sel kosong yang diisi — nilai yang sudah diketik sendiri tak ditimpa —
+ * dan bila tak ada yang berubah, referensi yang sama dikembalikan supaya tidak
+ * memicu render ulang.
+ */
+export function lengkapiTanggalWajib<T extends BagianDenganKolom>(
+  bagian: T[],
+  tanggal: string | null,
+): T[] {
+  if (!tanggal) return bagian;
+
+  let berubah = false;
+
+  const hasil = bagian.map((b) => {
+    const kolomTanggalWajib = (b.template.kolom ?? []).filter(
+      (k) => k.tipe === 'date' && k.wajib,
+    );
+    if (kolomTanggalWajib.length === 0) return b;
+
+    let bagianBerubah = false;
+    const baris = b.baris.map((satu) => {
+      let r = satu;
+      for (const kolom of kolomTanggalWajib) {
+        if (!r[kolom.kunci]) {
+          r = { ...r, [kolom.kunci]: tanggal };
+          bagianBerubah = true;
+        }
+      }
+
+      return r;
+    });
+
+    if (bagianBerubah) berubah = true;
+
+    return bagianBerubah ? { ...b, baris } : b;
+  });
+
+  return berubah ? hasil : bagian;
+}
+
 /**
  * Menghitung kolom rumus untuk ditampilkan sementara di antarmuka.
  *
