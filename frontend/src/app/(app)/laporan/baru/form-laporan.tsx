@@ -7,6 +7,7 @@ import { Check, CloudCheck, Layers, Plus, RotateCcw, TriangleAlert, X } from 'lu
 import { TabelIsian } from '@/components/laporan/tabel-isian';
 import { Alert } from '@/components/ui/alert';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Modal } from '@/components/ui/modal';
 import { Wizard } from '@/components/ui/wizard';
 import { cn } from '@/lib/cn';
 import {
@@ -379,47 +380,12 @@ export function FormLaporan({
 
   const totalBaris = bagian.reduce((jumlah, b) => jumlah + b.baris.length, 0);
 
-  // Layar konfirmasi sesudah simpan berhasil yang punya catatan LOT dobel.
-  // Hanya muncul bila ada peringatan; simpan tanpa catatan tetap langsung pindah.
-  if (tersimpan) {
-    return (
-      <div className="mx-auto max-w-xl rounded-card border border-line bg-surface p-6 text-center">
-        <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-primary-subtle">
-          <Check aria-hidden="true" className="size-5 text-primary-text" />
-        </div>
-        <h2 className="font-heading text-section-title text-ink">
-          Laporan tersimpan sebagai draf
-        </h2>
-
-        <div className="mt-4 rounded-input border border-accent/40 bg-accent-subtle px-3 py-2.5 text-left">
-          <p className="flex items-center gap-1.5 text-body font-semibold text-accent-text">
-            <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
-            Perlu diperhatikan
-          </p>
-          <ul className="mt-1 list-disc space-y-1 pl-5 text-body text-ink">
-            {tersimpan.peringatan.map((satu, i) => (
-              <li key={i}>{satu}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-5 flex justify-center gap-2">
-          <button type="button" onClick={() => router.push('/laporan')} className="btn-ghost btn-sm">
-            Ke Daftar Laporan
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              router.push(tersimpan.id ? `/laporan/${tersimpan.id}` : '/laporan');
-              router.refresh();
-            }}
-            className="btn-primary btn-sm"
-          >
-            Lihat Laporan
-          </button>
-        </div>
-      </div>
-    );
+  /** Menutup popup catatan lalu pindah ke laporan yang baru tersimpan. */
+  function lihatLaporanTersimpan() {
+    const id = tersimpan?.id ?? null;
+    setTersimpan(null);
+    router.push(id ? `/laporan/${id}` : '/laporan');
+    router.refresh();
   }
 
   return (
@@ -644,6 +610,47 @@ export function FormLaporan({
           },
         ]}
       />
+
+      {/*
+        Catatan LOT dobel ditampilkan sebagai popup, bukan halaman baru: laporan
+        sudah tersimpan, pengisi tinggal membaca lalu lanjut. Menutupnya membuka
+        laporannya.
+      */}
+      <Modal
+        terbuka={tersimpan !== null}
+        onTutup={lihatLaporanTersimpan}
+        judul="Laporan tersimpan sebagai draf"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="rounded-input border border-accent/40 bg-accent-subtle px-3 py-2.5">
+            <p className="flex items-center gap-1.5 text-body font-semibold text-accent-text">
+              <TriangleAlert aria-hidden="true" className="size-4 shrink-0" />
+              Perlu diperhatikan
+            </p>
+            <ul className="mt-1 list-disc space-y-1 pl-5 text-body text-ink">
+              {(tersimpan?.peringatan ?? []).map((satu, i) => (
+                <li key={i}>{satu}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setTersimpan(null);
+                router.push('/laporan');
+              }}
+              className="btn-ghost btn-sm"
+            >
+              Ke Daftar Laporan
+            </button>
+            <button type="button" onClick={lihatLaporanTersimpan} className="btn-primary btn-sm">
+              Lihat Laporan
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

@@ -6,6 +6,7 @@ use App\Models\DailyReport;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
 use App\Models\User;
+use App\Support\PenjagaIdentitasLaporan;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -153,7 +154,7 @@ final class AngkaProduksi
             return [];
         }
 
-        $jumlah = self::jumlah($pengguna, $dari, $sampai, $proses->id, $fields->pluck('key')->all(), $penggunaId);
+        $jumlah = self::jumlah($pengguna, $dari, $sampai, $proses->id, $fields->pluck('key')->all(), $penggunaId, $proses);
 
         // Urutan stasiun mengikuti kemunculan pertama pada sort_order.
         return $fields
@@ -207,8 +208,8 @@ final class AngkaProduksi
             $target = $fields->filter(fn (TemplateField $f) => self::peran($f->key) === 'target')->last();
 
             $kunci = collect([$masuk, $keluar, $target])->filter()->pluck('key')->all();
-            $kini = self::jumlah($pengguna, $dari, $sampai, $proses->id, $kunci, $penggunaId);
-            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $proses->id, $kunci, $penggunaId);
+            $kini = self::jumlah($pengguna, $dari, $sampai, $proses->id, $kunci, $penggunaId, $proses);
+            $lalu = self::jumlah($pengguna, $dariSblm, $sampaiSblm, $proses->id, $kunci, $penggunaId, $proses);
 
             if ($keluar) {
                 $kartu[] = self::kartu('Keluaran akhir', $keluar->unit ?? '',
@@ -314,6 +315,7 @@ final class AngkaProduksi
             ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
             ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id', 'report_date'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
             ->where('s.report_template_id', $proses->id)
+            ->whereIntegerInRaw('i.id', self::idPemenang($pengguna, $dari, $sampai, $proses, $penggunaId))
             ->groupBy('r.report_date')
             ->selectRaw(
                 'r.report_date AS tanggal, '
@@ -386,10 +388,14 @@ final class AngkaProduksi
     /**
      * Jumlah tiap kunci sepanjang rentang, satu query banyak kolom SUM.
      *
+     * `$dedup` (opsional): template ber-identitas (mis. PROD_PROSES) yang barisnya
+     * di-dedup lebih dulu — satu (LOT + tanggal) dihitung sekali, versi jabatan
+     * tertinggi yang menang. Lihat idPemenang().
+     *
      * @param  list<string>  $keys
      * @return array<string, float>
      */
-    private static function jumlah(User $pengguna, Carbon $dari, Carbon $sampai, int $templateId, array $keys, ?int $penggunaId = null): array
+    private static function jumlah(User $pengguna, Carbon $dari, Carbon $sampai, int $templateId, array $keys, ?int $penggunaId = null, ?ReportTemplate $dedup = null): array
     {
         $keys = array_values(array_filter($keys, fn ($k) => preg_match('/^[a-z0-9_]+$/i', $k)));
 
@@ -409,6 +415,10 @@ final class AngkaProduksi
             ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
             ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
             ->where('s.report_template_id', $templateId)
+            ->when(
+                $dedup !== null,
+                fn ($q) => $q->whereIntegerInRaw('i.id', self::idPemenang($pengguna, $dari, $sampai, $dedup, $penggunaId)),
+            )
             ->selectRaw(implode(', ', $pilih), $bind)
             ->first();
 
@@ -418,6 +428,87 @@ final class AngkaProduksi
         }
 
         return $hasil;
+    }
+
+    /**
+     * Id baris yang "menang" per kombinasi identitas (mis. LOT + Tanggal Produksi),
+     * dalam rentang & jangkauan yang sama dengan agregasi.
+     *
+     * Sejak LOT dobel lintas-pelapor tak lagi diblokir, dua orang bisa mencatat
+     * LOT+tanggal yang sama. Untuk analitik hanya SATU yang dihitung: jabatan
+     * (level peran) tertinggi menang; seri diputus oleh yang paling akhir dikirim,
+     * lalu id terbesar. Baris tanpa identitas lengkap tak bisa dibedakan — semua
+     * dipertahankan.
+     *
+     * ponytail: dedup di PHP atas kumpulan kecil baris PROD_PROSES; dipanggil per
+     * agregasi (stasiun/kpi/tren). Bila volumenya membesar, pindahkan ke window
+     * function SQL sekali jalan.
+     *
+     * @return list<int>
+     */
+    private static function idPemenang(User $pengguna, Carbon $dari, Carbon $sampai, ReportTemplate $proses, ?int $penggunaId): array
+    {
+        $kolom = array_values(array_filter(
+            PenjagaIdentitasLaporan::kolomIdentitas($proses),
+            fn ($k) => preg_match('/^[a-z0-9_]+$/i', $k),
+        ));
+
+        $pilih = ['i.id AS id', 'r.user_id AS user_id', 'r.submitted_at AS dikirim'];
+        $bind = [];
+        foreach ($kolom as $idx => $k) {
+            $pilih[] = "JSON_UNQUOTE(JSON_EXTRACT(i.data, ?)) AS id_{$idx}";
+            $bind[] = '$."'.$k.'"';
+        }
+
+        $baris = DB::table('daily_report_items as i')
+            ->join('daily_report_sections as s', 's.id', '=', 'i.daily_report_section_id')
+            ->joinSub(self::terlihat($pengguna, $dari, $sampai, ['id', 'user_id', 'submitted_at'], $penggunaId), 'r', 'r.id', '=', 's.daily_report_id')
+            ->where('s.report_template_id', $proses->id)
+            ->selectRaw(implode(', ', $pilih), $bind)
+            ->get();
+
+        $level = $baris->isEmpty() ? collect() : DB::table('role_user as ru')
+            ->join('roles as ro', 'ro.id', '=', 'ru.role_id')
+            ->whereIntegerInRaw('ru.user_id', $baris->pluck('user_id')->unique()->all())
+            ->groupBy('ru.user_id')
+            ->selectRaw('ru.user_id, MAX(ro.level) AS lvl')
+            ->pluck('lvl', 'user_id');
+
+        $pemenang = [];
+        $terbaik = [];
+
+        foreach ($baris as $row) {
+            $identitas = [];
+            $lengkap = $kolom !== [];
+            foreach (array_keys($kolom) as $idx) {
+                $nilai = $row->{"id_{$idx}"};
+                if ($nilai === null || $nilai === '') {
+                    $lengkap = false;
+                    break;
+                }
+                $identitas[] = $nilai;
+            }
+
+            // Identitas tak lengkap tak bisa dibedakan — selalu dipertahankan.
+            if (! $lengkap) {
+                $pemenang[] = (int) $row->id;
+
+                continue;
+            }
+
+            $tanda = implode('|', $identitas);
+            $skor = [(int) ($level[$row->user_id] ?? 0), (string) ($row->dikirim ?? ''), (int) $row->id];
+
+            if (! isset($terbaik[$tanda]) || $skor > $terbaik[$tanda]) {
+                $terbaik[$tanda] = $skor;
+            }
+        }
+
+        foreach ($terbaik as $skor) {
+            $pemenang[] = $skor[2];
+        }
+
+        return $pemenang;
     }
 
     /**

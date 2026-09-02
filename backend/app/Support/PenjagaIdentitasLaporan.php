@@ -34,6 +34,18 @@ final class PenjagaIdentitasLaporan
     private const TEMPLATE_DIJAGA = ['PROD_PROSES'];
 
     /**
+     * Apakah template ini punya identitas fisik unik (LOT) yang layak di-dedup.
+     *
+     * Hanya template ini yang boleh di-dedup di analitik — template umum seperti
+     * Aktivitas Harian punya "identitas" yang wajar berulang (target + status),
+     * dan men-dedup-nya justru membuang pekerjaan sah.
+     */
+    public static function dijaga(?string $kode): bool
+    {
+        return $kode !== null && in_array($kode, self::TEMPLATE_DIJAGA, true);
+    }
+
+    /**
      * @return list<string>
      */
     public static function kolomIdentitas(ReportTemplate $template): array

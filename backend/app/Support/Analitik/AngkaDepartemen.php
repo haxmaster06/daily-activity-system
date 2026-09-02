@@ -5,8 +5,11 @@ namespace App\Support\Analitik;
 use App\Models\DailyReport;
 use App\Models\DailyReportItem;
 use App\Models\Department;
+use App\Models\ReportTemplate;
 use App\Models\TemplateField;
+use App\Support\PenjagaIdentitasLaporan;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Keadaan pekerjaan tiap departemen, dibaca dari isi laporannya sendiri.
@@ -54,7 +57,7 @@ final class AngkaDepartemen
             );
 
         $laporan = self::laporanTerlihat($saring);
-        $baris = self::barisLaporan($saring, $laporan);
+        $baris = self::dedupIdentitas(self::barisLaporan($saring, $laporan), $laporan);
         $kolom = self::kolomTemplate($baris);
 
         return [
@@ -125,6 +128,103 @@ final class AngkaDepartemen
                 'data' => is_array($satu->data) ? $satu->data : (array) json_decode((string) $satu->data, true),
                 'status' => $satu->progress_status,
             ]);
+    }
+
+    /**
+     * Membuang catatan produksi yang dobel lintas-pelapor sebelum diringkas.
+     *
+     * Sejak LOT dobel tak lagi diblokir saat simpan, dua orang bisa mencatat
+     * LOT + tanggal yang sama. Untuk ringkasan ini hanya SATU yang dihitung:
+     * jabatan (level peran) tertinggi menang, seri diputus paling akhir dikirim
+     * lalu id laporan terbesar. Hanya template ber-identitas LOT (PROD_PROSES)
+     * yang di-dedup; template lain barisnya wajar berulang, dibiarkan apa adanya.
+     *
+     * @param  Collection<int, object>  $baris
+     * @param  Collection<int, DailyReport>  $laporan
+     * @return Collection<int, object>
+     */
+    private static function dedupIdentitas(Collection $baris, Collection $laporan): Collection
+    {
+        if ($baris->isEmpty()) {
+            return $baris;
+        }
+
+        $dijaga = ReportTemplate::query()
+            ->whereIn('id', $baris->pluck('template_id')->unique())
+            ->with('fields')
+            ->get()
+            ->filter(fn (ReportTemplate $t) => PenjagaIdentitasLaporan::dijaga($t->code));
+
+        if ($dijaga->isEmpty()) {
+            return $baris;
+        }
+
+        $identitasPerTemplate = $dijaga->mapWithKeys(
+            fn (ReportTemplate $t) => [$t->id => PenjagaIdentitasLaporan::kolomIdentitas($t)],
+        );
+        $infoLaporan = $laporan->keyBy('id');
+        $level = self::levelPeran($laporan->pluck('user_id')->unique()->all());
+
+        $lolos = [];
+        $terbaik = [];
+
+        foreach ($baris as $row) {
+            $kolom = $identitasPerTemplate[$row->template_id] ?? [];
+
+            $identitas = [];
+            $lengkap = $kolom !== [];
+            foreach ($kolom as $k) {
+                $nilai = $row->data[$k] ?? null;
+                if ($nilai === null || $nilai === '' || is_array($nilai)) {
+                    $lengkap = false;
+                    break;
+                }
+                $identitas[] = (string) $nilai;
+            }
+
+            // Template tak dijaga atau identitas tak lengkap: tak bisa dibedakan,
+            // selalu dipertahankan.
+            if (! $lengkap) {
+                $lolos[] = $row;
+
+                continue;
+            }
+
+            $lap = $infoLaporan->get($row->laporan_id);
+            $skor = [
+                (int) ($level[$lap?->user_id] ?? 0),
+                (string) ($lap?->submitted_at ?? ''),
+                (int) ($lap?->id ?? 0),
+            ];
+            $tanda = $row->template_id.'|'.implode('|', $identitas);
+
+            if (! isset($terbaik[$tanda]) || $skor > $terbaik[$tanda]['skor']) {
+                $terbaik[$tanda] = ['skor' => $skor, 'row' => $row];
+            }
+        }
+
+        return collect($lolos)->merge(collect($terbaik)->pluck('row'))->values();
+    }
+
+    /**
+     * Level peran tertinggi per pengguna (staff 10 … administrator 40).
+     *
+     * @param  list<int>  $userIds
+     * @return array<int, int>
+     */
+    private static function levelPeran(array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+
+        return DB::table('role_user as ru')
+            ->join('roles as ro', 'ro.id', '=', 'ru.role_id')
+            ->whereIntegerInRaw('ru.user_id', $userIds)
+            ->groupBy('ru.user_id')
+            ->selectRaw('ru.user_id, MAX(ro.level) AS lvl')
+            ->pluck('lvl', 'user_id')
+            ->all();
     }
 
     /**

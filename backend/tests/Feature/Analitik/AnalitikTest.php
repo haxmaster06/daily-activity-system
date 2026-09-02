@@ -922,7 +922,7 @@ describe('proses produksi per user', function (): void {
         Sanctum::actingAs($admin);
 
         $ovenKeluar = fn (array $data): float => (float) collect(
-            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field']
+            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field'],
         )->firstWhere('peran', 'keluar')['nilai'];
 
         // Gabungan seluruh pelapor.
@@ -953,5 +953,109 @@ describe('proses produksi per user', function (): void {
 
         expect(collect($data['pelapor'])->pluck('id'))->not->toContain($luar->id)
             ->and($data['pengguna_id'])->toBeNull();
+    });
+});
+
+/** Template proses ber-identitas (Tanggal Produksi + LOT) + satu ukuran. */
+function templateProsesLot(): ReportTemplate
+{
+    $template = ReportTemplate::create([
+        'code' => 'PROD_PROSES',
+        'name' => 'Proses Harian per LOT',
+        'department_id' => Department::where('code', 'PRODUKSI')->value('id'),
+        'is_active' => true,
+    ]);
+
+    $template->fields()->createMany([
+        ['key' => 'tanggal_produksi', 'label' => 'Tanggal Produksi', 'type' => TemplateField::TIPE_DATE, 'sort_order' => 0],
+        ['key' => 'lot', 'label' => 'LOT#', 'type' => TemplateField::TIPE_TEXT, 'sort_order' => 1],
+        ['key' => 'oven_keluar', 'label' => 'QTY Keluar', 'group_label' => 'Oven', 'type' => TemplateField::TIPE_DECIMAL, 'unit' => 'kg', 'sort_order' => 2],
+    ]);
+
+    return $template->load('fields');
+}
+
+describe('dedup LOT dobel lintas-pelapor pada analitik', function (): void {
+    function ovenKeluar(array $data): float
+    {
+        return (float) collect(
+            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field'],
+        )->firstWhere('peran', 'keluar')['nilai'];
+    }
+
+    it('menghitung LOT+tanggal yang sama sekali; jabatan tertinggi menang', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id, 'name' => 'Pak SPV']);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Staf']);
+
+        // LOT + tanggal produksi SAMA dari dua orang, angkanya berbeda.
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+
+        // Dihitung sekali, versi SPV (level lebih tinggi) menang => 800, bukan 1300.
+        expect(ovenKeluar($data))->toEqual(800.0);
+    });
+
+    it('menjumlahkan LOT berbeda apa adanya', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $a = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        $b = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($a, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 300]);
+        laporanProses($b, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '094', 'oven_keluar' => 200]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+
+        // LOT beda -> bukan dobel -> 500.
+        expect(ovenKeluar($data))->toEqual(500.0);
+    });
+
+    it('per pelapor menampilkan angka pelapor itu sendiri', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id]);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        // Disaring ke Staf -> hanya barisnya sendiri (500), bukan versi SPV.
+        $data = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$staff->id}")
+            ->assertOk()->json('data');
+        expect(ovenKeluar($data))->toEqual(500.0);
+    });
+
+    it('men-dedup juga pada papan Departemen', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id]);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/departemen')->assertOk()->json('data');
+
+        $prod = collect($data['departemen'])->firstWhere('departemen_id', $produksi->id);
+        $sorotan = collect($prod['sorotan'])->firstWhere('label', 'Oven · QTY Keluar');
+
+        // Satu baris menang (SPV, 800) -> total sorotan 800, bukan 1300.
+        expect($sorotan)->not->toBeNull()
+            ->and((float) $sorotan['total'])->toEqual(800.0)
+            ->and($prod['jumlah_baris'])->toBe(1);
     });
 });
