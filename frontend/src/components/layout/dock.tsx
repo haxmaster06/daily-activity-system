@@ -9,6 +9,7 @@ import {
   FileText,
   LayoutDashboard,
   Settings,
+  Target,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -20,6 +21,8 @@ import { menuAktif, type MenuUtama } from '@/lib/nav';
 const IKON: Record<string, LucideIcon> = {
   '/dashboard': LayoutDashboard,
   '/laporan': FileText,
+  // Sama dengan ikon tab KPI di Executive Analytics — satu fitur, satu ikon.
+  '/kpi': Target,
   '/monitoring': Users,
   '/export': FileSpreadsheet,
   '/pengaturan': Settings,
