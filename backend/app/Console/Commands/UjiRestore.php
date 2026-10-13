@@ -42,12 +42,6 @@ class UjiRestore extends Command
             return self::FAILURE;
         }
 
-        $berkas = $this->berkasBackup();
-
-        if ($berkas === null) {
-            return self::FAILURE;
-        }
-
         $konfigurasi = config('database.connections.'.config('database.default'));
 
         if (($konfigurasi['database'] ?? null) === self::DATABASE_SASARAN) {
@@ -62,6 +56,12 @@ class UjiRestore extends Command
                 .'. Jalankan perintah ini dari lingkungan yang menunjuk database kerja.',
             );
 
+            return self::FAILURE;
+        }
+
+        $berkas = $this->berkasBackup();
+
+        if ($berkas === null) {
             return self::FAILURE;
         }
 
