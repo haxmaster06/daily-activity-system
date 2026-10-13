@@ -107,21 +107,11 @@ export interface BarisSebaranStatus {
   persen: number;
 }
 
-export interface BarisStatusDepartemen {
-  departemen_id: number;
-  departemen: string;
-  belum_mulai: number;
-  dalam_proses: number;
-  selesai: number;
-  total: number;
-}
-
 export interface DataRingkasan {
   rentang: RentangAnalitik;
   kartu: KartuKpi[];
   tren_kepatuhan: BarisKepatuhanHarian[];
   sebaran_status_baris: BarisSebaranStatus[];
-  status_per_departemen: BarisStatusDepartemen[];
   sorotan: Sorotan[];
 }
 
@@ -185,55 +175,6 @@ export interface DataProduktivitas {
       tertinggi: { tanggal: string; nilai: number } | null;
     };
   } | null;
-}
-
-/* ------------------------------------------------------------------ Progres */
-
-export interface BarisBeban {
-  id: number | null;
-  nama: string;
-  berjalan: number;
-  selesai: number;
-  telat: number;
-}
-
-export interface BarisLewatTarget {
-  id: number;
-  judul: string;
-  status: string;
-  label_status: string;
-  departemen: string;
-  penanggung_jawab_id: number | null;
-  penanggung_jawab: string;
-  target_selesai: string | null;
-  telat_hari: number;
-}
-
-export interface BarisUmurKartu {
-  id: number;
-  judul: string;
-  status: string;
-  label_status: string;
-  departemen: string;
-  penanggung_jawab_id: number | null;
-  penanggung_jawab: string;
-  umur_hari: number;
-}
-
-export interface DataProgres {
-  rentang: RentangAnalitik;
-  status_per_departemen: BarisStatusDepartemen[];
-  sebaran_status_baris: BarisSebaranStatus[];
-  beban_penanggung_jawab: BarisBeban[];
-  lewat_target: BarisLewatTarget[];
-  umur_kartu: BarisUmurKartu[];
-  ringkasan: {
-    total: number;
-    berjalan: number;
-    selesai: number;
-    telat: number;
-    tanpa_penanggung_jawab: number;
-  };
 }
 
 export interface OpsiAnalitik {

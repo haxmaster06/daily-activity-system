@@ -136,7 +136,7 @@ class ProfileController extends Controller
      * siapa pun yang menebak alamatnya.
      *
      * Siapa pun yang sudah masuk boleh melihat foto rekan kerjanya — nama dan
-     * departemen mereka pun sudah tampil pada laporan, papan progres, dan daftar
+     * departemen mereka pun sudah tampil pada laporan, monitoring, dan daftar
      * penyaring. Yang tidak boleh adalah pengunjung tanpa sesi.
      */
     public function foto(User $pengguna): StreamedResponse|JsonResponse

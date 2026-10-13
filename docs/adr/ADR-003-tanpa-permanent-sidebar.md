@@ -14,7 +14,7 @@ Sidebar permanen memakan 240–280 piksel di seluruh halaman, sepanjang waktu.
 Pada layar 1366 piksel yang banyak dipakai di kantor, itu seperlima lebar yang
 tersisa untuk tabel.
 
-Jumlah menu utamanya sedikit: Dashboard, Laporan, Progres, Monitoring,
+Jumlah menu utamanya sedikit: Dashboard, Laporan, KPI, Monitoring,
 Analytics, Export, Pengaturan.
 
 ## Decision

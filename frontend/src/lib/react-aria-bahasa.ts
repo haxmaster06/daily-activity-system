@@ -148,8 +148,8 @@ export const KAMUS_REACT_ARIA: Record<string, Record<string, Pesan>> = {
   },
 
   /*
-   * Papan progres memakai `@dnd-kit`, bukan tarik-lepas React Aria — justru
-   * karena teks ini tidak dapat diganti sebelum kamus global ada
+   * Tarik-lepas terakhir di aplikasi ini memakai `@dnd-kit`, bukan milik React
+   * Aria — justru karena teks ini tidak dapat diganti sebelum kamus global ada
    * (`docs/standar-library-ui.md` §9.1). Terjemahannya tetap disediakan supaya
    * komponen React Aria mana pun yang kelak memakai tarik-lepas tidak melempar
    * galat, dan supaya keputusan itu dapat ditinjau ulang kelak.

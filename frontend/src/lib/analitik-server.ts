@@ -5,7 +5,6 @@ import type {
   DataDepartemen,
   DataProduksi,
   DataProduktivitas,
-  DataProgres,
   DataRingkasan,
   OpsiAnalitik,
 } from '@/lib/analitik';
@@ -108,10 +107,6 @@ export function ambilProduksi(periode: string, penggunaId?: string): Promise<Dat
   if (penggunaId) query.set('pengguna_id', penggunaId);
 
   return ambil<DataProduksi>('produksi', query);
-}
-
-export function ambilProgres(query: URLSearchParams): Promise<DataProgres> {
-  return ambil<DataProgres>('progres', query);
 }
 
 export function ambilKeadaanDepartemen(query: URLSearchParams): Promise<DataDepartemen> {

@@ -7,7 +7,6 @@ use App\Models\MasterType;
 use App\Models\Permission;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
-use App\Models\Tugas;
 use App\Models\User;
 use App\Support\Analitik\PenyaringAnalitik;
 use App\Support\KatalogIzin;
@@ -55,28 +54,6 @@ function siapkanAnalitik(): array
     );
 
     $template = templateAngka();
-
-    Tugas::factory()->create([
-        'department_id' => $milik->id,
-        'title' => 'Kartu milik sendiri',
-        'penanggung_jawab_id' => $pengawas->id,
-    ]);
-    Tugas::factory()->create([
-        'department_id' => $lain->id,
-        'title' => 'Kartu departemen lain',
-        'penanggung_jawab_id' => $orangLain->id,
-    ]);
-
-    Tugas::factory()->create([
-        'department_id' => $milik->id,
-        'title' => 'Telat milik sendiri',
-        'target_selesai' => Carbon::today()->subDays(3),
-    ]);
-    Tugas::factory()->create([
-        'department_id' => $lain->id,
-        'title' => 'Telat departemen lain',
-        'target_selesai' => Carbon::today()->subDays(3),
-    ]);
 
     laporanAngka($pengawas, $milik, $template, 'selesai', 100);
     laporanAngka($orangLain, $lain, $template, 'dalam_proses', 250);
@@ -144,14 +121,26 @@ describe('penjagaan akses', function (): void {
         Sanctum::actingAs(User::factory()->staff()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertForbidden();
-    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi']);
 
     it('membuka tiap halaman bagi pemegang izinnya', function (string $jalur): void {
         Sanctum::actingAs(User::factory()->administrator()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertOk();
-    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi']);
 });
+
+/*
+ * Papan progres dihapus seluruhnya. Yang dijaga di sini bukan hilangnya
+ * halaman, melainkan hilangnya pintunya: route yang tertinggal tetap dapat
+ * dipanggil langsung meski tidak ada satu pun tombol yang menunjuknya, dan
+ * controller yang sudah tidak ada akan menjawabnya dengan galat 500, bukan 404.
+ */
+it('tidak lagi menyediakan endpoint papan progres', function (string $jalur): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $this->getJson($jalur)->assertNotFound();
+})->with(['/api/tugas', '/api/analitik/progres']);
 
 describe('penyaring departemen tidak boleh memperluas jangkauan', function (): void {
     /*
@@ -221,27 +210,13 @@ describe('penyaring departemen tidak boleh memperluas jangkauan', function (): v
 });
 
 describe('jangkauan data pada tiap angka', function (): void {
-    it('tidak membocorkan kartu departemen lain', function (): void {
-        ['pengawas' => $pengawas] = siapkanAnalitik();
-
-        Sanctum::actingAs($pengawas);
-
-        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
-
-        expect(collect($data['lewat_target'])->pluck('judul'))
-            ->toContain('Telat milik sendiri')
-            ->not->toContain('Telat departemen lain')
-            ->and(collect($data['beban_penanggung_jawab'])->pluck('nama'))
-            ->not->toContain('Staf Quality Control');
-    });
-
     it('tidak membocorkan baris laporan departemen lain', function (): void {
         ['pengawas' => $pengawas] = siapkanAnalitik();
 
         Sanctum::actingAs($pengawas);
 
         $sebaran = collect(
-            $this->getJson('/api/analitik/progres')->assertOk()->json('data.sebaran_status_baris'),
+            $this->getJson('/api/analitik/ringkasan')->assertOk()->json('data.sebaran_status_baris'),
         )->pluck('jumlah', 'status');
 
         expect($sebaran['selesai'])->toBe(1)
@@ -264,14 +239,11 @@ describe('jangkauan data pada tiap angka', function (): void {
         Sanctum::actingAs(User::factory()->administrator()->create());
         ['milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
 
-        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
+        $data = $this->getJson('/api/analitik/produktivitas')->assertOk()->json('data');
 
-        expect(collect($data['status_per_departemen'])->pluck('departemen'))
+        expect(collect($data['data']['per_departemen'])->pluck('departemen'))
             ->toContain($milik->name)
-            ->toContain($lain->name)
-            ->and(collect($data['lewat_target'])->pluck('judul'))
-            ->toContain('Telat milik sendiri')
-            ->toContain('Telat departemen lain');
+            ->toContain($lain->name);
     });
 });
 
@@ -548,13 +520,13 @@ describe('penyaring selain departemen', function (): void {
 
         Sanctum::actingAs($pengawas);
 
-        $tanpa = collect($this->getJson('/api/analitik/progres')->assertOk()
+        $tanpa = collect($this->getJson('/api/analitik/ringkasan')->assertOk()
             ->json('data.sebaran_status_baris'));
 
         expect($tanpa->firstWhere('status', 'selesai')['jumlah'])->toBe(1)
             ->and($tanpa->firstWhere('status', 'belum_mulai')['jumlah'])->toBe(1);
 
-        $tersaring = collect($this->getJson('/api/analitik/progres?status[]=selesai')->assertOk()
+        $tersaring = collect($this->getJson('/api/analitik/ringkasan?status[]=selesai')->assertOk()
             ->json('data.sebaran_status_baris'));
 
         expect($tersaring->firstWhere('status', 'selesai')['jumlah'])->toBe(1)

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { BarChart3, Building2, Factory, LayoutDashboard, Table2 } from 'lucide-react';
+import { Building2, Factory, LayoutDashboard, Table2, Target } from 'lucide-react';
 
 import { cn } from '@/lib/cn';
 
@@ -17,6 +17,10 @@ import { cn } from '@/lib/cn';
  * halaman Monitoring yang sudah menyajikan jumlah laporan beserta hari tanpa
  * laporan, tersaring rentang dan departemen yang sama. Dua tempat untuk satu
  * pertanyaan hanya membuat keduanya lambat laun berbeda.
+ *
+ * Tab Progres menyusul dihapus bersama seluruh fitur kartu progres. Tempatnya
+ * diisi KPI, yang ukurannya masih dibahas bersama manajemen — halamannya sudah
+ * ada supaya yang mencarinya menemukan kabar, bukan menu yang tidak ada.
  */
 const TAB = [
   { href: '/analitik', label: 'Departemen', Ikon: Building2, korporat: false },
@@ -29,7 +33,7 @@ const TAB = [
   { href: '/analitik/rekap', label: 'Rekap', Ikon: Table2, korporat: true },
   { href: '/analitik/ringkasan', label: 'Ringkasan', Ikon: LayoutDashboard, korporat: false },
   { href: '/analitik/produksi', label: 'Proses Produksi', Ikon: Factory, korporat: false },
-  { href: '/analitik/progres', label: 'Progres', Ikon: BarChart3, korporat: false },
+  { href: '/analitik/kpi', label: 'KPI', Ikon: Target, korporat: false },
 ] as const;
 
 /**

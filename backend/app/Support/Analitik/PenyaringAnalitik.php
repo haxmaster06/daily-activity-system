@@ -35,9 +35,9 @@ final class PenyaringAnalitik
         public readonly Carbon $sampai,
         /** @var list<int> Kosong berarti seluruh departemen dalam jangkauan. */
         public readonly array $departemenId,
-        /** @var list<string> Status baris laporan sekaligus status kartu progres. */
+        /** @var list<string> Status baris laporan. */
         public readonly array $status,
-        /** @var list<int> Penyusun laporan, sekaligus penanggung jawab kartu. */
+        /** @var list<int> Penyusun laporan. */
         public readonly array $penggunaId,
         /** @var list<int> Template laporan. */
         public readonly array $templateId,
@@ -302,33 +302,6 @@ final class PenyaringAnalitik
                     );
             });
         }
-    }
-
-    /**
-     * Menerapkan penyaring yang berlaku bagi kartu papan progres.
-     *
-     * Status memakai kosakata yang sama persis dengan status baris laporan,
-     * sehingga satu penyaring melayani keduanya. Kalau salah satunya berubah,
-     * penyaring ini diam-diam menyaring dua hal berbeda sebagai satu.
-     *
-     * @template TQuery of \Illuminate\Database\Eloquent\Builder
-     *
-     * @param  TQuery  $query
-     * @return TQuery
-     */
-    public function batasiTugas($query)
-    {
-        $this->batasiDepartemen($query);
-
-        if ($this->penggunaId !== []) {
-            $query->whereIn('penanggung_jawab_id', $this->penggunaId);
-        }
-
-        if ($this->status !== []) {
-            $query->whereIn('status', $this->status);
-        }
-
-        return $query;
     }
 
     /**

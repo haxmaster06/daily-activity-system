@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Support\Analitik\AngkaDepartemen;
 use App\Support\Analitik\AngkaProduksi;
 use App\Support\Analitik\AngkaProduktivitas;
-use App\Support\Analitik\AngkaProgres;
 use App\Support\Analitik\AngkaRingkasan;
 use App\Support\Analitik\PenyaringAnalitik;
 use App\Support\ApiResponse;
@@ -112,16 +111,6 @@ class AnalitikController extends Controller
         return ApiResponse::ok([
             'rentang' => $saring->ringkas(),
             ...AngkaRingkasan::susun($saring),
-        ]);
-    }
-
-    public function progres(Request $request): JsonResponse
-    {
-        $saring = PenyaringAnalitik::dariPermintaan($request);
-
-        return ApiResponse::ok([
-            'rentang' => $saring->ringkas(),
-            ...AngkaProgres::susun($saring),
         ]);
     }
 

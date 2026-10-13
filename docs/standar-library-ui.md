@@ -170,9 +170,6 @@ react-aria-components      perilaku dialog, date picker, combobox
                            navigation-menu, toggle-group, dialog,
                            popover, tooltip, label, checkbox,
                            separator, slot, tabs
-@dnd-kit/core              tarik-lepas papan progres (§9.1)
-@dnd-kit/sortable          penyusunan ulang kartu di dalam kolom
-@dnd-kit/utilities         penolong transform CSS untuk @dnd-kit
 chart.js                   grafik Executive Analytics (§9.2)
 react-chartjs-2            pembungkus React untuk chart.js
 react-easy-crop            pemotong foto profil (§9.4)
@@ -209,9 +206,19 @@ Yang **tidak** menjadi alasan sah: "lebih cepat", "sudah biasa dipakai", atau
 "komponennya lebih cantik". Menambah library UI berarti menambah satu lagi
 sumber gaya yang harus dijaga konsisten seumur project.
 
-### 9.1 `@dnd-kit` — tarik-lepas papan progres
+### 9.1 `@dnd-kit` — tarik-lepas papan progres *(dicopot)*
 
-Dipakai di `src/app/(app)/progress/`. Ini satu-satunya kasus sejauh ini yang
+> **Ketiga paketnya sudah tidak terpasang.** Papan progres dihapus seluruhnya,
+> dan `@dnd-kit/core`, `@dnd-kit/sortable`, serta `@dnd-kit/utilities` keluar
+> bersamanya — satu-satunya pemakainya memang hanya papan itu.
+>
+> Bagian ini dipertahankan karena yang berguna bukan paketnya, melainkan
+> keputusannya: **React Aria tidak punya locale `id-ID`**, dan itu masih benar.
+> Tarik-lepas berikutnya di DAMS akan berhadapan dengan kendala yang sama
+> persis, jadi pertimbangannya tidak perlu digali ulang dari awal. Lihat juga
+> §9.3, yang menambal lubang bahasa yang sama untuk komponen React Aria lain.
+
+Dahulu dipakai di `src/app/(app)/progress/`. Ini satu-satunya kasus yang pernah
 lolos §9 meskipun **React Aria menyediakan penggantinya**, jadi alasannya
 ditulis panjang.
 
@@ -416,7 +423,7 @@ satu test di berkas itu memang akan memberi tahu.
 ### 9.5 `@tiptap/react` — editor teks kaya
 
 Dipakai oleh `src/components/ui/editor-kaya.tsx`, pada kolom laporan bertipe
-`textarea`, keterangan tugas, dan catatan tinjauan.
+`textarea` dan catatan tinjauan.
 
 | Pertanyaan §9 | Jawaban |
 |---|---|

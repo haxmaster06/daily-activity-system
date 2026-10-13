@@ -61,13 +61,13 @@ const CONTOH: DataRingkasan = {
       keterangan: 'Bagian hari kerja yang benar-benar terisi laporan.',
     },
     {
-      kunci: 'telat',
-      label: 'Kartu lewat target',
-      nilai: 4,
-      satuan: 'kartu',
-      sebelumnya: 8,
-      arah_baik: 'turun',
-      keterangan: 'Target selesainya sudah lewat.',
+      kunci: 'laporan',
+      label: 'Laporan masuk',
+      nilai: 128,
+      satuan: 'laporan',
+      sebelumnya: 112,
+      arah_baik: 'naik',
+      keterangan: 'Jumlah laporan pada rentang ini.',
     },
     {
       kunci: 'menunggu',
@@ -87,9 +87,6 @@ const CONTOH: DataRingkasan = {
     { status: 'belum_mulai', label: 'Belum Mulai', jumlah: 5, persen: 16 },
     { status: 'dalam_proses', label: 'Dalam Proses', jumlah: 6, persen: 19 },
     { status: 'selesai', label: 'Selesai', jumlah: 21, persen: 65 },
-  ],
-  status_per_departemen: [
-    { departemen_id: 1, departemen: 'Produksi', belum_mulai: 4, dalam_proses: 7, selesai: 12, total: 23 },
   ],
   sorotan: [
     { jenis: 'perhatian', teks: 'Quality Control paling tertinggal, 40%.' },
@@ -160,20 +157,6 @@ describe('grafik menyaring seluruh halaman', () => {
 });
 
 describe('kartu angka', () => {
-  /*
-   * Arah membaik berbeda tiap kartu: kepatuhan naik itu baik, kartu telat naik
-   * itu buruk. Warna yang mengikuti tanda selisih saja akan mewarnai
-   * "telat berkurang" sebagai kabar buruk.
-   */
-  it('membaca penurunan kartu telat sebagai kabar baik', () => {
-    render(<PapanRingkasan data={CONTOH} />);
-
-    const telat = screen.getByText('Kartu lewat target').closest('div');
-    const teks = within(telat as HTMLElement).getByText(/-50%/);
-
-    expect(teks.className).toContain('text-secondary-text');
-  });
-
   it('membaca penurunan kepatuhan sebagai kabar buruk', () => {
     render(<PapanRingkasan data={CONTOH} />);
 

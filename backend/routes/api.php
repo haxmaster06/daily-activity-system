@@ -20,7 +20,6 @@ use App\Http\Controllers\PengingatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\TugasController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -128,17 +127,6 @@ Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', '
         ->name('departemen.destroy');
 
     /*
-     * Papan progres harian. Kartunya berumur lintas hari, sehingga tidak
-     * berpagination — papan yang menyembunyikan sebagian kartunya berhenti
-     * menjadi papan. Jangkauan datanya dijaga `Tugas::scopeVisibleTo()`.
-     */
-    Route::get('/tugas', [TugasController::class, 'index'])->name('tugas.index');
-    Route::post('/tugas', [TugasController::class, 'store'])->name('tugas.store');
-    Route::put('/tugas/{tugas}', [TugasController::class, 'update'])->name('tugas.update');
-    Route::patch('/tugas/{tugas}/geser', [TugasController::class, 'geser'])->name('tugas.geser');
-    Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->name('tugas.destroy');
-
-    /*
      * Executive Analytics. Seluruh angkanya dikirim sekaligus — yang membukanya
      * membaca satu halaman, bukan menunggu enam permintaan.
      *
@@ -152,7 +140,6 @@ Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', '
         Route::get('/produktivitas', [AnalitikController::class, 'produktivitas'])
             ->name('analitik.produktivitas');
         Route::get('/produksi', [AnalitikController::class, 'produksi'])->name('analitik.produksi');
-        Route::get('/progres', [AnalitikController::class, 'progres'])->name('analitik.progres');
     });
 
     /*

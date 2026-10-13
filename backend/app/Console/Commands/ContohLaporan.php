@@ -8,7 +8,6 @@ use App\Models\MasterData;
 use App\Models\ReportTemplate;
 use App\Models\Role;
 use App\Models\TemplateField;
-use App\Models\Tugas;
 use App\Models\User;
 use App\Support\JangkauanData;
 use App\Support\ValidasiIsianTemplate;
@@ -115,7 +114,6 @@ class ContohLaporan extends Command
         $this->components->twoColumnDetail('Pengguna contoh', (string) $jumlah['pengguna']);
         $this->components->twoColumnDetail('Laporan', (string) $jumlah['laporan']);
         $this->components->twoColumnDetail('Baris isian', (string) $jumlah['baris']);
-        $this->components->twoColumnDetail('Kartu progres', (string) $jumlah['tugas']);
 
         $this->components->info('Selesai. Jalankan dengan --bersihkan untuk menghapusnya kembali.');
 
@@ -124,12 +122,12 @@ class ContohLaporan extends Command
 
     /**
      * @param  Collection<int, Department>  $departemen
-     * @return array{pengguna: int, laporan: int, baris: int, tugas: int}
+     * @return array{pengguna: int, laporan: int, baris: int}
      */
     private function buat($departemen, int $hari, int $sasaran): array
     {
         $peran = Role::where('slug', Role::STAFF)->first();
-        $jumlah = ['pengguna' => 0, 'laporan' => 0, 'baris' => 0, 'tugas' => 0];
+        $jumlah = ['pengguna' => 0, 'laporan' => 0, 'baris' => 0];
 
         // Dibagi rata, lalu dibulatkan ke atas supaya tiap departemen kebagian.
         $perDepartemen = max(1, (int) ceil($sasaran / $departemen->count()));
@@ -167,14 +165,13 @@ class ContohLaporan extends Command
                 $jumlah['laporan']++;
             }
 
-            $jumlah['tugas'] += $this->buatTugas($satu, $pengguna);
         }
 
         return $jumlah;
     }
 
     /**
-     * @param  array{pengguna: int, laporan: int, baris: int, tugas: int}  $jumlah
+     * @param  array{pengguna: int, laporan: int, baris: int}  $jumlah
      */
     private function penggunaContoh(Department $departemen, ?Role $peran, array &$jumlah): User
     {
@@ -414,7 +411,7 @@ class ContohLaporan extends Command
 
             // IT.
             str_contains($label, 'fitur') => [
-                'Laporan Harian', 'Papan Progres', 'Import Data',
+                'Laporan Harian', 'Monitoring', 'Import Data',
                 'Executive Analytics', 'Manajemen Peran',
             ],
             str_contains($label, 'modul') => [
@@ -513,126 +510,11 @@ class ContohLaporan extends Command
     }
 
     /**
-     * Kartu progres, judulnya mengikuti pekerjaan departemennya.
-     *
-     * Lima judul yang sama di delapan belas departemen membuat papan progres
-     * terbaca seperti data yang belum diisi — dan halaman Analytics yang
-     * membacanya ikut kehilangan artinya.
-     */
-    private function buatTugas(Department $departemen, User $pengguna): int
-    {
-        $judul = $this->judulTugas($departemen->name);
-
-        $dibuat = 0;
-
-        foreach ([0, 1, 2] as $nomor) {
-            $status = array_keys(Tugas::STATUS)[$nomor % 3];
-
-            $ada = Tugas::where('department_id', $departemen->id)
-                ->where('title', $judul[$nomor])
-                ->exists();
-
-            if ($ada) {
-                continue;
-            }
-
-            Tugas::factory()->create([
-                'department_id' => $departemen->id,
-                'penanggung_jawab_id' => $pengguna->id,
-                'dibuat_oleh_id' => $pengguna->id,
-                'title' => $judul[$nomor],
-                'status' => $status,
-                'urutan' => $nomor,
-                // Sebagian sengaja lewat target, supaya sorotan "perlu
-                // perhatian" pada Analytics benar-benar terisi.
-                'target_selesai' => $nomor === 0
-                    ? Carbon::today()->subDays(random_int(1, 6))
-                    : Carbon::today()->addDays(random_int(2, 20)),
-            ]);
-
-            $dibuat++;
-        }
-
-        return $dibuat;
-    }
-
-    /**
      * Menghapus seluruh yang pernah dibuat perintah ini.
      *
-     * Bertumpu sepenuhnya pada pengguna bertanda: laporan, kartu progres, dan
-     * akunnya sendiri. Data milik orang sungguhan tidak pernah tersentuh.
+     * Bertumpu sepenuhnya pada pengguna bertanda: laporannya dan akunnya
+     * sendiri. Data milik orang sungguhan tidak pernah tersentuh.
      */
-    /**
-     * @return list<string>
-     */
-    private function judulTugas(string $departemen): array
-    {
-        $nama = mb_strtolower($departemen);
-
-        return match (true) {
-            str_contains($nama, 'produksi') => [
-                'Menyiapkan bahan baku untuk LOT berjalan',
-                'Menyelesaikan sisa WIP tahap ayak',
-                'Menyusun rencana produksi pekan depan',
-            ],
-            str_contains($nama, 'qc'), str_contains($nama, 'qa') => [
-                'Menuntaskan pemeriksaan LOT tertunda',
-                'Menindaklanjuti temuan benda asing',
-                'Memperbarui rekaman hasil uji bahan baku',
-            ],
-            str_contains($nama, 'warehouse'), str_contains($nama, 'gudang') => [
-                'Merapikan penataan finish good',
-                'Mencocokkan stok packaging material',
-                'Menyiapkan barang untuk pengiriman',
-            ],
-            str_contains($nama, 'ex/im'), str_contains($nama, 'exim') => [
-                'Melengkapi dokumen ekspor pengiriman berjalan',
-                'Mengoordinasikan jadwal EMKL',
-                'Menyiapkan pengajuan sertifikat asal barang',
-            ],
-            str_contains($nama, 'purchasing') => [
-                'Menindaklanjuti PO yang belum dikirim',
-                'Meminta penawaran supplier baru',
-                'Memeriksa kesesuaian invoice pembelian',
-            ],
-            str_contains($nama, 'hrd') => [
-                'Menyusun jadwal pelatihan bulan depan',
-                'Menindaklanjuti hasil MCU karyawan',
-                'Merapikan arsip data kepegawaian',
-            ],
-            str_contains($nama, 'document') => [
-                'Menerbitkan revisi SOP terbaru',
-                'Menarik dokumen kedaluwarsa dari area kerja',
-                'Menyusun daftar induk dokumen',
-            ],
-            str_contains($nama, 'it') => [
-                'Menyelesaikan pengujian modul pelaporan',
-                'Memperbaiki temuan pada papan progres',
-                'Menyiapkan pemasangan di server',
-            ],
-            str_contains($nama, 'finance'), str_contains($nama, 'keuangan') => [
-                'Menutup pembukuan bulan berjalan',
-                'Menindaklanjuti tagihan jatuh tempo',
-                'Merapikan bukti pengeluaran kas',
-            ],
-            str_contains($nama, 'marketing'), str_contains($nama, 'media') => [
-                'Menyiapkan materi promosi bulan depan',
-                'Menindaklanjuti permintaan penawaran',
-                'Menyusun laporan jangkauan konten',
-            ],
-            str_contains($nama, 'maintenance'), str_contains($nama, 'mtn') => [
-                'Menuntaskan perawatan berkala mesin',
-                'Menindaklanjuti laporan kerusakan',
-                'Menyiapkan suku cadang cadangan',
-            ],
-            default => [
-                'Menuntaskan pekerjaan tertunda pekan lalu',
-                'Menyusun laporan berkala bagian',
-                'Berkoordinasi dengan bagian terkait',
-            ],
-        };
-    }
-
     private function bersihkan(): int
     {
         $pengguna = User::where('email', 'like', self::AWALAN_EMAIL.'%'.self::DOMAIN)->get();
@@ -652,14 +534,6 @@ class ContohLaporan extends Command
                 $satu->delete();
             }
 
-            $tugas = Tugas::whereIn('dibuat_oleh_id', $id)
-                ->orWhereIn('penanggung_jawab_id', $id)
-                ->get();
-
-            foreach ($tugas as $satu) {
-                $satu->delete();
-            }
-
             foreach ($pengguna as $satu) {
                 $satu->roles()->detach();
                 $satu->tokens()->delete();
@@ -668,13 +542,11 @@ class ContohLaporan extends Command
 
             return [
                 'laporan' => $laporan->count(),
-                'tugas' => $tugas->count(),
                 'pengguna' => $pengguna->count(),
             ];
         });
 
         $this->components->twoColumnDetail('Laporan dihapus', (string) $jumlah['laporan']);
-        $this->components->twoColumnDetail('Kartu progres dihapus', (string) $jumlah['tugas']);
         $this->components->twoColumnDetail('Pengguna contoh dihapus', (string) $jumlah['pengguna']);
 
         return self::SUCCESS;

@@ -34,7 +34,7 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {data.kartu.map((satu) => (
             <KartuAngka key={satu.kunci} kartu={satu} />
           ))}
@@ -64,7 +64,7 @@ export function PapanRingkasan({ data }: { data: DataRingkasan }) {
           </ul>
 
           <p className="mt-2 text-caption text-ink-soft">
-            Rincian tiap butir ada di tab Kepatuhan dan Progres.
+            Rincian per orang dan hari tanpa laporan ada di halaman Monitoring.
           </p>
         </section>
 

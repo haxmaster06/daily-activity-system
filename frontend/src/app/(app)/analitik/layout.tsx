@@ -16,7 +16,7 @@ export const metadata = { title: 'Executive Analytics — DAMS' };
 /**
  * Kerangka Executive Analytics: judul, tab, dan penyaring bersama.
  *
- * Empat halaman berbagi kerangka ini supaya penyaringnya tidak perlu diisi
+ * Semua halamannya berbagi kerangka ini supaya penyaringnya tidak perlu diisi
  * ulang tiap berpindah tab — nilainya tersimpan di URL dan ikut terbawa.
  */
 export default async function AnalitikLayout({ children }: { children: ReactNode }) {
@@ -30,7 +30,7 @@ export default async function AnalitikLayout({ children }: { children: ReactNode
         <Breadcrumb jejak={[{ label: 'Executive Analytics' }]} />
         <PageHeader
           judul="Executive Analytics"
-          keterangan="Ringkasan progres dan isi laporan pada seluruh jangkauan data Anda."
+          keterangan="Ringkasan isi laporan pada seluruh jangkauan data Anda."
         />
 
         <TabAnalitik korporat={pengguna.jangkauan.level === JANGKAUAN_KORPORAT} />

@@ -3,7 +3,6 @@
 use App\Events\DataBerubah;
 use App\Models\DailyReport;
 use App\Models\Department;
-use App\Models\Tugas;
 use App\Models\User;
 use App\Support\IzinChannel;
 use Database\Seeders\DepartmentSeeder;
@@ -35,21 +34,6 @@ it('menyiarkan perubahan saat laporan dibuat', function (): void {
         DataBerubah::class,
         fn (DataBerubah $peristiwa) => $peristiwa->departemenId === $departemen->id
             && $peristiwa->jenis === DataBerubah::LAPORAN,
-    );
-});
-
-it('menyiarkan perubahan saat kartu progres berpindah kolom', function (): void {
-    $departemen = Department::factory()->create();
-    $tugas = Tugas::factory()->create(['department_id' => $departemen->id]);
-
-    // Dipalsukan sesudah pembuatannya, agar yang terhitung hanya perubahannya.
-    Event::fake([DataBerubah::class]);
-
-    $tugas->update(['status' => Tugas::STATUS_SELESAI]);
-
-    Event::assertDispatched(
-        DataBerubah::class,
-        fn (DataBerubah $peristiwa) => $peristiwa->jenis === DataBerubah::TUGAS,
     );
 });
 

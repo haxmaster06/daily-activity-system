@@ -16,7 +16,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
  * yang terlihat adalah tombol biru bertuliskan hitam — tanpa satu pun
  * peringatan di konsol maupun saat build.
  *
- * Cacat itu benar-benar terjadi pada tombol "Tambah Tugas" di papan progres.
+ * Cacat itu benar-benar terjadi pada salah satu tombol aksi di aplikasi ini.
  *
  * Skala di bawah harus ikut diperbarui setiap `fontSize` pada
  * `tailwind.config.ts` berubah; `cn.test.ts` menjaga keduanya tetap sama.

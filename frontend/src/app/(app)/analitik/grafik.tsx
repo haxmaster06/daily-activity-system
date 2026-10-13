@@ -19,10 +19,8 @@ import { Bar, Doughnut, Line } from 'react-chartjs-2';
 
 import {
   WARNA,
-  type BarisBeban,
   type BarisKepatuhanHarian,
   type BarisSebaranStatus,
-  type BarisStatusDepartemen,
   type Metrik,
 } from '@/lib/analitik';
 import { formatAngka, formatTanggal, formatTanggalRingkas } from '@/lib/format';
@@ -81,22 +79,6 @@ function dasar(gerak: boolean) {
   };
 }
 
-const SUMBU_JUMLAH = {
-  beginAtZero: true,
-  // Tanpa `precision`, angka kecil membuat sumbu menulis "0,5 — 1 — 1,5".
-  ticks: { precision: 0, color: WARNA.teks, font: { size: 11 } },
-  grid: { color: WARNA.garisBantu },
-};
-
-/**
- * Urutan dataset pada grafik berseri status.
- *
- * Wajib sama persis dengan urutan dataset yang disusun tiap grafik: yang dikirim
- * ke penyaring adalah `datasetIndex`, dan urutan yang bergeser menyaring status
- * yang salah tanpa satu pun galat.
- */
-const SERI_STATUS = ['belum_mulai', 'dalam_proses', 'selesai'] as const;
-
 /**
  * Membuat sebuah grafik dapat ditekan.
  *
@@ -128,20 +110,6 @@ function dapatDitekan(aktif: boolean) {
       }
     },
   };
-}
-
-/** Segmen yang benar-benar ditekan — lihat catatan pada `dapatDitekan()`. */
-function segmenDitekan(
-  peristiwa: { native: Event | null },
-  grafik: ChartJS,
-): { index: number; datasetIndex: number } | null {
-  const native = peristiwa.native;
-
-  if (native === null) return null;
-
-  const tepat = grafik.getElementsAtEventForMode(native, 'nearest', { intersect: true }, false);
-
-  return tepat[0] ?? null;
 }
 
 /* ------------------------------------------------------------ tren kepatuhan */
@@ -338,61 +306,6 @@ export function GrafikProduktivitasDepartemen({
   return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
 
-/* -------------------------------------------------------------------- progres */
-
-export function GrafikStatusDepartemen({
-  data,
-  onPilih,
-}: {
-  data: BarisStatusDepartemen[];
-  /** Segmen yang ditekan: departemennya, dan status seri yang ditekan. */
-  onPilih?: (departemenId: number, status: string) => void;
-}) {
-  const gerak = gerakDikurangi();
-
-  const konfigurasi = useMemo(
-    () => ({
-      labels: data.map((satu) => satu.departemen),
-      datasets: [
-        {
-          label: 'Belum Mulai',
-          data: data.map((satu) => satu.belum_mulai),
-          backgroundColor: WARNA.belum_mulai,
-        },
-        {
-          label: 'Dalam Proses',
-          data: data.map((satu) => satu.dalam_proses),
-          backgroundColor: WARNA.dalam_proses,
-        },
-        {
-          label: 'Selesai',
-          data: data.map((satu) => satu.selesai),
-          backgroundColor: WARNA.selesai,
-        },
-      ],
-    }),
-    [data],
-  );
-
-  const opsi: ChartOptions<'bar'> = {
-    ...dasar(gerak),
-    scales: {
-      x: { stacked: true, ticks: { color: WARNA.teks, font: { size: 11 } } },
-      y: { stacked: true, ...SUMBU_JUMLAH },
-    },
-    ...dapatDitekan(onPilih !== undefined),
-    onClick: (peristiwa, _elemen, grafik) => {
-      const segmen = segmenDitekan(peristiwa, grafik);
-      const baris = data[segmen?.index ?? -1];
-      const status = SERI_STATUS[segmen?.datasetIndex ?? -1];
-
-      if (baris && status) onPilih?.(baris.departemen_id, status);
-    },
-  };
-
-  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
-}
-
 export function GrafikSebaranStatus({
   data,
   onPilihStatus,
@@ -444,76 +357,6 @@ export function GrafikSebaranStatus({
   };
 
   return <Doughnut aria-hidden="true" data={konfigurasi} options={opsi} />;
-}
-
-export function GrafikBeban({
-  data,
-  onPilih,
-}: {
-  data: BarisBeban[];
-  /** Penanggung jawab yang ditekan, beserta status seri yang ditekan. */
-  onPilih?: (penggunaId: number, status: string) => void;
-}) {
-  const gerak = gerakDikurangi();
-
-  const konfigurasi = useMemo(
-    () => ({
-      labels: data.map((satu) => satu.nama),
-      datasets: [
-        {
-          label: 'Berjalan',
-          data: data.map((satu) => satu.berjalan),
-          backgroundColor: WARNA.dalam_proses,
-        },
-        {
-          label: 'Selesai',
-          data: data.map((satu) => satu.selesai),
-          backgroundColor: WARNA.selesai,
-        },
-      ],
-    }),
-    [data],
-  );
-
-  const opsi: ChartOptions<'bar'> = {
-    ...dasar(gerak),
-    // Mendatar supaya nama orang terbaca penuh tanpa diputar miring.
-    indexAxis: 'y',
-    plugins: {
-      ...dasar(gerak).plugins,
-      tooltip: {
-        ...dasar(gerak).plugins.tooltip,
-        callbacks: {
-          afterBody: (butir) => {
-            const baris = data[butir[0]?.dataIndex ?? -1];
-
-            return baris && baris.telat > 0 ? `${baris.telat} kartu lewat target` : '';
-          },
-        },
-      },
-    },
-    scales: {
-      x: { stacked: true, ...SUMBU_JUMLAH },
-      y: { stacked: true, ticks: { color: WARNA.teks, font: { size: 11 } } },
-    },
-    ...dapatDitekan(onPilih !== undefined),
-    onClick: (peristiwa, _elemen, grafik) => {
-      const segmen = segmenDitekan(peristiwa, grafik);
-      const baris = data[segmen?.index ?? -1];
-
-      /*
-       * Serinya "Berjalan" dan "Selesai" — bukan ketiga status. "Berjalan"
-       * mencakup dua status sekaligus, sehingga yang dikirim hanya orangnya;
-       * menyaring ke salah satu status saja akan mengubah angka yang barusan
-       * ditekan pengguna menjadi angka yang lain.
-       */
-      if (baris && baris.id !== null) {
-        onPilih?.(baris.id, segmen?.datasetIndex === 1 ? 'selesai' : '');
-      }
-    },
-  };
-
-  return <Bar aria-hidden="true" data={konfigurasi} options={opsi} />;
 }
 
 /** Tren keluaran produksi — butir sudah berlabel dari server (hari/minggu/bulan/tahun). */
