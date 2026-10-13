@@ -158,11 +158,19 @@ describe('penyaring departemen tidak boleh memperluas jangkauan', function (): v
             ->assertOk()
             ->json('data');
 
-        // Permintaannya dibuang, sehingga penyaringnya kosong — dan yang
-        // terbaca tetap hanya departemennya sendiri.
+        /*
+         * Permintaannya dibuang, sehingga penyaringnya kosong — dan yang
+         * terbaca tetap hanya departemennya sendiri.
+         *
+         * Diperiksa pada SELURUH muatan, bukan satu field. Dahulu yang
+         * diperiksa `status_per_departemen`, yang ikut hilang bersama papan
+         * progres; memeriksa muatannya utuh tidak menuntut test ini diubah
+         * lagi tiap kali susunan field berubah, sekaligus menjaring nama
+         * departemen yang bocor lewat jalan lain — `sorotan`, misalnya,
+         * menyebut nama departemen di dalam kalimatnya.
+         */
         expect($data['rentang']['departemen_id'])->toBe([])
-            ->and(collect($data['status_per_departemen'])->pluck('departemen'))
-            ->not->toContain($lain->name);
+            ->and(json_encode($data))->not->toContain($lain->name);
     });
 
     it('membuang departemen di luar jangkauan pada produktivitas', function (): void {
