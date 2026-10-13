@@ -3,6 +3,7 @@
 use App\Models\DailyReport;
 use App\Models\Department;
 use App\Models\User;
+use App\Notifications\PengingatLaporan;
 use Laravel\Sanctum\Sanctum;
 
 it('menolak Staff membuka monitoring', function (): void {
@@ -135,4 +136,73 @@ it('memakai bulan berjalan bila rentang tidak diminta', function (): void {
 
     expect($rentang['dari'])->toBe(now()->startOfMonth()->toDateString());
     expect($rentang['sampai'])->toBe(now()->toDateString());
+});
+
+/*
+ * Penanda yang menentukan tombol "Kirim Pengingat".
+ *
+ * Sebelumnya tombol itu dipagari `jumlah_laporan === 0` — jumlah laporan
+ * sepanjang RENTANG yang sedang dilihat — padahal pengingatnya selalu tentang
+ * HARI INI. Akibatnya sejak tanggal 2 tiap bulan tombolnya hanya muncul untuk
+ * orang yang belum melapor sama sekali sebulan itu, sementara yang rajin
+ * melapor tapi hari ini belum — justru yang paling pantas diingatkan — tidak
+ * pernah ditawari.
+ *
+ * Kedua penanda di bawah sengaja dihitung untuk hari ini, lepas dari rentang,
+ * supaya syarat tampilnya tombol persis sama dengan syarat diterimanya kiriman
+ * di PengingatController. Tombol yang tampil tetapi pasti ditolak adalah bug
+ * yang sama, hanya berpindah tempat.
+ */
+it('menandai siapa yang belum melapor hari ini, terlepas dari rentangnya', function (): void {
+    $departemen = Department::factory()->create();
+
+    $rajin = User::factory()->staff()->create([
+        'name' => 'Rajin Tapi Belum Hari Ini',
+        'department_id' => $departemen->id,
+    ]);
+    $sudah = User::factory()->staff()->create([
+        'name' => 'Sudah Hari Ini',
+        'department_id' => $departemen->id,
+    ]);
+
+    // Melapor kemarin dan lusa, tetapi belum hari ini.
+    DailyReport::factory()->milik($rajin)->create(['report_date' => now()->subDays(2)->toDateString()]);
+    DailyReport::factory()->milik($rajin)->create(['report_date' => now()->subDay()->toDateString()]);
+
+    DailyReport::factory()->milik($sudah)->create(['report_date' => now()->toDateString()]);
+
+    Sanctum::actingAs(
+        User::factory()->supervisor()->create(['department_id' => $departemen->id]),
+    );
+
+    $anggota = collect($this->getJson('/api/monitoring')->json('data.anggota'))->keyBy('nama');
+
+    // Punya laporan dalam rentang, tetapi tetap perlu diingatkan hari ini.
+    expect($anggota['Rajin Tapi Belum Hari Ini']['jumlah_laporan'])->toBeGreaterThan(0)
+        ->and($anggota['Rajin Tapi Belum Hari Ini']['sudah_melapor_hari_ini'])->toBeFalse();
+
+    expect($anggota['Sudah Hari Ini']['sudah_melapor_hari_ini'])->toBeTrue();
+});
+
+/*
+ * Pengingat dibatasi satu per orang per hari, dari siapa pun. Tanpa penanda ini
+ * tombolnya tampil kembali sesudah halaman dimuat ulang, atau ketika atasan lain
+ * sudah lebih dulu mengingatkan — lalu ditolak 422 saat ditekan.
+ */
+it('menandai siapa yang sudah menerima pengingat hari ini', function (): void {
+    $departemen = Department::factory()->create();
+
+    $belum = User::factory()->staff()->create(['name' => 'Belum Diingatkan', 'department_id' => $departemen->id]);
+    $sudah = User::factory()->staff()->create(['name' => 'Sudah Diingatkan', 'department_id' => $departemen->id]);
+
+    $atasan = User::factory()->supervisor()->create(['department_id' => $departemen->id]);
+
+    $sudah->notify(new PengingatLaporan($atasan, now()));
+
+    Sanctum::actingAs($atasan);
+
+    $anggota = collect($this->getJson('/api/monitoring')->json('data.anggota'))->keyBy('nama');
+
+    expect($anggota['Sudah Diingatkan']['sudah_diingatkan_hari_ini'])->toBeTrue()
+        ->and($anggota['Belum Diingatkan']['sudah_diingatkan_hari_ini'])->toBeFalse();
 });

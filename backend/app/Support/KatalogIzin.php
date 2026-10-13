@@ -38,11 +38,19 @@ final class KatalogIzin
 
     public const MONITORING_KIRIM_PENGINGAT = 'monitoring.kirim-pengingat';
 
-    public const TUGAS_LIHAT = 'tugas.lihat';
-
-    public const TUGAS_KELOLA = 'tugas.kelola';
+    public const KPI_LIHAT = 'kpi.lihat';
 
     public const ANALITIK_LIHAT = 'analitik.lihat';
+
+    /**
+     * Melihat siapa yang sedang tersambung.
+     *
+     * Sengaja tidak masuk daftar bawaan peran mana pun. Administrator
+     * memperolehnya lewat `self::kunci()`, dan siapa lagi yang berhak
+     * diputuskan operator lewat Manajemen Peran — kapan seseorang bekerja
+     * adalah informasi yang cukup peka untuk tidak dibagikan begitu saja.
+     */
+    public const PENGGUNA_LIHAT_KEHADIRAN = 'pengguna.lihat-kehadiran';
 
     public const DEPARTEMEN_LIHAT = 'departemen.lihat';
 
@@ -68,11 +76,13 @@ final class KatalogIzin
 
     public const ROLE_KELOLA = 'role.kelola';
 
+    public const SISTEM_MAINTENANCE = 'sistem.maintenance';
+
     /** Nama kelompok untuk pengelompokan di layar. */
     /**
      * Kelompok izin, berurut sesuai tampilnya di layar Manajemen Peran.
      *
-     * Papan progres dan Executive Analytics berdiri sendiri, tidak menumpang
+     * KPI dan Executive Analytics berdiri sendiri, tidak menumpang
      * "Monitoring Tim". Keduanya fitur tersendiri dengan halamannya sendiri,
      * dan administrator yang mencari izinnya akan mencari nama fiturnya —
      * bukan menebak bahwa ia bersembunyi di bawah kelompok bernama lain.
@@ -80,10 +90,11 @@ final class KatalogIzin
     public const GRUP = [
         'laporan' => 'Laporan Harian',
         'monitoring' => 'Monitoring Tim',
-        'progres' => 'Papan Progres',
+        'kpi' => 'KPI',
         'analitik' => 'Executive Analytics',
         'master' => 'Data Master',
         'pengguna' => 'Pengguna & Hak Akses',
+        'sistem' => 'Sistem',
     ];
 
     /**
@@ -98,17 +109,18 @@ final class KatalogIzin
             ['laporan', self::LAPORAN_LIHAT, 'Melihat laporan', 'Membuka daftar dan rincian laporan harian.'],
             ['laporan', self::LAPORAN_BUAT, 'Membuat laporan', 'Menyusun laporan harian baru.'],
             ['laporan', self::LAPORAN_UBAH_SENDIRI, 'Menyunting draf sendiri', 'Mengubah laporan sendiri selama masih berstatus draf.'],
-            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus draf sendiri', 'Menghapus laporan sendiri selama masih berstatus draf.'],
+            ['laporan', self::LAPORAN_HAPUS_SENDIRI, 'Menghapus laporan sendiri', 'Menghapus laporan sendiri. Pemegang jangkauan Korporat dapat menghapus laporan siapa pun.'],
             ['laporan', self::LAPORAN_KIRIM, 'Mengirim laporan', 'Mengirim laporan sendiri sehingga menjadi catatan.'],
             ['laporan', self::LAPORAN_TINJAU, 'Meninjau laporan', 'Menandai laporan orang lain sudah ditinjau.'],
             ['laporan', self::EXPORT_LAPORAN, 'Mengexport laporan', 'Membuka pratinjau export dan mengunduh berkasnya.'],
 
             ['monitoring', self::MONITORING_LIHAT, 'Melihat kepatuhan tim', 'Membuka ringkasan siapa yang sudah dan belum melapor.'],
             ['monitoring', self::MONITORING_KIRIM_PENGINGAT, 'Mengirim pengingat', 'Mengingatkan anggota yang belum mengisi laporan.'],
-            ['progres', self::TUGAS_LIHAT, 'Melihat papan progres', 'Membuka papan progres harian beserta kartunya.'],
-            ['progres', self::TUGAS_KELOLA, 'Mengelola progres', 'Menambah, mengubah, memindahkan, dan menghapus kartu progres.'],
+            ['kpi', self::KPI_LIHAT, 'Melihat KPI', 'Membuka halaman KPI. Isinya masih disiapkan; izinnya sudah ada supaya penerimanya tidak perlu diatur ulang saat fiturnya menyala.'],
 
-            ['analitik', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual progres dan kepatuhan seluruh jangkauan datanya.'],
+            ['analitik', self::ANALITIK_LIHAT, 'Membuka Executive Analytics', 'Melihat ringkasan visual isi laporan dan kepatuhan seluruh jangkauan datanya.'],
+
+            ['pengguna', self::PENGGUNA_LIHAT_KEHADIRAN, 'Melihat kehadiran', 'Melihat siapa yang sedang tersambung pada Manajemen Pengguna.'],
 
             ['master', self::DEPARTEMEN_LIHAT, 'Melihat departemen', 'Membaca daftar departemen.'],
             ['master', self::DEPARTEMEN_KELOLA, 'Mengelola departemen', 'Menambah, mengubah, dan menghapus departemen.'],
@@ -123,6 +135,8 @@ final class KatalogIzin
             ['pengguna', self::PENGGUNA_ATUR_KATA_SANDI, 'Mengatur ulang kata sandi', 'Menetapkan kata sandi baru untuk akun lain.'],
             ['pengguna', self::ROLE_LIHAT, 'Melihat peran', 'Membaca daftar peran beserta hak aksesnya.'],
             ['pengguna', self::ROLE_KELOLA, 'Mengelola peran & hak akses', 'Membuat peran, mengubah namanya, dan menentukan hak aksesnya.'],
+
+            ['sistem', self::SISTEM_MAINTENANCE, 'Mode pemeliharaan', 'Menyalakan/mematikan mode pemeliharaan, dan tetap dapat masuk saat mode itu aktif.'],
         ];
 
         $hasil = [];
@@ -186,9 +200,12 @@ final class KatalogIzin
              * perubahan struktur, dan dijaga MasterTypePolicy.
              */
             self::MASTER_KELOLA,
-            // Memasukkan progres harian memang pekerjaan staf.
-            self::TUGAS_LIHAT,
-            self::TUGAS_KELOLA,
+            /*
+             * KPI dibuka untuk staf sejak awal. Yang diukur KPI adalah
+             * pekerjaan mereka sendiri, dan indikator yang hanya terlihat
+             * atasannya adalah indikator yang tidak mengubah apa pun.
+             */
+            self::KPI_LIHAT,
         ];
 
         $supervisor = [
@@ -205,16 +222,19 @@ final class KatalogIzin
          * pembacanya, dan angkanya tetap dibatasi `scopeVisibleTo()` sehingga
          * jangkauan datanya tidak melebar sedikit pun.
          *
-         * Mengelola kartu progres sengaja TIDAK diberikan. Karena itu daftarnya
-         * ditulis dari `$staff`, bukan dari `$supervisor` — `IzinRoleSeeder`
-         * memakai `syncWithoutDetaching`, jadi apa pun yang tercantum di sini
-         * akan dipasang kembali tiap kali seeder berjalan, termasuk izin yang
-         * sengaja dicabut operator lewat layar Manajemen Peran.
+         * Daftarnya ditulis dari `$staff`, bukan `$supervisor`, dan tiap
+         * penambahan di sini permanen: `IzinRoleSeeder` memakai
+         * `syncWithoutDetaching`, jadi apa pun yang tercantum akan dipasang
+         * kembali tiap kali seeder berjalan — termasuk izin yang sengaja
+         * dicabut operator lewat layar Manajemen Peran.
          */
-        $management = array_values(array_diff(
-            [...$staff, self::LAPORAN_TINJAU, self::MONITORING_LIHAT, self::MONITORING_KIRIM_PENGINGAT, self::ANALITIK_LIHAT],
-            [self::TUGAS_KELOLA],
-        ));
+        $management = [
+            ...$staff,
+            self::LAPORAN_TINJAU,
+            self::MONITORING_LIHAT,
+            self::MONITORING_KIRIM_PENGINGAT,
+            self::ANALITIK_LIHAT,
+        ];
 
         return [
             Role::STAFF => self::urutKatalog($staff),

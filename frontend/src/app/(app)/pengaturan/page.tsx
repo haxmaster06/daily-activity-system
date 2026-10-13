@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Building2, Layers, ShieldCheck, Users } from 'lucide-react';
+import { Building2, Layers, ShieldCheck, Users, Wrench } from 'lucide-react';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { PageHeader } from '@/components/layout/page-header';
@@ -37,6 +37,13 @@ const MENU = [
     keterangan: 'Susunan kolom laporan harian tiap departemen.',
     icon: Layers,
     izin: 'template.kelola',
+  },
+  {
+    href: '/pengaturan/pemeliharaan',
+    judul: 'Mode Pemeliharaan',
+    keterangan: 'Menutup akses pengguna sementara saat perbaikan sistem.',
+    icon: Wrench,
+    izin: 'sistem.maintenance',
   },
   ];
 

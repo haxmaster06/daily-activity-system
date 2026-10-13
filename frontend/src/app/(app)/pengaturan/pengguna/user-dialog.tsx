@@ -52,6 +52,17 @@ export function UserDialog({
   const [galatKolom, setGalatKolom] = useState<Record<string, string[]>>({});
   const [memproses, setMemproses] = useState(false);
 
+  /*
+   * Isi ulang hanya ketika dialog dibuka atau target penggunanya berganti —
+   * dikunci pada `pengguna?.id` yang stabil, BUKAN pada referensi objek
+   * `pengguna`/`role`.
+   *
+   * Manajemen Pengguna menyegarkan dirinya tiap 5 detik untuk indikator
+   * kehadiran (user-table.tsx). Tiap `router.refresh()` memberi referensi array
+   * `role` (dan objek `pengguna`) yang baru walau isinya sama. Bila keduanya
+   * masuk daftar dependensi, penyegaran itu menjalankan ulang efek ini dan
+   * mengosongkan form di tengah pengetikan — nama hilang saat mengisi email.
+   */
   useEffect(() => {
     if (!terbuka) return;
 
@@ -68,7 +79,10 @@ export function UserDialog({
           }
         : KOSONG,
     );
-  }, [terbuka, pengguna, role]);
+    // Sengaja hanya `pengguna?.id`: lihat alasan di atas — `pengguna`/`role`
+    // penuh akan mengosongkan form tiap penyegaran kehadiran.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terbuka, pengguna?.id]);
 
   async function simpan() {
     setMemproses(true);

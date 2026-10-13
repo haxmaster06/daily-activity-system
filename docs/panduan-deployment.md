@@ -272,3 +272,61 @@ Ditulis terbuka supaya tidak terlewat:
 * **Pemantauan belum ada** — error rate, antrean yang menumpuk, container yang
   mati dan hidup lagi berulang.
 * **Sertifikat TLS** belum disiapkan; `docker/certs/` masih kosong.
+
+## 9. PWA — tombol "Pasang Aplikasi" tidak memunculkan dialog install
+
+**Gejala.** Di layar masuk, menekan tombol pasang hanya menampilkan petunjuk
+menu, tak pernah memunculkan dialog install bawaan Chrome. Di HP yang bersih
+(aplikasi belum/ sudah dihapus) pun sama.
+
+**Akar masalah (yang sebenarnya).** Sejak **Next 15.4 metadata di-stream ke
+akhir `<body>`** untuk peramban biasa. `<link rel="manifest">` ikut terlempar ke
+body, dan skrip hoist bawaan Next hanya memindah link **ikon** ke `<head>` —
+manifest **tidak**. Chrome hanya mengenali manifest dari `<head>`, jadi situs
+dianggap **`no-manifest`** dan tak bisa dipasang. Ini bukan soal engagement,
+service worker, atau cooldown pasca-hapus — semua itu jalur buntu.
+
+**Perbaikan** (commit `23aa720`). Di `frontend/next.config.ts`:
+
+```ts
+// Paksa metadata dirender blocking di <head> untuk semua UA (perilaku pra-15.4),
+// supaya <link rel="manifest"> sampai ke <head>. Biaya nihil: metadata statis.
+htmlLimitedBots: /.*/,
+```
+
+Pendukung, keduanya wajib ada:
+* `frontend/public/sw.js` — service worker minimal (`skipWaiting` +
+  `clients.claim`, **tanpa fetch handler / tanpa cache**; mode offline sengaja
+  dihindari agar tak menghidupkan masalah bundel basi). Didaftarkan dari skrip
+  boot di awal `<body>` pada `frontend/src/app/layout.tsx`.
+* `<link rel="manifest">` **harus** di `<head>` — jangan bungkus skrip inline
+  dalam `<head>` manual di root layout, itu juga menggusur metadata ke body.
+
+**Cara mendiagnosis (jangan menebak).** Playwright + Chromium sudah terpasang
+(`~/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome`). Baca daftar
+alasan Chrome menolak install lewat CDP:
+
+```js
+const { chromium } = require('playwright');
+const ctx = await chromium.launchPersistentContext('/tmp/pw', {
+  headless: true,
+  executablePath: '/home/hbm-server/.cache/ms-playwright/chromium-1223/chrome-linux64/chrome',
+});
+const page = await ctx.newPage();
+const client = await ctx.newCDPSession(page);
+await client.send('Page.enable');
+await page.goto('https://daily.hbmnet.co.id/login', { waitUntil: 'load' });
+await page.waitForTimeout(3000);
+console.log(await client.send('Page.getInstallabilityErrors')); // [] = bisa dipasang
+```
+
+Jalankan dengan `NODE_PATH=frontend/node_modules node skrip.js`. `[]` artinya
+sehat; `no-manifest` artinya manifest tak sampai `<head>` (lihat perbaikan di
+atas). Bandingkan dengan situs PWA lain yang sudah pasti berfungsi.
+
+**Batas platform yang bukan bug** (jangan dikejar dengan kode):
+* iOS Safari tak punya API pasang dari JavaScript — hanya bisa lewat Bagikan →
+  Ke Layar Utama. Tombol di iOS menampilkan petunjuk itu.
+* Chrome menahan `beforeinstallprompt` sampai ada interaksi, dan tak
+  memancarkannya bila aplikasi sedang terpasang atau baru dihapus (cooldown).
+  Uji di HP bersih atau **Hapus data situs** dulu.

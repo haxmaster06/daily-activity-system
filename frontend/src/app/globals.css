@@ -164,6 +164,37 @@
       display: table-header-group;
     }
 
+    /*
+     * Tabel lebar tidak boleh melebihi lebar kertas.
+     *
+     * Saat dicetak tidak ada yang dapat digulir: kelebihan lebar sebuah tabel
+     * sekadar terpotong hilang, tanpa satu pun tanda bahwa ada yang hilang.
+     *
+     * `table-layout: fixed` membuat kolomnya berbagi lebar kertas dan isinya
+     * turun baris. Pada halaman Export, kolomnya sendiri sudah dipecah per
+     * halaman lebih dulu; aturan ini menjaga tabel mana pun yang tercetak dari
+     * halaman lain.
+     */
+    table {
+      width: 100% !important;
+      min-width: 0 !important;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      overflow-wrap: break-word;
+      word-break: break-word;
+      max-width: none !important;
+    }
+
+    /* Kolom banyak menuntut huruf lebih kecil agar tetap terbaca. */
+    table th,
+    table td {
+      font-size: 7.5pt;
+      padding: 1.5mm !important;
+    }
+
     tr,
     img {
       break-inside: avoid;
@@ -192,6 +223,37 @@
 }
 
 @layer utilities {
+  /*
+   * Titik kehadiran pada Manajemen Pengguna.
+   *
+   * Berdenyut seperti lampu supaya keadaan "sedang online" terbaca sekilas
+   * tanpa harus membaca teksnya. Hanya yang online yang berdenyut — titik mati
+   * yang ikut bergerak justru mengaburkan bedanya.
+   *
+   * Denyutnya lingkaran cahaya lewat `box-shadow`, bukan `transform`: ukuran
+   * titiknya tidak berubah, sehingga baris tabel di sekitarnya tidak ikut
+   * bergoyang.
+   *
+   * Blok `prefers-reduced-motion` global di atas mematikannya menjadi satu kali
+   * — warna dan teksnya tetap menyampaikan keadaan tanpa gerakan sama sekali.
+   */
+  @keyframes dams-denyut {
+    0% {
+      box-shadow: 0 0 0 0 rgb(0 191 165 / 60%);
+    }
+    70% {
+      box-shadow: 0 0 0 5px rgb(0 191 165 / 0%);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(0 191 165 / 0%);
+    }
+  }
+
+  .titik-online {
+    animation: dams-denyut 1.8s ease-out infinite;
+  }
+
+
   /*
    * Gerakan overlay dan popover.
    *

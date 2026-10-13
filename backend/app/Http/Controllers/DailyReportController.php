@@ -12,10 +12,11 @@ use App\Notifications\LaporanDikirim;
 use App\Notifications\LaporanDitinjau;
 use App\Rules\PanjangTeksKaya;
 use App\Support\ApiResponse;
-use App\Support\HtmlAman;
 use App\Support\Audit;
+use App\Support\HtmlAman;
 use App\Support\JangkauanData;
 use App\Support\KatalogIzin;
+use App\Support\PenjagaIdentitasLaporan;
 use App\Support\ValidasiIsianTemplate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -91,7 +92,9 @@ class DailyReportController extends Controller
             );
         }
 
-        $laporan = DB::transaction(function () use ($data, $pengguna) {
+        $peringatan = [];
+
+        $laporan = DB::transaction(function () use ($data, $pengguna, &$peringatan) {
             $laporan = DailyReport::create([
                 'user_id' => $pengguna->id,
                 // Disalin, bukan dibaca lewat relasi: pengguna dapat dipindah
@@ -102,7 +105,7 @@ class DailyReportController extends Controller
                 'status' => DailyReport::STATUS_DRAF,
             ]);
 
-            $this->simpanBagian($laporan, $data['sections'], $pengguna);
+            $peringatan = $this->simpanBagian($laporan, $data['sections'], $pengguna);
 
             return $laporan;
         });
@@ -117,25 +120,30 @@ class DailyReportController extends Controller
         return ApiResponse::created(
             new DailyReportResource($this->muatLengkap($laporan)),
             'Laporan berhasil disimpan sebagai draf.',
+            $peringatan,
         );
     }
 
     /**
      * Memperbarui isi laporan.
      *
-     * Hanya selama masih draf — dijaga Policy. Tanggalnya tidak ikut berubah:
-     * laporan tanggal lain adalah laporan yang berbeda.
+     * Statusnya tidak membatasi — laporan yang sudah dikirim pun masih dapat
+     * diperbaiki pemiliknya. Yang membatasi hanyalah kepemilikan, dijaga
+     * Policy. Tanggalnya tidak ikut berubah: laporan tanggal lain adalah
+     * laporan yang berbeda.
      */
     public function update(DailyReportRequest $request, DailyReport $laporan): JsonResponse
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($laporan, $data, $request) {
+        $peringatan = [];
+
+        DB::transaction(function () use ($laporan, $data, $request, &$peringatan) {
             // Bagian lama dihapus lalu ditulis ulang. Menyunting per baris
             // memerlukan penanda baris yang stabil, dan bentuk isian yang
             // dinamis membuat penanda itu tidak dapat diandalkan.
             $laporan->sections()->delete();
-            $this->simpanBagian($laporan, $data['sections'], $request->user());
+            $peringatan = $this->simpanBagian($laporan, $data['sections'], $request->user());
         });
 
         Audit::catat(
@@ -148,13 +156,16 @@ class DailyReportController extends Controller
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan->fresh())),
             'Laporan berhasil diperbarui.',
+            peringatan: $peringatan,
         );
     }
 
     /**
-     * Mengirim laporan.
+     * Mengirim laporan, dan mengirimnya kembali sesudah disunting.
      *
-     * Setelah dikirim, laporan menjadi catatan dan tidak dapat disunting lagi.
+     * Boleh berulang kali. Selama laporan masih dapat disunting sesudah
+     * dikirim, harus ada cara menyatakan bahwa isinya berubah — tanpa itu
+     * suntingan mendarat diam-diam dan peninjau tidak pernah tahu.
      */
     public function kirim(Request $request, DailyReport $laporan): JsonResponse
     {
@@ -164,15 +175,30 @@ class DailyReportController extends Controller
             return ApiResponse::error('Laporan masih kosong. Isi minimal satu bagian.', 422);
         }
 
+        $ulang = ! $laporan->masihDraf();
+
+        /*
+         * Tinjauan lama dihapus, bukan dibiarkan menempel.
+         *
+         * Tinjauan menyatakan seseorang sudah membaca ISI TERTENTU. Begitu isi
+         * itu dikirim ulang, pernyataannya tidak lagi berlaku atas apa pun —
+         * membiarkannya berarti badge "Ditinjau" terpasang pada isi yang bukan
+         * itu yang disetujui, dan justru itulah keadaan yang paling menyesatkan
+         * karena tampak sudah beres.
+         */
         $laporan->forceFill([
             'status' => DailyReport::STATUS_DIKIRIM,
             'submitted_at' => now(),
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+            'review_note' => null,
         ])->save();
 
         Audit::catat(
-            'dikirim',
+            $ulang ? 'dikirim_ulang' : 'dikirim',
             Audit::MODUL_LAPORAN,
-            'Mengirim laporan '.$laporan->report_date->translatedFormat('d F Y'),
+            ($ulang ? 'Mengirim ulang laporan ' : 'Mengirim laporan ')
+                .$laporan->report_date->translatedFormat('d F Y'),
             $laporan,
         );
 
@@ -180,7 +206,9 @@ class DailyReportController extends Controller
 
         return ApiResponse::ok(
             new DailyReportResource($this->muatLengkap($laporan)),
-            'Laporan berhasil dikirim.',
+            $ulang
+                ? 'Laporan berhasil dikirim ulang. Peninjau diberi tahu bahwa isinya berubah.'
+                : 'Laporan berhasil dikirim.',
         );
     }
 
@@ -200,11 +228,76 @@ class DailyReportController extends Controller
             attributes: ['catatan' => 'catatan tinjauan'],
         );
 
+        $this->terapkanTinjau($laporan, $request->user(), $data['catatan'] ?? null);
+
+        return ApiResponse::ok(
+            new DailyReportResource($this->muatLengkap($laporan)),
+            'Laporan ditandai sudah ditinjau.',
+        );
+    }
+
+    /**
+     * Menandai banyak laporan sudah ditinjau sekaligus.
+     *
+     * Peninjau kerap menghadapi antrean berisi banyak laporan yang sama-sama
+     * hanya perlu ditandai "sudah dibaca" — membukanya satu per satu memakan
+     * waktu tanpa menambah makna. Yang tak memenuhi syarat (milik sendiri, belum
+     * dikirim, sudah ditinjau, atau di luar wewenang) dilewati beserta alasannya,
+     * bukan menggagalkan seluruh permintaan.
+     *
+     * Catatan tinjauan bersifat per laporan — satu catatan untuk banyak laporan
+     * tidak bermakna — jadi jalur massal ini sengaja tidak menyertakannya.
+     */
+    public function tinjauMassal(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'laporan_id' => ['required', 'array', 'min:1', 'max:100'],
+            'laporan_id.*' => ['integer'],
+        ], attributes: ['laporan_id' => 'laporan']);
+
+        $peninjau = $request->user();
+        $ditinjau = 0;
+        $dilewati = [];
+
+        $daftar = DailyReport::with('user')
+            ->whereIn('id', array_values(array_unique($data['laporan_id'])))
+            ->get();
+
+        foreach ($daftar as $laporan) {
+            $alasan = $this->alasanTakDapatTinjau($peninjau, $laporan);
+
+            if ($alasan !== null) {
+                $dilewati[] = [
+                    'tanggal' => $laporan->report_date->translatedFormat('d F Y'),
+                    'penyusun' => $laporan->user?->name,
+                    'alasan' => $alasan,
+                ];
+
+                continue;
+            }
+
+            $this->terapkanTinjau($laporan, $peninjau, null);
+            $ditinjau++;
+        }
+
+        return ApiResponse::ok(
+            ['ditinjau' => $ditinjau, 'dilewati' => $dilewati],
+            $this->pesanTinjauMassal($ditinjau, count($dilewati)),
+        );
+    }
+
+    /**
+     * Menerapkan tinjauan pada satu laporan: ubah status, catat audit, beri tahu
+     * penyusun. Dipakai jalur tunggal maupun massal supaya keduanya tak pernah
+     * menyimpang.
+     */
+    private function terapkanTinjau(DailyReport $laporan, User $peninjau, ?string $catatan): void
+    {
         $laporan->forceFill([
             'status' => DailyReport::STATUS_DITINJAU,
-            'reviewed_by' => $request->user()->id,
+            'reviewed_by' => $peninjau->id,
             'reviewed_at' => now(),
-            'review_note' => $data['catatan'] ?? null,
+            'review_note' => $catatan,
         ])->save();
 
         Audit::catat(
@@ -216,14 +309,41 @@ class DailyReportController extends Controller
         );
 
         // Penyusun perlu tahu laporannya sudah dibaca, terlebih bila ada catatan.
-        $laporan->user?->notify(
-            new LaporanDitinjau($laporan, $request->user(), $data['catatan'] ?? null),
-        );
+        $laporan->user?->notify(new LaporanDitinjau($laporan, $peninjau, $catatan));
+    }
 
-        return ApiResponse::ok(
-            new DailyReportResource($this->muatLengkap($laporan)),
-            'Laporan ditandai sudah ditinjau.',
-        );
+    /** Alasan singkat sebuah laporan tak dapat ditinjau, atau null bila boleh. */
+    private function alasanTakDapatTinjau(User $peninjau, DailyReport $laporan): ?string
+    {
+        if ($laporan->user_id === $peninjau->getKey()) {
+            return 'Laporan sendiri.';
+        }
+
+        if ($laporan->status === DailyReport::STATUS_DRAF) {
+            return 'Masih draf.';
+        }
+
+        if ($laporan->status === DailyReport::STATUS_DITINJAU) {
+            return 'Sudah ditinjau.';
+        }
+
+        // Sisanya (izin dan jangkauan) ditentukan Policy — satu sumber kebenaran.
+        if (! $peninjau->can('tinjau', $laporan)) {
+            return 'Di luar wewenang.';
+        }
+
+        return null;
+    }
+
+    private function pesanTinjauMassal(int $ditinjau, int $dilewati): string
+    {
+        if ($ditinjau === 0) {
+            return 'Tidak ada laporan yang dapat ditinjau dari pilihan itu.';
+        }
+
+        $pesan = $ditinjau.' laporan ditandai sudah ditinjau.';
+
+        return $dilewati > 0 ? $pesan.' '.$dilewati.' dilewati.' : $pesan;
     }
 
     /**
@@ -287,10 +407,10 @@ class DailyReportController extends Controller
         Audit::catat(
             Audit::AKSI_DIHAPUS,
             Audit::MODUL_LAPORAN,
-            "Menghapus draf laporan {$tanggal}",
+            "Menghapus laporan {$tanggal}",
         );
 
-        return ApiResponse::ok(null, 'Draf laporan berhasil dihapus.');
+        return ApiResponse::ok(null, 'Laporan berhasil dihapus.');
     }
 
     /**
@@ -300,8 +420,10 @@ class DailyReportController extends Controller
      *
      * @throws ValidationException
      */
-    private function simpanBagian(DailyReport $laporan, array $bagian, User $pengguna): void
+    private function simpanBagian(DailyReport $laporan, array $bagian, User $pengguna): array
     {
+        $peringatan = [];
+
         foreach (array_values($bagian) as $urutan => $isiBagian) {
             $template = ReportTemplate::with('fields')->findOrFail($isiBagian['report_template_id']);
 
@@ -325,14 +447,25 @@ class DailyReportController extends Controller
                 "sections.{$urutan}.items",
             );
 
+            $bersihSemua = array_map(
+                fn ($isiBaris) => ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris),
+                array_values($isiBagian['items']),
+            );
+
+            // LOT + tanggal yang sama tidak lagi diblokir — beberapa staf memang
+            // menyentuh LOT yang sama. Pengisi hanya diberi tahu siapa yang lebih
+            // dulu mencatatnya; penghitungan ganda ditangani di lapisan analitik.
+            $peringatan = array_merge(
+                $peringatan,
+                PenjagaIdentitasLaporan::peringatan($template, $bersihSemua, $laporan->id),
+            );
+
             $section = $laporan->sections()->create([
                 'report_template_id' => $template->id,
                 'sort_order' => $urutan,
             ]);
 
-            foreach (array_values($isiBagian['items']) as $nomorBaris => $isiBaris) {
-                $bersih = ValidasiIsianTemplate::bersihkan($template, (array) $isiBaris);
-
+            foreach ($bersihSemua as $nomorBaris => $bersih) {
                 $section->items()->create([
                     'data' => $bersih,
                     'progress_status' => ValidasiIsianTemplate::statusBaris($template, $bersih),
@@ -340,6 +473,8 @@ class DailyReportController extends Controller
                 ]);
             }
         }
+
+        return array_values(array_unique($peringatan));
     }
 
     private function muatLengkap(DailyReport $laporan): DailyReport

@@ -7,7 +7,6 @@ use App\Models\MasterType;
 use App\Models\Permission;
 use App\Models\ReportTemplate;
 use App\Models\TemplateField;
-use App\Models\Tugas;
 use App\Models\User;
 use App\Support\Analitik\PenyaringAnalitik;
 use App\Support\KatalogIzin;
@@ -56,28 +55,6 @@ function siapkanAnalitik(): array
 
     $template = templateAngka();
 
-    Tugas::factory()->create([
-        'department_id' => $milik->id,
-        'title' => 'Kartu milik sendiri',
-        'penanggung_jawab_id' => $pengawas->id,
-    ]);
-    Tugas::factory()->create([
-        'department_id' => $lain->id,
-        'title' => 'Kartu departemen lain',
-        'penanggung_jawab_id' => $orangLain->id,
-    ]);
-
-    Tugas::factory()->create([
-        'department_id' => $milik->id,
-        'title' => 'Telat milik sendiri',
-        'target_selesai' => Carbon::today()->subDays(3),
-    ]);
-    Tugas::factory()->create([
-        'department_id' => $lain->id,
-        'title' => 'Telat departemen lain',
-        'target_selesai' => Carbon::today()->subDays(3),
-    ]);
-
     laporanAngka($pengawas, $milik, $template, 'selesai', 100);
     laporanAngka($orangLain, $lain, $template, 'dalam_proses', 250);
 
@@ -119,7 +96,7 @@ function laporanAngka(
     string $status,
     float $qty,
 ): DailyReport {
-    $laporan = DailyReport::factory()->create([
+    $laporan = DailyReport::factory()->dikirim()->create([
         'user_id' => $pengguna->id,
         'department_id' => $departemen->id,
         'report_date' => Carbon::today(),
@@ -144,14 +121,26 @@ describe('penjagaan akses', function (): void {
         Sanctum::actingAs(User::factory()->staff()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertForbidden();
-    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi']);
 
     it('membuka tiap halaman bagi pemegang izinnya', function (string $jalur): void {
         Sanctum::actingAs(User::factory()->administrator()->create());
 
         $this->getJson("/api/analitik/{$jalur}")->assertOk();
-    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'progres']);
+    })->with(['opsi', 'departemen', 'ringkasan', 'produktivitas', 'produksi']);
 });
+
+/*
+ * Papan progres dihapus seluruhnya. Yang dijaga di sini bukan hilangnya
+ * halaman, melainkan hilangnya pintunya: route yang tertinggal tetap dapat
+ * dipanggil langsung meski tidak ada satu pun tombol yang menunjuknya, dan
+ * controller yang sudah tidak ada akan menjawabnya dengan galat 500, bukan 404.
+ */
+it('tidak lagi menyediakan endpoint papan progres', function (string $jalur): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $this->getJson($jalur)->assertNotFound();
+})->with(['/api/tugas', '/api/analitik/progres']);
 
 describe('penyaring departemen tidak boleh memperluas jangkauan', function (): void {
     /*
@@ -169,11 +158,19 @@ describe('penyaring departemen tidak boleh memperluas jangkauan', function (): v
             ->assertOk()
             ->json('data');
 
-        // Permintaannya dibuang, sehingga penyaringnya kosong — dan yang
-        // terbaca tetap hanya departemennya sendiri.
+        /*
+         * Permintaannya dibuang, sehingga penyaringnya kosong — dan yang
+         * terbaca tetap hanya departemennya sendiri.
+         *
+         * Diperiksa pada SELURUH muatan, bukan satu field. Dahulu yang
+         * diperiksa `status_per_departemen`, yang ikut hilang bersama papan
+         * progres; memeriksa muatannya utuh tidak menuntut test ini diubah
+         * lagi tiap kali susunan field berubah, sekaligus menjaring nama
+         * departemen yang bocor lewat jalan lain — `sorotan`, misalnya,
+         * menyebut nama departemen di dalam kalimatnya.
+         */
         expect($data['rentang']['departemen_id'])->toBe([])
-            ->and(collect($data['status_per_departemen'])->pluck('departemen'))
-            ->not->toContain($lain->name);
+            ->and(json_encode($data))->not->toContain($lain->name);
     });
 
     it('membuang departemen di luar jangkauan pada produktivitas', function (): void {
@@ -221,27 +218,13 @@ describe('penyaring departemen tidak boleh memperluas jangkauan', function (): v
 });
 
 describe('jangkauan data pada tiap angka', function (): void {
-    it('tidak membocorkan kartu departemen lain', function (): void {
-        ['pengawas' => $pengawas] = siapkanAnalitik();
-
-        Sanctum::actingAs($pengawas);
-
-        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
-
-        expect(collect($data['lewat_target'])->pluck('judul'))
-            ->toContain('Telat milik sendiri')
-            ->not->toContain('Telat departemen lain')
-            ->and(collect($data['beban_penanggung_jawab'])->pluck('nama'))
-            ->not->toContain('Staf Quality Control');
-    });
-
     it('tidak membocorkan baris laporan departemen lain', function (): void {
         ['pengawas' => $pengawas] = siapkanAnalitik();
 
         Sanctum::actingAs($pengawas);
 
         $sebaran = collect(
-            $this->getJson('/api/analitik/progres')->assertOk()->json('data.sebaran_status_baris'),
+            $this->getJson('/api/analitik/ringkasan')->assertOk()->json('data.sebaran_status_baris'),
         )->pluck('jumlah', 'status');
 
         expect($sebaran['selesai'])->toBe(1)
@@ -264,14 +247,11 @@ describe('jangkauan data pada tiap angka', function (): void {
         Sanctum::actingAs(User::factory()->administrator()->create());
         ['milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
 
-        $data = $this->getJson('/api/analitik/progres')->assertOk()->json('data');
+        $data = $this->getJson('/api/analitik/produktivitas')->assertOk()->json('data');
 
-        expect(collect($data['status_per_departemen'])->pluck('departemen'))
+        expect(collect($data['data']['per_departemen'])->pluck('departemen'))
             ->toContain($milik->name)
-            ->toContain($lain->name)
-            ->and(collect($data['lewat_target'])->pluck('judul'))
-            ->toContain('Telat milik sendiri')
-            ->toContain('Telat departemen lain');
+            ->toContain($lain->name);
     });
 });
 
@@ -460,7 +440,7 @@ describe('keadaan departemen', function (): void {
 
         $pengguna = User::factory()->staff()->create(['department_id' => $milik->id]);
 
-        $laporan = DailyReport::factory()->create([
+        $laporan = DailyReport::factory()->dikirim()->create([
             'user_id' => $pengguna->id,
             'department_id' => $milik->id,
             'report_date' => Carbon::today()->subDay(),
@@ -548,13 +528,13 @@ describe('penyaring selain departemen', function (): void {
 
         Sanctum::actingAs($pengawas);
 
-        $tanpa = collect($this->getJson('/api/analitik/progres')->assertOk()
+        $tanpa = collect($this->getJson('/api/analitik/ringkasan')->assertOk()
             ->json('data.sebaran_status_baris'));
 
         expect($tanpa->firstWhere('status', 'selesai')['jumlah'])->toBe(1)
             ->and($tanpa->firstWhere('status', 'belum_mulai')['jumlah'])->toBe(1);
 
-        $tersaring = collect($this->getJson('/api/analitik/progres?status[]=selesai')->assertOk()
+        $tersaring = collect($this->getJson('/api/analitik/ringkasan?status[]=selesai')->assertOk()
             ->json('data.sebaran_status_baris'));
 
         expect($tersaring->firstWhere('status', 'selesai')['jumlah'])->toBe(1)
@@ -706,7 +686,7 @@ describe('penyaring selain departemen', function (): void {
         $penyusun = User::factory()->staff()->create(['department_id' => $milik->id]);
 
         // Satu laporan memuat dua baris: pembeli Alfa dan pembeli Beta.
-        $laporan = DailyReport::factory()->create([
+        $laporan = DailyReport::factory()->dikirim()->create([
             'user_id' => $penyusun->id,
             'department_id' => $milik->id,
             'report_date' => Carbon::today(),
@@ -824,5 +804,238 @@ describe('daftar pilihan penyaring', function (): void {
 
         expect($nama)->toContain('Pengawas Produksi')
             ->and($nama)->not->toContain('Staf Quality Control');
+    });
+});
+
+/** Template proses per stasiun, seperti PROD_PROSES yang sebenarnya. */
+function templateProses(): ReportTemplate
+{
+    $template = ReportTemplate::create([
+        'code' => 'PROD_PROSES',
+        'name' => 'Proses Harian per LOT',
+        'department_id' => Department::where('code', 'PRODUKSI')->value('id'),
+        'is_active' => true,
+    ]);
+
+    $template->fields()->createMany([
+        ['key' => 'oven_target', 'label' => 'Target Per Hari', 'group_label' => 'Oven', 'type' => TemplateField::TIPE_DECIMAL, 'unit' => 'kg', 'sort_order' => 0],
+        ['key' => 'oven_masuk', 'label' => 'QTY Masuk', 'group_label' => 'Oven', 'type' => TemplateField::TIPE_DECIMAL, 'unit' => 'kg', 'sort_order' => 1],
+        ['key' => 'oven_keluar', 'label' => 'QTY Keluar', 'group_label' => 'Oven', 'type' => TemplateField::TIPE_DECIMAL, 'unit' => 'kg', 'sort_order' => 2],
+    ]);
+
+    return $template->load('fields');
+}
+
+function laporanProses(User $pengguna, Department $departemen, ReportTemplate $template, array $data, ?Carbon $tanggal = null): DailyReport
+{
+    $laporan = DailyReport::factory()->dikirim()->create([
+        'user_id' => $pengguna->id,
+        'department_id' => $departemen->id,
+        'report_date' => $tanggal ?? Carbon::today(),
+    ]);
+
+    $bagian = $laporan->sections()->create(['report_template_id' => $template->id, 'sort_order' => 0]);
+    $bagian->items()->create(['data' => $data, 'progress_status' => 'selesai', 'sort_order' => 0]);
+
+    return $laporan;
+}
+
+describe('proses produksi', function (): void {
+    it('menjumlahkan keluaran per stasiun beserta persen tercapai', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProses();
+        $admin = User::factory()->administrator()->create();
+        laporanProses($admin, $produksi, $template, ['oven_target' => 1000, 'oven_masuk' => 900, 'oven_keluar' => 800]);
+
+        Sanctum::actingAs($admin);
+
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+
+        $oven = collect($data['stasiun'])->firstWhere('nama', 'Oven');
+
+        expect($oven)->not->toBeNull()
+            ->and($oven['tercapai'])->toEqual(80.0)
+            ->and(collect($oven['field'])->firstWhere('peran', 'keluar')['nilai'])->toEqual(800)
+            ->and(collect($data['kpi'])->pluck('label'))->toContain('Keluaran akhir');
+    });
+
+    /*
+     * Jangkauan tetap ditegakkan: pengawas satu departemen tak boleh melihat
+     * laporan proses milik departemen lain ikut terjumlah.
+     */
+    it('tidak membocorkan laporan di luar jangkauan', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+        $template = templateProses();
+
+        // Pengawas sudah punya laporan hari ini dari siapkanAnalitik; yang ini
+        // kemarin (masih di dalam jendela 30 hari) agar tak bentrok unik.
+        laporanProses($pengawas, $milik, $template, ['oven_keluar' => 500], Carbon::yesterday());
+        laporanProses(
+            User::factory()->staff()->create(['department_id' => $lain->id]),
+            $lain,
+            $template,
+            ['oven_keluar' => 999],
+        );
+
+        Sanctum::actingAs($pengawas->fresh());
+
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+        $oven = collect($data['stasiun'])->firstWhere('nama', 'Oven');
+
+        expect(collect($oven['field'])->firstWhere('peran', 'keluar')['nilai'])->toEqual(500);
+    });
+});
+
+describe('proses produksi per user', function (): void {
+    it('menjumlahkan gabungan, memfilter per user, dan mendaftar pelapor', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProses();
+        $admin = User::factory()->administrator()->create();
+        $a = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Pelapor A']);
+        $b = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Pelapor B']);
+
+        laporanProses($a, $produksi, $template, ['oven_keluar' => 300]);
+        laporanProses($b, $produksi, $template, ['oven_keluar' => 200]);
+
+        Sanctum::actingAs($admin);
+
+        $ovenKeluar = fn (array $data): float => (float) collect(
+            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field'],
+        )->firstWhere('peran', 'keluar')['nilai'];
+
+        // Gabungan seluruh pelapor.
+        $semua = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+        expect($ovenKeluar($semua))->toEqual(500.0)
+            ->and(collect($semua['pelapor'])->pluck('nama'))->toContain('Pelapor A')->toContain('Pelapor B')
+            ->and($semua['pengguna_id'])->toBeNull();
+
+        // Disaring ke satu pelapor.
+        $hanyaA = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$a->id}")
+            ->assertOk()->json('data');
+        expect($ovenKeluar($hanyaA))->toEqual(300.0)
+            ->and($hanyaA['pengguna_id'])->toBe($a->id);
+    });
+
+    it('mengabaikan pengguna di luar jangkauan (jatuh ke semua)', function (): void {
+        ['pengawas' => $pengawas, 'milik' => $milik, 'lain' => $lain] = siapkanAnalitik();
+        $template = templateProses();
+        laporanProses($pengawas, $milik, $template, ['oven_keluar' => 400], Carbon::yesterday());
+        $luar = User::factory()->staff()->create(['department_id' => $lain->id]);
+        laporanProses($luar, $lain, $template, ['oven_keluar' => 999]);
+
+        Sanctum::actingAs($pengawas->fresh());
+
+        // Pelapor di luar jangkauan tak masuk daftar, dan memintanya diabaikan.
+        $data = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$luar->id}")
+            ->assertOk()->json('data');
+
+        expect(collect($data['pelapor'])->pluck('id'))->not->toContain($luar->id)
+            ->and($data['pengguna_id'])->toBeNull();
+    });
+});
+
+/** Template proses ber-identitas (Tanggal Produksi + LOT) + satu ukuran. */
+function templateProsesLot(): ReportTemplate
+{
+    $template = ReportTemplate::create([
+        'code' => 'PROD_PROSES',
+        'name' => 'Proses Harian per LOT',
+        'department_id' => Department::where('code', 'PRODUKSI')->value('id'),
+        'is_active' => true,
+    ]);
+
+    $template->fields()->createMany([
+        ['key' => 'tanggal_produksi', 'label' => 'Tanggal Produksi', 'type' => TemplateField::TIPE_DATE, 'sort_order' => 0],
+        ['key' => 'lot', 'label' => 'LOT#', 'type' => TemplateField::TIPE_TEXT, 'sort_order' => 1],
+        ['key' => 'oven_keluar', 'label' => 'QTY Keluar', 'group_label' => 'Oven', 'type' => TemplateField::TIPE_DECIMAL, 'unit' => 'kg', 'sort_order' => 2],
+    ]);
+
+    return $template->load('fields');
+}
+
+describe('dedup LOT dobel lintas-pelapor pada analitik', function (): void {
+    function ovenKeluar(array $data): float
+    {
+        return (float) collect(
+            collect($data['stasiun'])->firstWhere('nama', 'Oven')['field'],
+        )->firstWhere('peran', 'keluar')['nilai'];
+    }
+
+    it('menghitung LOT+tanggal yang sama sekali; jabatan tertinggi menang', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id, 'name' => 'Pak SPV']);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id, 'name' => 'Staf']);
+
+        // LOT + tanggal produksi SAMA dari dua orang, angkanya berbeda.
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+
+        // Dihitung sekali, versi SPV (level lebih tinggi) menang => 800, bukan 1300.
+        expect(ovenKeluar($data))->toEqual(800.0);
+    });
+
+    it('menjumlahkan LOT berbeda apa adanya', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $a = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        $b = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($a, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 300]);
+        laporanProses($b, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '094', 'oven_keluar' => 200]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/produksi?periode=harian')->assertOk()->json('data');
+
+        // LOT beda -> bukan dobel -> 500.
+        expect(ovenKeluar($data))->toEqual(500.0);
+    });
+
+    it('per pelapor menampilkan angka pelapor itu sendiri', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id]);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+
+        // Disaring ke Staf -> hanya barisnya sendiri (500), bukan versi SPV.
+        $data = $this->getJson("/api/analitik/produksi?periode=harian&pengguna_id={$staff->id}")
+            ->assertOk()->json('data');
+        expect(ovenKeluar($data))->toEqual(500.0);
+    });
+
+    it('men-dedup juga pada papan Departemen', function (): void {
+        test()->seed(DepartmentSeeder::class);
+        $produksi = Department::where('code', 'PRODUKSI')->firstOrFail();
+        $template = templateProsesLot();
+
+        $spv = User::factory()->supervisor()->create(['department_id' => $produksi->id]);
+        $staff = User::factory()->staff()->create(['department_id' => $produksi->id]);
+        laporanProses($spv, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 800]);
+        laporanProses($staff, $produksi, $template, ['tanggal_produksi' => '2026-09-02', 'lot' => '093', 'oven_keluar' => 500]);
+
+        Sanctum::actingAs(User::factory()->administrator()->create());
+        $data = $this->getJson('/api/analitik/departemen')->assertOk()->json('data');
+
+        $prod = collect($data['departemen'])->firstWhere('departemen_id', $produksi->id);
+        $sorotan = collect($prod['sorotan'])->firstWhere('label', 'Oven · QTY Keluar');
+
+        // Satu baris menang (SPV, 800) -> total sorotan 800, bukan 1300.
+        expect($sorotan)->not->toBeNull()
+            ->and((float) $sorotan['total'])->toEqual(800.0)
+            ->and($prod['jumlah_baris'])->toBe(1);
     });
 });

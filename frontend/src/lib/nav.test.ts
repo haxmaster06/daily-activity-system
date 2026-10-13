@@ -65,6 +65,32 @@ describe('visibilitas menu per izin', () => {
   });
 
   /*
+   * KPI menggantikan menu Progres, yang fiturnya dihapus seluruhnya.
+   *
+   * Yang diuji bukan sekadar label baru: alamat `/progress` tidak boleh lagi
+   * dikenali `bolehAkses()` sebagai halaman mana pun yang berizin. Halaman
+   * yang tidak terdaftar memang dianggap terbuka bagi yang sudah masuk — dan
+   * itu benar di sini, sebab routenya sudah tidak ada sehingga Next.js
+   * menjawabnya 404 sebelum izin sempat dinilai.
+   */
+  describe('menu KPI', () => {
+    it('menampilkan KPI hanya bagi pemegang kpi.lihat', () => {
+      expect(menuUntukIzin([...IZIN_STAFF, 'kpi.lihat']).map((m) => m.href)).toContain('/kpi');
+      expect(menuUntukIzin(IZIN_STAFF).map((m) => m.href)).not.toContain('/kpi');
+    });
+
+    it('tidak lagi mengenal menu Progres', () => {
+      expect(MENU_UTAMA.map((m) => m.href)).not.toContain('/progress');
+      expect(MENU_UTAMA.map((m) => m.label)).not.toContain('Progres');
+    });
+
+    it('menjaga halaman KPI dengan izinnya', () => {
+      expect(bolehAkses([...IZIN_STAFF, 'kpi.lihat'], '/kpi')).toBe(true);
+      expect(bolehAkses(IZIN_STAFF, '/kpi')).toBe(false);
+    });
+  });
+
+  /*
    * Data Master ditentukan KEMAMPUAN, bukan izin.
    *
    * `master.kelola` berlaku menyeluruh, sedangkan daftar yang benar-benar dapat

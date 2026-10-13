@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\JangkauanData;
+use App\Support\KatalogIzin;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -326,7 +327,7 @@ class User extends Authenticatable
      */
     public function bolehKelolaMaster(): bool
     {
-        if (! $this->boleh(\App\Support\KatalogIzin::MASTER_KELOLA)) {
+        if (! $this->boleh(KatalogIzin::MASTER_KELOLA)) {
             return false;
         }
 

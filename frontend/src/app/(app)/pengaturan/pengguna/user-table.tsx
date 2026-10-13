@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyRound, Plus, ShieldCheck, Trash2, UserCheck, UserX } from 'lucide-react';
 
 import { Alert } from '@/components/ui/alert';
@@ -16,8 +16,9 @@ import {
 } from '@/components/ui/data-table';
 import { FilterBar } from '@/components/ui/filter-bar';
 import { Pagination, type MetaHalaman } from '@/components/ui/pagination';
+import { cn } from '@/lib/cn';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { formatAngka } from '@/lib/format';
+import { formatAngka, formatTanggalWaktu } from '@/lib/format';
 import type { Departemen, Pengguna, RingkasanRole } from '@/lib/master-data';
 import { hapusPengguna, ubahStatusPengguna } from './actions';
 import { PenetapanRoleDialog } from './penetapan-role-dialog';
@@ -41,6 +42,31 @@ export function UserTable({
   idPenggunaSaatIni,
 }: UserTableProps) {
   const router = useRouter();
+
+  /*
+   * Kehadiran dibaca saat halaman dirender, jadi tanpa penyegaran titiknya
+   * membeku pada keadaan waktu halaman dibuka.
+   *
+   * 5 detik, bukan 20: pada 20 detik perubahan terasa tertinggal jauh dan
+   * layar ini tampak tidak hidup. Biayanya satu panggilan ringan ke Reverb
+   * beserta satu query daftar pengguna — dan yang membuka layar ini hanya
+   * segelintir administrator, bukan seluruh karyawan.
+   *
+   * Berhenti saat tabnya tidak terlihat: menyegarkan halaman yang tidak
+   * dipandang siapa pun hanya membebani server. Tidak berjalan sama sekali
+   * bila kolomnya memang tidak ditampilkan.
+   */
+  const menampilkanKehadiran = pengguna.some((satu) => satu.sedang_online !== undefined);
+
+  useEffect(() => {
+    if (!menampilkanKehadiran) return;
+
+    const jeda = setInterval(() => {
+      if (document.visibilityState === 'visible') router.refresh();
+    }, 5_000);
+
+    return () => clearInterval(jeda);
+  }, [menampilkanKehadiran, router]);
 
   const [dialogTerbuka, setDialogTerbuka] = useState(false);
   const [sedangDiubah, setSedangDiubah] = useState<Pengguna | null>(null);
@@ -146,6 +172,19 @@ export function UserTable({
                 { nilai: 'nonaktif', label: 'Nonaktif' },
               ],
             },
+            // Hanya ditawarkan kepada yang memang melihat kolom kehadirannya.
+            ...(menampilkanKehadiran
+              ? [
+                  {
+                    kunci: 'kehadiran',
+                    label: 'Kehadiran',
+                    opsi: [
+                      { nilai: 'online', label: 'Sedang Online' },
+                      { nilai: 'offline', label: 'Offline' },
+                    ],
+                  },
+                ]
+              : []),
           ]}
         />
 
@@ -189,7 +228,51 @@ export function UserTable({
                     aria-label={`Ubah ${item.nama}`}
                     className="cursor-pointer transition-colors duration-fast hover:bg-surface-muted/60 focus-visible:bg-surface-muted focus-visible:outline-none"
                   >
-                    <Td className="font-medium">{item.nama}</Td>
+                    <Td className="font-medium">
+                      <span className="flex items-center gap-2">
+                        {/*
+                          Kehadiran hanya dirender bila server mengirimkannya —
+                          `undefined` berarti pemanggilnya tidak berhak tahu,
+                          dan itu berbeda dari "sedang offline".
+
+                          Warna selalu disertai teks: titik hijau saja tidak
+                          terbaca oleh yang tidak membedakan warna.
+                        */}
+                        {/*
+                          `bg-success` sebelumnya dipakai di sini dan tidak ada
+                          di palet, sehingga titiknya tidak berwarna sama
+                          sekali. Sekarang memakai token yang benar-benar ada.
+                        */}
+                        {item.sedang_online !== undefined && (
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              'size-2 shrink-0 rounded-full',
+                              item.sedang_online
+                                ? 'bg-secondary titik-online'
+                                : 'bg-danger',
+                            )}
+                          />
+                        )}
+                        <span className="min-w-0">
+                          {item.nama}
+                          {item.sedang_online !== undefined && (
+                            <span
+                              className={cn(
+                                'block text-caption font-normal',
+                                item.sedang_online ? 'text-secondary-text' : 'text-ink-soft',
+                              )}
+                            >
+                              {item.sedang_online
+                                ? 'Sedang Online'
+                                : item.masuk_terakhir
+                                  ? `Terakhir login ${formatTanggalWaktu(item.masuk_terakhir)}`
+                                  : 'Belum pernah login'}
+                            </span>
+                          )}
+                        </span>
+                      </span>
+                    </Td>
                     <Td className="text-ink-muted">{item.email}</Td>
                     <Td className="text-ink-muted">{item.departemen.nama ?? '—'}</Td>
                     <Td className="text-ink-muted">
@@ -201,7 +284,10 @@ export function UserTable({
                       )}
                     </Td>
                     <Td>
-                      <StatusBadge status={item.aktif ? 'selesai' : 'belum_mulai'} />
+                      <StatusBadge
+                        status={item.aktif ? 'selesai' : 'belum_mulai'}
+                        label={item.aktif ? 'Aktif' : 'Nonaktif'}
+                      />
                     </Td>
                     <Td align="right">
                       <div className="flex items-center justify-end gap-0.5">

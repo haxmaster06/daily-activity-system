@@ -19,19 +19,36 @@ final class ApiResponse
 {
     /**
      * @param  array<string, mixed>|object|null  $data
+     * @param  list<string>  $peringatan  Pemberitahuan non-galat; disertakan hanya bila ada.
      */
-    public static function ok(mixed $data = null, string $message = '', int $status = 200): JsonResponse
-    {
-        return response()->json([
+    public static function ok(
+        mixed $data = null,
+        string $message = '',
+        int $status = 200,
+        array $peringatan = [],
+    ): JsonResponse {
+        $payload = [
             'success' => true,
             'message' => $message,
             'data' => $data,
-        ], $status);
+        ];
+
+        if ($peringatan !== []) {
+            $payload['peringatan'] = $peringatan;
+        }
+
+        return response()->json($payload, $status);
     }
 
-    public static function created(mixed $data = null, string $message = 'Data berhasil disimpan.'): JsonResponse
-    {
-        return self::ok($data, $message, 201);
+    /**
+     * @param  list<string>  $peringatan
+     */
+    public static function created(
+        mixed $data = null,
+        string $message = 'Data berhasil disimpan.',
+        array $peringatan = [],
+    ): JsonResponse {
+        return self::ok($data, $message, 201, $peringatan);
     }
 
     /**

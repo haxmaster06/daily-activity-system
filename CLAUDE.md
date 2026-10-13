@@ -14,7 +14,7 @@ Dokumen acuan yang wajib dibaca sebelum mengubah apa pun:
 | `docs/standar-library-ui.md` | Library tiap komponen: Radix, React Aria, shadcn, React Bits |
 | `docs/template-departemen.md` | Skema kolom template laporan per departemen |
 | `docs/adr/README.md` | Keputusan arsitektur yang mengikat, ADR-001..009 |
-| `docs/api.md` | 70 endpoint, envelope, dua lapis penjagaan, format data |
+| `docs/api.md` | 84 endpoint, envelope, dua lapis penjagaan, format data |
 | `docs/panduan-pengguna.md` | Panduan pemakaian untuk karyawan |
 | `docs/tinjauan-index.md` | Hasil EXPLAIN dan alasan tiap index |
 | `.agents/Standarization/non-fungsional-requirement.md` | Security, performance, testing, deployment |

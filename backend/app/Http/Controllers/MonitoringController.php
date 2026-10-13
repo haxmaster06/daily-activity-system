@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DailyReport;
 use App\Models\User;
+use App\Notifications\PengingatLaporan;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,6 +84,35 @@ class MonitoringController extends Controller
                     ->whereBetween('report_date', [$dari, $sampai])
                     ->where('status', DailyReport::STATUS_DITINJAU),
             ])
+            /*
+             * Dua penanda di bawah menentukan tombol "Kirim Pengingat", dan
+             * sengaja dihitung untuk HARI INI — lepas dari rentang yang sedang
+             * dilihat.
+             *
+             * Pengingatnya memang selalu tentang hari ini: PengingatController
+             * memakai `Carbon::today()` bila tanggal tidak dikirim. Memagari
+             * tombolnya dengan `jumlah_laporan` sepanjang rentang membuat
+             * keduanya menjawab pertanyaan yang berbeda — dan sejak tanggal 2
+             * tiap bulan tombolnya hanya muncul untuk orang yang belum melapor
+             * sama sekali sebulan itu, sementara yang rajin melapor tapi hari
+             * ini belum tidak pernah ditawari.
+             *
+             * Syaratnya ditulis persis sama dengan syarat yang menerima kiriman
+             * di PengingatController, supaya tidak ada tombol yang tampil
+             * tetapi penolakannya sudah pasti.
+             */
+            ->withExists([
+                'laporan as sudah_melapor_hari_ini' => fn ($query) => $query
+                    ->where('report_date', Carbon::today()->toDateString()),
+                'notifications as sudah_diingatkan_hari_ini' => fn ($query) => $query
+                    ->where('type', PengingatLaporan::class)
+                    // `created_at` bertipe TIMESTAMP, jadi butuh rentang satu
+                    // hari penuh — bukan perbandingan satu nilai.
+                    ->whereBetween('created_at', [
+                        Carbon::today()->startOfDay(),
+                        Carbon::today()->endOfDay(),
+                    ]),
+            ])
             ->orderBy('name')
             ->get();
 
@@ -105,6 +135,8 @@ class MonitoringController extends Controller
                 'jumlah_draf' => $item->jumlah_draf,
                 'jumlah_ditinjau' => $item->jumlah_ditinjau,
                 'hari_tanpa_laporan' => max(0, $jumlahHari - $item->jumlah_laporan),
+                'sudah_melapor_hari_ini' => (bool) $item->sudah_melapor_hari_ini,
+                'sudah_diingatkan_hari_ini' => (bool) $item->sudah_diingatkan_hari_ini,
             ])->all(),
         ]);
     }

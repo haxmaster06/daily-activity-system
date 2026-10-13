@@ -70,6 +70,6 @@ export const config = {
      * "isn't a valid image ... received null" yang tidak menyebut pengalihan
      * sama sekali.
      */
-    '/((?!_next/static|_next/image|api/auth|.*\\.(?:png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf)$).*)',
+    '/((?!_next/static|_next/image|api/auth|.*\\.(?:png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf|webmanifest|js)$).*)',
   ],
 };

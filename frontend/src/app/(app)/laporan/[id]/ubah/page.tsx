@@ -72,7 +72,7 @@ export default async function SuntingLaporanPage({
     <>
       <Breadcrumb
         jejak={[
-          { label: 'Laporan Saya', href: '/laporan' },
+          { label: 'Laporan Harian', href: '/laporan' },
           { label: formatTanggal(laporan.tanggal), href: `/laporan/${laporan.id}` },
           { label: 'Sunting' },
         ]}

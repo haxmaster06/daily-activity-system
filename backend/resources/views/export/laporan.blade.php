@@ -23,7 +23,22 @@
         .periode { font-size: 9pt; color: #414754; margin: 0 0 1mm; }
         .keterangan { font-size: 8pt; color: #727785; margin: 0 0 4mm; }
 
-        table { width: 100%; border-collapse: collapse; }
+        /*
+         * `table-layout: fixed` wajib di sini.
+         *
+         * Tanpa itu dompdf melebarkan tiap kolom mengikuti isinya, tabelnya
+         * tumbuh melewati lebar kertas, dan kelebihannya TIDAK dipindah ke
+         * halaman berikutnya — sekadar terpotong hilang. Pada template
+         * berkolom banyak yang hilang justru kolom-kolom terakhir, tanpa satu
+         * pun tanda bahwa ada yang hilang.
+         *
+         * Dengan `fixed`, kolomnya berbagi lebar kertas dan isinya turun baris.
+         */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
 
         th {
             background: #005BBF;
@@ -32,6 +47,7 @@
             text-align: left;
             padding: 2mm 1.5mm;
             border: 0.2mm solid #D9DDE5;
+            word-wrap: break-word;
         }
 
         td {
@@ -52,6 +68,16 @@
         /* Baris berselang-seling memudahkan mata mengikuti satu baris pada
            tabel yang lebar. */
         tbody tr:nth-child(even) td { background: #F2F4F7; }
+
+        .kelompok {
+            font-size: 8pt;
+            font-weight: bold;
+            color: #414754;
+            margin: 0 0 1.5mm;
+        }
+
+        /* Tiap kelompok kolom mulai di halaman baru, kecuali yang pertama. */
+        .pisah { page-break-before: always; }
 
         .kaki {
             margin-top: 4mm;
@@ -85,32 +111,63 @@
         </p>
     @endif
 
-    <table>
-        <thead>
-            <tr>
-                @foreach ($data['kolom'] as $kolom)
-                    <th>
-                        {{ $kolom['label'] }}@if ($kolom['satuan']) ({{ $kolom['satuan'] }})@endif
-                    </th>
-                @endforeach
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($data['baris'] as $baris)
-                <tr>
-                    @foreach ($data['kolom'] as $kolom)
-                        <td>{{ $baris[$kolom['kunci']] ?? '' }}</td>
-                    @endforeach
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="{{ count($data['kolom']) }}" style="text-align: center; color: #727785;">
-                        Tidak ada data pada rentang ini.
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
+    {{--
+        Kolom dipecah antar halaman, bukan dipadatkan.
+
+        Template terlebar punya 27 kolom. Dimuat sekaligus, tiap kolom hanya
+        kebagian beberapa milimeter: tabelnya memang muat di kertas, tetapi
+        tidak ada satu pun yang terbaca — dan tabel yang tidak terbaca sama
+        tidak bergunanya dengan tabel yang terpotong.
+
+        Kolom identitas diulang pada tiap kelompok supaya tiap halaman tetap
+        dapat dibaca sendiri: tanpa itu, halaman kedua hanya berisi deretan
+        angka tanpa keterangan itu milik siapa dan tanggal berapa.
+    --}}
+    @foreach ($data['kelompok_kolom'] as $index => $kolomHalaman)
+        <div @class(['pisah' => $index > 0])>
+            @if (count($data['kelompok_kolom']) > 1)
+                <p class="kelompok">
+                    Kelompok kolom {{ $index + 1 }} dari {{ count($data['kelompok_kolom']) }}
+                </p>
+            @endif
+
+            <table>
+                <thead>
+                    <tr>
+                        @foreach ($kolomHalaman as $kolom)
+                            <th>
+                                {{ $kolom['label'] }}@if ($kolom['satuan']) ({{ $kolom['satuan'] }})@endif
+                            </th>
+                        @endforeach
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($data['baris'] as $baris)
+                        <tr>
+                            @foreach ($kolomHalaman as $kolom)
+                                <td>{{ $baris[$kolom['kunci']] ?? '' }}</td>
+                            @endforeach
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ count($kolomHalaman) }}" style="text-align: center; color: #727785;">
+                                Tidak ada data pada rentang ini.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+                @if (! empty($data['total']))
+                    <tfoot>
+                        <tr>
+                            @foreach ($kolomHalaman as $kolom)
+                                <td style="font-weight: bold; border-top: 2px solid #C1C6D6;">{{ $data['total'][$kolom['kunci']] ?? '' }}</td>
+                            @endforeach
+                        </tr>
+                    </tfoot>
+                @endif
+            </table>
+        </div>
+    @endforeach
 
     <p class="kaki">
         Dicetak oleh {{ $dicetakOleh }} pada {{ $dicetakPada }} —

@@ -28,11 +28,14 @@ function susunLaporanLintasDepartemen(): array
         'produksi' => $produksi,
         'qc' => $qc,
         'staffProduksi' => $staffProduksi,
-        'laporanSendiri' => DailyReport::factory()->milik($staffProduksi)
+        'rekanProduksi' => $rekanProduksi,
+        // Terkirim: hanya laporan yang sudah dipublikasikan yang terlihat lintas
+        // pengguna. Draf diuji tersendiri di bawah.
+        'laporanSendiri' => DailyReport::factory()->milik($staffProduksi)->dikirim()
             ->create(['report_date' => '2026-07-01']),
-        'laporanRekan' => DailyReport::factory()->milik($rekanProduksi)
+        'laporanRekan' => DailyReport::factory()->milik($rekanProduksi)->dikirim()
             ->create(['report_date' => '2026-07-02']),
-        'laporanDepartemenLain' => DailyReport::factory()->milik($staffQc)
+        'laporanDepartemenLain' => DailyReport::factory()->milik($staffQc)->dikirim()
             ->create(['report_date' => '2026-07-03']),
     ];
 }
@@ -153,13 +156,15 @@ it('menolak Staff meninjau laporan siapa pun', function (): void {
 
 it('menolak meninjau laporan yang masih draf', function (): void {
     $data = susunLaporanLintasDepartemen();
+    $draf = DailyReport::factory()->milik($data['rekanProduksi'])
+        ->create(['report_date' => '2026-07-05']);
 
     Sanctum::actingAs(
         User::factory()->supervisor()->create(['department_id' => $data['produksi']->id]),
     );
 
     // Draf belum selesai dikerjakan; meninjaunya tidak punya arti.
-    $this->postJson("/api/laporan/{$data['laporanRekan']->id}/tinjau")->assertForbidden();
+    $this->postJson("/api/laporan/{$draf->id}/tinjau")->assertForbidden();
 });
 
 /*
@@ -235,4 +240,51 @@ it('tetap menampilkan laporan sendiri setelah pengguna dipindah departemen', fun
     $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
 
     expect($id)->toContain($data['laporanSendiri']->id);
+});
+
+/*
+ * Draf = belum dipublikasikan. Hanya pembuatnya dan Super Admin (akun sistem)
+ * yang boleh melihatnya — Management pun tidak. Daftar dan detail wajib sepakat.
+ */
+
+it('menyembunyikan draf orang lain dari Management, di daftar maupun detail', function (): void {
+    $data = susunLaporanLintasDepartemen();
+    $draf = DailyReport::factory()->milik($data['rekanProduksi'])
+        ->create(['report_date' => '2026-07-06']);
+
+    Sanctum::actingAs(User::factory()->manager()->create());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    expect($id)->not->toContain($draf->id);
+    $this->getJson("/api/laporan/{$draf->id}")->assertForbidden();
+});
+
+it('menampilkan draf hanya kepada pembuatnya', function (): void {
+    $data = susunLaporanLintasDepartemen();
+    $draf = DailyReport::factory()->milik($data['rekanProduksi'])
+        ->create(['report_date' => '2026-07-06']);
+
+    Sanctum::actingAs($data['rekanProduksi']->fresh());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    expect($id)->toContain($draf->id);
+    $this->getJson("/api/laporan/{$draf->id}")->assertOk();
+});
+
+it('menampilkan draf orang lain kepada Super Admin', function (): void {
+    $data = susunLaporanLintasDepartemen();
+    $draf = DailyReport::factory()->milik($data['rekanProduksi'])
+        ->create(['report_date' => '2026-07-06']);
+
+    $super = User::factory()->administrator()->create();
+    $super->forceFill(['is_system' => true])->save();
+
+    Sanctum::actingAs($super->fresh());
+
+    $id = collect($this->getJson('/api/laporan')->json('data'))->pluck('id');
+
+    expect($id)->toContain($draf->id);
+    $this->getJson("/api/laporan/{$draf->id}")->assertOk();
 });

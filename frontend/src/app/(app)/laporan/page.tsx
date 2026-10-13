@@ -2,17 +2,21 @@ import { redirect } from 'next/navigation';
 
 import { Breadcrumb } from '@/components/layout/breadcrumb';
 import { RUTE_SESI_BERAKHIR } from '@/lib/auth-cookie';
-import { melihatOrangLain } from '@/lib/izin';
+import { bolehMenyaringDepartemen, melihatOrangLain } from '@/lib/izin';
 import { ambilDaftarLaporan } from '@/lib/laporan-server';
+import { ambilDepartemen } from '@/lib/master-data';
 import { penggunaSaatIni } from '@/lib/session';
 import { ambilTemplate } from '@/lib/template-server';
 import { DaftarLaporan } from './daftar-laporan';
 
-export const metadata = { title: 'Laporan Saya — DAMS' };
+export const metadata = { title: 'Laporan Harian — DAMS' };
 
 interface Params {
   cari?: string;
   status?: string;
+  dari?: string;
+  sampai?: string;
+  departemen_id?: string;
   halaman?: string;
 }
 
@@ -26,12 +30,27 @@ export default async function LaporanPage({
 
   const filter = await searchParams;
 
+  /*
+   * Pemilih departemen hanya berguna bila jangkauannya lebih dari satu. Backend
+   * pun menolak departemen di luar jangkauan, jadi menyaring dengannya untuk
+   * pemantau satu departemen hanya menawarkan pilihan yang jawabannya pasti.
+   */
+  const dapatPilihDepartemen = bolehMenyaringDepartemen(pengguna.jangkauan);
+
   const query = new URLSearchParams();
   if (filter.cari) query.set('cari', filter.cari);
   if (filter.status) query.set('status', filter.status);
+  if (filter.dari) query.set('dari', filter.dari);
+  if (filter.sampai) query.set('sampai', filter.sampai);
+  if (dapatPilihDepartemen && filter.departemen_id) {
+    query.set('departemen_id', filter.departemen_id);
+  }
   if (filter.halaman) query.set('page', filter.halaman);
 
-  const { data, meta } = await ambilDaftarLaporan(query);
+  const [{ data, meta }, departemen] = await Promise.all([
+    ambilDaftarLaporan(query),
+    dapatPilihDepartemen ? ambilDepartemen() : Promise.resolve([]),
+  ]);
 
   /*
    * Template yang boleh dipakai import. Backend menolak template departemen
@@ -57,13 +76,15 @@ export default async function LaporanPage({
 
   return (
     <>
-      <Breadcrumb jejak={[{ label: 'Laporan Saya' }]} />
+      <Breadcrumb jejak={[{ label: 'Laporan Harian' }]} />
       <DaftarLaporan
         laporan={data}
         meta={meta}
         tampilkanPenyusun={melihatLaporanOrangLain}
-        judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Saya'}
+        judul={melihatLaporanOrangLain ? 'Laporan' : 'Laporan Harian'}
         templateImport={templateImport}
+        departemen={departemen}
+        dapatPilihDepartemen={dapatPilihDepartemen}
       />
     </>
   );

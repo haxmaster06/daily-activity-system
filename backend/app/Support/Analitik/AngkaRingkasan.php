@@ -3,6 +3,7 @@
 namespace App\Support\Analitik;
 
 use App\Models\DailyReport;
+use App\Models\DailyReportItem;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 
@@ -21,26 +22,22 @@ final class AngkaRingkasan
     public static function susun(PenyaringAnalitik $saring): array
     {
         $kepatuhan = AngkaKepatuhan::susun($saring);
-        $progres = AngkaProgres::susun($saring);
 
         return [
-            'kartu' => self::kartu($saring, $kepatuhan, $progres),
+            'kartu' => self::kartu($saring, $kepatuhan),
             'tren_kepatuhan' => $kepatuhan['per_hari'],
-            'sebaran_status_baris' => $progres['sebaran_status_baris'],
-            'status_per_departemen' => $progres['status_per_departemen'],
-            'sorotan' => self::sorotan($kepatuhan, $progres),
+            'sebaran_status_baris' => self::sebaranStatusBaris($saring),
+            'sorotan' => self::sorotan($kepatuhan),
         ];
     }
 
     /**
      * @param  array<string, mixed>  $kepatuhan
-     * @param  array<string, mixed>  $progres
      * @return list<array<string, mixed>>
      */
     private static function kartu(
         PenyaringAnalitik $saring,
         array $kepatuhan,
-        array $progres,
     ): array {
         $sekarang = self::persenKepatuhan($kepatuhan['per_hari']);
         $sebelumnya = self::persenKepatuhanSebelumnya($saring);
@@ -75,15 +72,6 @@ final class AngkaRingkasan
                 'sebelumnya' => null,
                 'arah_baik' => 'turun',
                 'keterangan' => 'Sudah dikirim, belum ditinjau siapa pun.',
-            ],
-            [
-                'kunci' => 'telat',
-                'label' => 'Kartu lewat target',
-                'nilai' => $progres['ringkasan']['telat'],
-                'satuan' => 'kartu',
-                'sebelumnya' => null,
-                'arah_baik' => 'turun',
-                'keterangan' => 'Target selesainya sudah lewat dan belum rampung.',
             ],
         ];
     }
@@ -214,10 +202,9 @@ final class AngkaRingkasan
      * pembacanya menafsirkan grafik.
      *
      * @param  array<string, mixed>  $kepatuhan
-     * @param  array<string, mixed>  $progres
      * @return list<array{jenis: string, teks: string}>
      */
-    private static function sorotan(array $kepatuhan, array $progres): array
+    private static function sorotan(array $kepatuhan): array
     {
         $sorotan = [];
 
@@ -253,20 +240,6 @@ final class AngkaRingkasan
             ];
         }
 
-        if ($progres['ringkasan']['telat'] > 0) {
-            $sorotan[] = [
-                'jenis' => 'perhatian',
-                'teks' => "{$progres['ringkasan']['telat']} kartu progres sudah melewati target selesainya.",
-            ];
-        }
-
-        if ($progres['ringkasan']['tanpa_penanggung_jawab'] > 0) {
-            $sorotan[] = [
-                'jenis' => 'perhatian',
-                'teks' => "{$progres['ringkasan']['tanpa_penanggung_jawab']} kartu belum punya penanggung jawab.",
-            ];
-        }
-
         if ($sorotan === []) {
             $sorotan[] = [
                 'jenis' => 'baik',
@@ -275,5 +248,45 @@ final class AngkaRingkasan
         }
 
         return array_slice($sorotan, 0, 5);
+    }
+
+    /**
+     * Sebaran status baris laporan pada rentang.
+     *
+     * Dibaca dari kolom `progress_status` yang sudah didenormalisasi, bukan
+     * dari isi JSON — penyaringan di dalam JSON tidak dapat memakai index.
+     *
+     * Sebelumnya tinggal di `AngkaProgres`, dan ikut terbawa ke sini saat
+     * fitur kartu progres dihapus. Isinya tidak pernah berkaitan dengan kartu:
+     * yang dihitung adalah status BARIS LAPORAN, yang masih hidup dan masih
+     * dibaca halaman Monitoring.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function sebaranStatusBaris(PenyaringAnalitik $saring): array
+    {
+        $jumlah = DailyReportItem::query()
+            ->whereNotNull('progress_status')
+            ->whereHas('section.report', function ($query) use ($saring): void {
+                $query->visibleTo($saring->pengguna)
+                    ->whereBetween('report_date', [$saring->dari, $saring->sampai]);
+
+                $saring->batasiLaporan($query);
+            })
+            ->selectRaw('progress_status, COUNT(*) as jumlah')
+            ->groupBy('progress_status')
+            ->pluck('jumlah', 'progress_status');
+
+        $total = (int) $jumlah->sum();
+
+        return collect(DailyReportItem::LABEL_STATUS)
+            ->map(fn (string $label, string $status) => [
+                'status' => $status,
+                'label' => $label,
+                'jumlah' => (int) ($jumlah[$status] ?? 0),
+                'persen' => $total === 0 ? 0 : (int) round(($jumlah[$status] ?? 0) / $total * 100),
+            ])
+            ->values()
+            ->all();
     }
 }

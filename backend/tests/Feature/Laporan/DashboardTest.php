@@ -19,9 +19,9 @@ function susunDataDashboard(): array
     $rekan = User::factory()->staff()->create(['department_id' => $produksi->id]);
     $orangQc = User::factory()->staff()->create(['department_id' => $qc->id]);
 
-    DailyReport::factory()->milik($staff)->create(['report_date' => now()->toDateString()]);
-    DailyReport::factory()->milik($rekan)->create(['report_date' => now()->toDateString()]);
-    DailyReport::factory()->milik($orangQc)->create(['report_date' => now()->toDateString()]);
+    DailyReport::factory()->milik($staff)->dikirim()->create(['report_date' => now()->toDateString()]);
+    DailyReport::factory()->milik($rekan)->dikirim()->create(['report_date' => now()->toDateString()]);
+    DailyReport::factory()->milik($orangQc)->dikirim()->create(['report_date' => now()->toDateString()]);
 
     return compact('produksi', 'qc', 'staff', 'rekan', 'orangQc');
 }
@@ -63,7 +63,7 @@ it('menunjukkan laporan pengguna sendiri untuk hari ini', function (): void {
 
     $response = $this->getJson('/api/dashboard')->assertOk();
 
-    expect($response->json('data.laporan_saya_hari_ini.status'))->toBe('draf');
+    expect($response->json('data.laporan_saya_hari_ini.status'))->toBe('dikirim');
     expect($response->json('data.laporan_saya_hari_ini.dapat_disunting'))->toBeTrue();
 });
 

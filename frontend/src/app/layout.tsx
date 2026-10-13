@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 
+import { PromptPasang } from '@/components/layout/prompt-pasang';
 import { QueryProvider } from '@/providers/query-provider';
 import { UiProvider } from '@/providers/ui-provider';
 import './globals.css';
@@ -23,15 +24,43 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'DAMS — Sistem Monitoring Aktivitas Harian',
   description: 'Pencatatan dan pemantauan aktivitas harian antar departemen.',
+  // Membuat iOS meluncurkan aplikasi layar penuh dari homescreen, bukan
+  // berbingkai Safari. Link manifest disuntik otomatis dari app/manifest.ts.
+  appleWebApp: { capable: true, title: 'DAMS', statusBarStyle: 'default' },
 };
+
+// Di Next 15 themeColor lewat viewport, bukan metadata.
+export const viewport: Viewport = { themeColor: '#1A73E8' };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     // Light mode saja — tidak ada dark mode (standar §3.1).
     <html lang="id" className={`${jakarta.variable} ${inter.variable}`}>
       <body>
+        {/*
+          JANGAN membungkus ini dalam <head> manual: itu menggusur metadata Next
+          (termasuk <link rel="manifest">) ke <body>, dan Chrome hanya membaca
+          manifest dari <head> — akibatnya situs dianggap "tanpa manifest" dan
+          tak bisa dipasang. Skrip klasik di awal <body> ini jalan saat HTML
+          diurai, sebelum hidrasi, tanpa mengganggu penempatan metadata.
+
+          Dua hal yang dilakukannya:
+          1. Daftarkan service worker minimal (/sw.js) — membuat Chrome andal
+             menawarkan pasang.
+          2. Tangkap `beforeinstallprompt` (sering dipancarkan sebelum hidrasi);
+             PromptPasang memantulkannya agar tombol berfungsi sejak layar masuk.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}" +
+              "window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__promptPasang=e;window.dispatchEvent(new Event('promptpasang:siap'))});" +
+              "window.addEventListener('appinstalled',function(){window.__promptPasang=null;window.dispatchEvent(new Event('promptpasang:siap'))});",
+          }}
+        />
         <UiProvider>
           <QueryProvider>{children}</QueryProvider>
+          <PromptPasang />
         </UiProvider>
       </body>
     </html>

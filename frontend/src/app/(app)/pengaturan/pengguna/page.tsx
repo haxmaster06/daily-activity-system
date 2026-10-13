@@ -13,6 +13,7 @@ interface Params {
   role?: string;
   status?: string;
   halaman?: string;
+  kehadiran?: string;
 }
 
 export default async function ManajemenPenggunaPage({
@@ -29,6 +30,7 @@ export default async function ManajemenPenggunaPage({
   if (filter.departemen_id) query.set('departemen_id', filter.departemen_id);
   if (filter.role) query.set('role', filter.role);
   if (filter.status) query.set('status', filter.status);
+  if (filter.kehadiran) query.set('kehadiran', filter.kehadiran);
   if (filter.halaman) query.set('page', filter.halaman);
 
   const [daftar, departemen, role] = await Promise.all([

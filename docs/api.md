@@ -1,6 +1,6 @@
 # API DAMS
 
-70 endpoint, seluruhnya di bawah `/api`. Dokumen ini disusun dari
+84 endpoint, seluruhnya di bawah `/api`. Dokumen ini disusun dari
 `php artisan route:list`, bukan dari ingatan — bila keduanya berbeda, rutenya
 yang benar.
 
@@ -151,24 +151,11 @@ Sisanya dijaga Policy pada tiap aksi — daftar izin lengkapnya di
 > **Menyunting laporan membangun ulang seluruh isinya.** `PUT /laporan/{id}`
 > menghapus seluruh `sections` lalu menulisnya kembali; id baris **tidak
 > bertahan** melewati satu penyuntingan. Apa pun yang menunjuk isi laporan harus
-> menunjuk laporannya, bukan barisnya — itulah sebab pivot `tugas_laporan`
-> menunjuk `daily_reports`.
-
-### Papan progres harian
-
-| Metode | Alamat | Keterangan |
-|---|---|---|
-| GET | `/tugas` | Dikelompokkan per kolom, **tanpa pagination** |
-| POST, PUT, DELETE | `/tugas`, `/tugas/{tugas}` | Butuh `tugas.kelola` |
-| PATCH | `/tugas/{tugas}/geser` | Hanya `status` dan `urutan` |
-
-`geser` sengaja terpisah dari `update`: itu satu-satunya aksi yang dipicu
-tarik-lepas, dan menyeret kartu tidak boleh gagal karena judulnya kebetulan
-melewati batas panjang.
+> menunjuk laporannya, bukan barisnya.
 
 ### Executive Analytics
 
-Empat halaman, empat endpoint — bukan satu balasan raksasa. Pembacanya membuka
+Satu halaman satu endpoint — bukan satu balasan raksasa. Pembacanya membuka
 satu halaman pada satu waktu.
 
 | Metode | Alamat | Isi |
@@ -177,13 +164,20 @@ satu halaman pada satu waktu.
 | GET | `/analitik/departemen` | Keadaan tiap departemen, diringkas dari kolom templatenya sendiri |
 | GET | `/analitik/ringkasan` | Kartu angka berpembanding, tren, dan kalimat "perlu perhatian" |
 | GET | `/analitik/produktivitas` | Angka bersatuan dari isi laporan: kg, box, pouch |
-| GET | `/analitik/progres` | Kartu papan progres, beban, telat, umur kartu |
 
 > **`/analitik/kepatuhan` pernah ada dan dihapus.** Isinya mengukur orang, bukan
 > pekerjaan, dan tabel per orangnya mengulang `GET /api/monitoring` yang sudah
 > menyajikan jumlah laporan beserta hari tanpa laporan pada penyaringan yang
 > sama. Dua tempat untuk satu pertanyaan hanya membuat keduanya lambat laun
 > berbeda.
+
+> **`/analitik/progres` dan seluruh `/tugas` juga dihapus**, bersama fitur papan
+> progres harian yang menjadi sumbernya. Penggantinya adalah KPI, yang
+> ukurannya masih dibahas bersama manajemen — halamannya sudah ada di
+> antarmuka, endpointnya belum. Sebaran status baris laporan yang dahulu ikut
+> dikirim `/analitik/progres` tidak hilang: ia memang selalu dihitung dari
+> `daily_report_items.progress_status`, dan sekarang hanya dikirim
+> `/analitik/ringkasan`.
 
 #### Penyaring
 
@@ -193,8 +187,8 @@ Seluruh endpoint di atas menerima penyaring yang sama.
 |---|---|
 | `dari`, `sampai` | Rentang tanggal. Bawaan 30 hari terakhir, terpanjang 366 hari. Rentang yang lebih panjang **dipotong**, bukan ditolak. Rentang terbalik diperbaiki |
 | `departemen_id[]` | Departemen. Di luar jangkauan dibuang diam-diam |
-| `status[]` | `belum_mulai` / `dalam_proses` / `selesai`. Berlaku pada baris laporan **dan** kartu progres sekaligus — keduanya memakai kosakata yang sama persis |
-| `pengguna_id[]` | Penyusun laporan, sekaligus penanggung jawab kartu |
+| `status[]` | `belum_mulai` / `dalam_proses` / `selesai`. Berlaku pada baris laporan |
+| `pengguna_id[]` | Penyusun laporan |
 | `template_id[]` | Template laporan |
 | `nilai[]` | Isi kolom laporan, berbentuk `kunci:nilai` — misalnya `pembeli:BUY_ALFA` |
 | `metrik` | Khusus `/analitik/produktivitas` |
@@ -323,7 +317,7 @@ Dua channel privat, keduanya lewat Reverb.
 | Channel | Isi |
 |---|---|
 | `App.Models.User.{id}` | Notifikasi pribadi. Muatannya lengkap, sehingga lonceng menyisipkannya tanpa memanggil server lagi |
-| `departemen.{id}` | Kabar bahwa data sebuah departemen berubah — `{ departemen_id, jenis }`, dengan `jenis` berisi `laporan` atau `tugas` |
+| `departemen.{id}` | Kabar bahwa data sebuah departemen berubah — `{ departemen_id, jenis }`, dengan `jenis` sejauh ini selalu `laporan` |
 
 Channel departemen **hanya membawa kabarnya, bukan datanya.** Angka Executive
 Analytics bergantung pada jangkauan data tiap penonton; satu muatan yang sama

@@ -9,7 +9,7 @@ use App\Events\DataBerubah;
  *
  * ## Mengapa lewat model, bukan controller
  *
- * Laporan dan kartu progres berubah dari banyak tempat: controller, import
+ * Laporan berubah dari banyak tempat: controller, import
  * berkas, perintah artisan, dan seeder contoh. Menyiarkannya di tiap controller
  * berarti satu-satunya jalur yang tidak dilalui pengguna biasa — import massal —
  * justru tidak pernah menyiarkan apa pun, dan halaman Analytics tetap diam
@@ -37,7 +37,7 @@ trait MenyiarkanPerubahan
         }
     }
 
-    /** Jenis perubahan yang disiarkan — `DataBerubah::LAPORAN` atau `TUGAS`. */
+    /** Jenis perubahan yang disiarkan, mis. `DataBerubah::LAPORAN`. */
     abstract protected function jenisSiaran(): string;
 
     private function siarkanPerubahan(): void

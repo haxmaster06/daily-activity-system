@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, Inbox } from 'lucide-react';
+import { ArrowRight, ChevronRight, FileText, Inbox } from 'lucide-react';
 
 import { KepalaLaporan, TampilanLaporan } from '@/components/laporan/tampilan-laporan';
 import { Alert } from '@/components/ui/alert';
 import { Modal } from '@/components/ui/modal';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import type {
   DataDepartemen,
   KeadaanDepartemen,
@@ -38,6 +38,9 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [terbuka, setTerbuka] = useState(false);
+  // Satu departemen terbuka sekaligus — direktur menelusuri satu per satu,
+  // menumpuk semua terbuka mengembalikan gulir panjang yang ingin dihindari.
+  const [dibuka, setDibuka] = useState<number | null>(null);
 
   async function buka(ringkas: RingkasLaporan) {
     setTerbuka(true);
@@ -57,16 +60,34 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
     setLaporan(hasil.laporan);
   }
 
-  const berisi = data.departemen.filter((satu) => satu.jumlah_laporan > 0);
+  // Diurutkan menurut keaktifan: yang paling banyak melapor lebih dulu, agar
+  // layar pertama menampilkan yang paling mungkin dicari direktur.
+  const berisi = data.departemen
+    .filter((satu) => satu.jumlah_laporan > 0)
+    .sort((a, b) => b.jumlah_laporan - a.jumlah_laporan || b.jumlah_baris - a.jumlah_baris);
   const kosong = data.departemen.filter((satu) => satu.jumlah_laporan === 0);
 
+  const totalLaporan = berisi.reduce((n, s) => n + s.jumlah_laporan, 0);
+  const totalBaris = berisi.reduce((n, s) => n + s.jumlah_baris, 0);
+  const jumlahDepartemen = berisi.length + kosong.length;
+
   return (
-    <TooltipProvider>
+    <>
       <div className="flex flex-col gap-3">
-        <p className="text-body text-ink-muted">
-          Isi laporan {formatTanggal(data.rentang.dari)} – {formatTanggal(data.rentang.sampai)}.
-          Ringkasan tiap departemen mengikuti kolom templatenya sendiri.
-        </p>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-body text-ink-muted">
+            Isi laporan {formatTanggal(data.rentang.dari)} – {formatTanggal(data.rentang.sampai)}.
+            Buka satu departemen untuk membaca ringkasannya.
+          </p>
+          {jumlahDepartemen > 0 && (
+            <p className="text-caption text-ink-soft">
+              <span className="font-medium text-ink-muted">{formatAngka(berisi.length)}</span> dari{' '}
+              {formatAngka(jumlahDepartemen)} departemen melapor ·{' '}
+              <span className="font-medium text-ink-muted">{formatAngka(totalLaporan)}</span> laporan
+              · {formatAngka(totalBaris)} baris
+            </p>
+          )}
+        </div>
 
         {berisi.length === 0 && kosong.length === 0 && (
           <div className="rounded-card border border-line bg-surface p-6 text-center text-body-lg text-ink-soft">
@@ -74,16 +95,26 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
           </div>
         )}
 
-        <div className="grid gap-3 xl:grid-cols-2">
-          {berisi.map((satu) => (
-            <KartuDepartemen key={satu.departemen_id} keadaan={satu} onBuka={buka} />
-          ))}
-        </div>
+        {berisi.length > 0 && (
+          <ul className="overflow-hidden rounded-card border border-line bg-surface">
+            {berisi.map((satu) => (
+              <BarisDepartemen
+                key={satu.departemen_id}
+                keadaan={satu}
+                terbuka={dibuka === satu.departemen_id}
+                onAlih={() =>
+                  setDibuka((kini) => (kini === satu.departemen_id ? null : satu.departemen_id))
+                }
+                onBuka={buka}
+              />
+            ))}
+          </ul>
+        )}
 
         {kosong.length > 0 && (
-          <section className="rounded-card border border-line bg-surface p-3">
-            <h2 className="flex items-center gap-1.5 font-heading text-section-title text-ink">
-              <Inbox aria-hidden="true" className="size-4 text-ink-soft" />
+          <section className="rounded-card border border-line bg-surface px-3 py-2.5">
+            <h2 className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-ink-soft">
+              <Inbox aria-hidden="true" className="size-3.5" />
               Belum ada laporan pada rentang ini
             </h2>
             <p className="mt-1 text-body text-ink-muted">
@@ -119,93 +150,150 @@ export function PapanDepartemen({ data }: { data: DataDepartemen }) {
           </div>
         )}
       </Modal>
-    </TooltipProvider>
+    </>
   );
 }
 
-function KartuDepartemen({
+function BarisDepartemen({
   keadaan,
+  terbuka,
+  onAlih,
   onBuka,
 }: {
   keadaan: KeadaanDepartemen;
+  terbuka: boolean;
+  onAlih: () => void;
   onBuka: (laporan: RingkasLaporan) => void;
 }) {
+  const panelId = `dept-panel-${keadaan.departemen_id}`;
+
   return (
-    <section className="flex flex-col rounded-card border border-line bg-surface p-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-heading text-section-title text-ink">
-          <TautanDepartemen id={keadaan.departemen_id} nama={keadaan.departemen} />
-        </h2>
-        <p className="text-caption text-ink-soft">
-          {formatAngka(keadaan.jumlah_laporan)} laporan, {formatAngka(keadaan.jumlah_baris)} baris
-          {keadaan.terakhir && (
-            <> · terakhir {formatTanggalRingkas(keadaan.terakhir.tanggal)}</>
+    <li className="border-b border-line last:border-b-0">
+      <button
+        type="button"
+        onClick={onAlih}
+        aria-expanded={terbuka}
+        aria-controls={panelId}
+        className={cn(
+          'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors duration-fast',
+          'hover:bg-surface-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/40',
+          terbuka && 'bg-surface-muted/40',
+        )}
+      >
+        <ChevronRight
+          aria-hidden="true"
+          className={cn(
+            'size-4 shrink-0 text-ink-soft transition-transform duration-fast',
+            terbuka && 'rotate-90',
           )}
-        </p>
-      </div>
+        />
 
-      {keadaan.sorotan.length === 0 ? (
-        <p className="mt-3 text-body text-ink-soft">
-          Laporannya belum memuat kolom angka, pilihan, atau daftar master yang dapat diringkas.
-          Bukalah salah satu laporan di bawah untuk membaca isinya.
-        </p>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          {keadaan.sorotan.map((satu, index) => (
-            <BarisSorotan key={`${satu.label}-${index}`} sorotan={satu} />
-          ))}
+        <span className="min-w-0 flex-1 font-heading text-body-lg font-semibold text-ink">
+          {keadaan.departemen}
+        </span>
 
-          {/*
-            Kuota sorotan menjaga tiap jenis kolom kebagian tempat, tetapi
-            pemotongannya tidak boleh sunyi: kolom yang baru ditambahkan ke
-            template lalu tidak muncul membuat yang menambahkannya menyimpulkan
-            fiturnya rusak — padahal ia hanya kalah kuota.
-          */}
-          {keadaan.sorotan_tersembunyi > 0 && (
+        {/*
+          Hanya fakta yang setara dan bisa dibandingkan antar departemen: jumlah
+          laporan, jumlah baris, dan kapan terakhir. Tak ada satu angka isi yang
+          "dipilih" jadi kepala baris — angka tiap kolom, dengan satuan dan
+          konteksnya, ada di panel yang terbuka.
+        */}
+        <span className="shrink-0 text-caption text-ink-soft tabular-nums">
+          <span className="font-medium text-ink-muted">
+            {formatAngka(keadaan.jumlah_laporan)}
+          </span>{' '}
+          laporan
+          <span className="hidden sm:inline">
+            {' · '}
+            {formatAngka(keadaan.jumlah_baris)} baris
+          </span>
+        </span>
+
+        <span className="hidden w-20 shrink-0 text-right text-caption text-ink-soft sm:block">
+          {keadaan.terakhir ? formatTanggalRingkas(keadaan.terakhir.tanggal) : '—'}
+        </span>
+      </button>
+
+      {terbuka && (
+        <div id={panelId} className="border-t border-line bg-surface-muted/20 px-3 py-3">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <TautanDepartemen id={keadaan.departemen_id} nama={keadaan.departemen}>
+              <span className="inline-flex items-center gap-1 text-body">
+                Saring analitik ke {keadaan.departemen}
+                <ArrowRight aria-hidden="true" className="size-3.5" />
+              </span>
+            </TautanDepartemen>
             <p className="text-caption text-ink-soft">
-              + {formatAngka(keadaan.sorotan_tersembunyi)} kolom lain tidak ditampilkan di
-              sini. Bukalah salah satu laporan di bawah untuk membaca seluruhnya.
+              {formatAngka(keadaan.jumlah_laporan)} laporan · {formatAngka(keadaan.jumlah_baris)}{' '}
+              baris
+              {keadaan.terakhir && <> · terakhir {formatTanggalRingkas(keadaan.terakhir.tanggal)}</>}
             </p>
+          </div>
+
+          {keadaan.sorotan.length === 0 ? (
+            <p className="text-body text-ink-soft">
+              Laporannya belum memuat kolom angka, pilihan, atau daftar master yang dapat diringkas.
+              Bukalah salah satu laporan di bawah untuk membaca isinya.
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {keadaan.sorotan.map((satu, index) => (
+                <BarisSorotan key={`${satu.label}-${index}`} sorotan={satu} />
+              ))}
+
+              {/*
+                Kuota sorotan menjaga tiap jenis kolom kebagian tempat, tetapi
+                pemotongannya tidak boleh sunyi: kolom yang baru ditambahkan ke
+                template lalu tidak muncul membuat yang menambahkannya menyimpulkan
+                fiturnya rusak — padahal ia hanya kalah kuota.
+              */}
+              {keadaan.sorotan_tersembunyi > 0 && (
+                <p className="text-caption text-ink-soft sm:col-span-2">
+                  + {formatAngka(keadaan.sorotan_tersembunyi)} kolom lain tidak ditampilkan di sini.
+                  Bukalah salah satu laporan di bawah untuk membaca seluruhnya.
+                </p>
+              )}
+            </div>
           )}
+
+          <div className="mt-3 border-t border-line pt-2">
+            <p className="mb-1.5 text-caption font-semibold uppercase tracking-wide text-ink-soft">
+              Laporan terbaru
+            </p>
+
+            <ul className="flex flex-col gap-1">
+              {keadaan.laporan.map((satu) => (
+                <li key={satu.id}>
+                  <button
+                    type="button"
+                    onClick={() => onBuka(satu)}
+                    className="flex w-full items-center justify-between gap-2 rounded-control px-2 py-1.5 text-left text-body transition-colors duration-fast hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <FileText aria-hidden="true" className="size-3.5 shrink-0 text-ink-soft" />
+                      <span className="whitespace-nowrap text-ink">
+                        {formatTanggalRingkas(satu.tanggal)}
+                      </span>
+                      <span className="min-w-0 text-ink-muted">{satu.penyusun}</span>
+                    </span>
+
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="text-caption text-ink-soft">
+                        {formatAngka(satu.jumlah_baris)} baris
+                      </span>
+                      <StatusBadge
+                        status={RAGAM_STATUS[satu.status as StatusLaporan] ?? 'belum_mulai'}
+                        label={satu.label_status}
+                      />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
-
-      <div className="mt-3 border-t border-line pt-2">
-        <p className="mb-1.5 text-caption font-semibold uppercase tracking-wide text-ink-soft">
-          Laporan terbaru
-        </p>
-
-        <ul className="flex flex-col gap-1">
-          {keadaan.laporan.map((satu) => (
-            <li key={satu.id}>
-              <button
-                type="button"
-                onClick={() => onBuka(satu)}
-                className="flex w-full items-center justify-between gap-2 rounded-control px-2 py-1.5 text-left text-body transition-colors duration-fast hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <FileText aria-hidden="true" className="size-3.5 shrink-0 text-ink-soft" />
-                  <span className="whitespace-nowrap text-ink">
-                    {formatTanggalRingkas(satu.tanggal)}
-                  </span>
-                  <span className="min-w-0 text-ink-muted">{satu.penyusun}</span>
-                </span>
-
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="text-caption text-ink-soft">
-                    {formatAngka(satu.jumlah_baris)} baris
-                  </span>
-                  <StatusBadge
-                    status={RAGAM_STATUS[satu.status as StatusLaporan] ?? 'belum_mulai'}
-                    label={satu.label_status}
-                  />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    </li>
   );
 }
 

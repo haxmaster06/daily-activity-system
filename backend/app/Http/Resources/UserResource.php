@@ -13,6 +13,24 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class UserResource extends JsonResource
 {
     /**
+     * ID pengguna yang sedang tersambung, atau null bila pemanggilnya tidak
+     * berhak melihatnya.
+     *
+     * @var list<int>|null
+     */
+    private ?array $online = null;
+
+    /**
+     * @param  list<int>|null  $online
+     */
+    public function denganKehadiran(?array $online): static
+    {
+        $this->online = $online;
+
+        return $this;
+    }
+
+    /**
      * Bentuk data pengguna yang dikirim ke frontend.
      *
      * Hanya memuat apa yang dibutuhkan antarmuka. Kata sandi, token, dan
@@ -76,6 +94,18 @@ class UserResource extends JsonResource
             // Akun administrator awal tidak pernah dapat dihapus.
             'sistem' => (bool) $this->is_system,
             'dapat_dihapus' => ! $this->is_system,
+
+            /*
+             * Kehadiran hanya muncul bagi yang berhak — mengikuti pola
+             * `$sendiri` di bawah, yang menyembunyikan jangkauan dan izin
+             * supaya struktur akses tiap orang tidak bocor. Absen sama sekali
+             * dari payload, bukan bernilai false: false berarti "sedang tidak
+             * online", dan itu pernyataan yang berbeda.
+             */
+            ...($this->online === null ? [] : [
+                'sedang_online' => in_array($this->id, $this->online, true),
+                'masuk_terakhir' => $this->last_login_at?->toIso8601String(),
+            ]),
 
             /*
              * Dipakai peringatan sebelum penghapusan: keduanya ikut terhapus

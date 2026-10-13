@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\DailyReport;
+use App\Models\ReportTemplate;
 use App\Models\User;
 use Database\Seeders\DepartmentSeeder;
 use Database\Seeders\ReportTemplateSeeder;
@@ -13,12 +14,12 @@ use Laravel\Sanctum\Sanctum;
  * benar dan letaknya benar.
  */
 
-function templateDuplikat(): App\Models\ReportTemplate
+function templateDuplikat(): ReportTemplate
 {
     test()->seed(DepartmentSeeder::class);
     test()->seed(ReportTemplateSeeder::class);
 
-    return App\Models\ReportTemplate::where('code', 'AKTIVITAS_UMUM')->firstOrFail();
+    return ReportTemplate::where('code', 'AKTIVITAS_UMUM')->firstOrFail();
 }
 
 function laporanSumber(User $pemilik, array $isi): DailyReport

@@ -10,7 +10,7 @@ menemukan jalan masuk lewat index, atau membaca seluruh tabel.
 ## Yang diperiksa
 
 Sepuluh query terberat: daftar laporan, laporan milik sendiri per tanggal,
-kelima angka Executive Analytics, papan progres, monitoring "belum melapor",
+kelima angka Executive Analytics, monitoring "belum melapor",
 isi daftar master, dan notifikasi.
 
 ## Dua temuan, keduanya diperbaiki
@@ -38,7 +38,7 @@ bukan DATE. Di sana perbandingan satu nilai memang tidak benar, sehingga
 ditulis sebagai `whereBetween` antara awal dan akhir hari — tetap dapat memakai
 index, dan tetap benar.
 
-### 2. `tugas.target_selesai` tanpa index
+### 2. `tugas.target_selesai` tanpa index — *tabelnya kini sudah dihapus*
 
 Executive Analytics menjalankan ini pada tiap pemuatan halaman:
 
@@ -55,6 +55,11 @@ Ditambahkan `tugas_target_selesai_status_index` lewat migration additive
 Urutan kolomnya `target_selesai` lebih dulu karena kolom itu yang disaring
 sebagai rentang **sekaligus** dipakai mengurutkan — index yang sama menutup
 keduanya.
+
+> Temuan ini dicatat utuh meski tabel `tugas` sudah dihapus bersama fitur papan
+> progres. Yang berguna bukan indexnya, melainkan bentuk kesalahannya: kolom
+> yang disaring sebagai rentang sekaligus dipakai mengurutkan menuntut satu
+> index yang menutup keduanya, dan pola itu akan muncul lagi.
 
 ## Yang diperiksa dan ternyata tidak bermasalah
 
@@ -76,8 +81,6 @@ Dua tempat masih memakai filesort, dan itu diterima:
 * Daftar laporan `ORDER BY report_date DESC, id DESC` dengan
   `department_id IN (...)`. Beberapa rentang index sekaligus memang menuntut
   pengurutan ulang; menambah `id` ke index tidak menghilangkannya.
-* Papan progres `ORDER BY urutan, id DESC`. Jumlah kartu per papan kecil, dan
-  papannya memang tidak berpagination.
 
 ## Cara mengulangi tinjauan ini
 

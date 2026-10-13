@@ -199,7 +199,9 @@ it('menolak mengunduh lampiran di luar jangkauan', function (): void {
 it('mengizinkan atasan mengunduh lampiran anggota departemennya', function (): void {
     $departemen = Department::factory()->create(['code' => 'PROD_L']);
     $anggota = User::factory()->staff()->create(['department_id' => $departemen->id]);
-    $laporan = DailyReport::factory()->milik($anggota)->create();
+    // Terkirim: atasan hanya boleh mengakses lampiran laporan yang sudah
+    // dipublikasikan — draf orang lain tidak terlihat.
+    $laporan = DailyReport::factory()->milik($anggota)->dikirim()->create();
 
     Sanctum::actingAs($anggota);
     $id = $this->post("/api/laporan/{$laporan->id}/lampiran", ['berkas' => gambar()])

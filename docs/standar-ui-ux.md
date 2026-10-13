@@ -604,3 +604,42 @@ Ditulis supaya penolakannya tercatat sebagai keputusan, bukan kelalaian.
 Draf otomatis, fokus ke isian bermasalah, skip link, satuan `dvh`, pembatalan
 penghapusan, dan skala z-index yang tercatat. Seluruhnya menjadi §12 dan §13 di
 atas.
+
+---
+
+# BAGIAN 15 — PAPAN EKSEKUTIF
+
+Pola untuk halaman yang dibaca pengambil keputusan (direksi, kepala unit).
+Tujuannya menyederhanakan proses yang rumit menjadi angka yang langsung dipakai
+memutuskan — **bukan** papan penyaring tempat pembacanya merakit sendiri
+pertanyaannya. Implementasi acuan: Analytics › **Proses Produksi**
+(`analitik/produksi`, `app/Support/Analitik/AngkaProduksi.php`).
+
+## 15.1 Aturan yang mengikat
+
+* **Kontrol seminimal mungkin — idealnya hanya periode.** Bar penyaring
+  bertumpuk (departemen, status, pengguna, template, pasangan nilai) tidak
+  ditampilkan. Direksi tak punya waktu memilah parameter satu per satu; setiap
+  parameter tambahan adalah beban, bukan fleksibilitas.
+* **Tanpa pemilih-metrik.** Halaman yang meminta pembaca memilih "tampilkan
+  metrik apa" memindahkan pekerjaan analis ke pembaca. Angka yang penting
+  disajikan sekaligus.
+* **KPI menjawab keputusan lebih dulu**, dan **selalu berpembanding** (periode
+  sebelumnya) — satu angka tanpa acuan hampir tak berarti (§ kartu KPI).
+* **Agregasi per tahap digerakkan data, bukan kunci hardcoded.** Bila template
+  menyusun kolomnya per tahap lewat `group_label` (mis. stasiun produksi
+  Oven→Ayak→Packing→Xray), papan menjumlahkannya per `group_label` sesuai
+  `sort_order`. Edit template langsung tercermin tanpa mengubah kode.
+* **Satuan tak dijumlah lintas satuan.** kg, bag, box, % berdiri sendiri; %
+  dihitung ulang (mis. keluar/target), bukan dijumlahkan.
+* **Maksimal satu grafik pendukung.** Tren yang menjelaskan arah boleh; lebih
+  dari itu, atau tabel yang tak dibutuhkan monitoring, dibuang.
+* **Jangkauan tetap ditegakkan** `DailyReport::scopeVisibleTo()` — ringkas bukan
+  berarti longgar.
+
+## 15.2 Menerapkan ke kasus serupa
+
+Departemen lain yang templatenya bernumerik dan bertahap (mis. QC) mendapat
+papan sejenis dengan mengikuti pola ini — board tersendiri per departemen,
+bukan satu papan generik ber-penyaring departemen. Nama tabnya spesifik ke
+proses yang dipantau, bukan istilah umum seperti "Produktivitas".

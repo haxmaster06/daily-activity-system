@@ -58,7 +58,7 @@ export default async function DetailLaporanPage({
     <>
       <Breadcrumb
         jejak={[
-          { label: 'Laporan Saya', href: '/laporan' },
+          { label: 'Laporan Harian', href: '/laporan' },
           { label: formatTanggal(laporan.tanggal) },
         ]}
       />

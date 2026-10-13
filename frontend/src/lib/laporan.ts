@@ -62,6 +62,10 @@ export interface Laporan {
   ditinjau_pada: string | null;
   catatan_tinjauan: string | null;
   dapat_disunting: boolean;
+  dapat_dikirim: boolean;
+  dapat_dihapus: boolean;
+  /** Pengguna boleh menandai laporan ini (milik orang lain, sudah dikirim) ditinjau. */
+  dapat_ditinjau?: boolean;
   penyusun?: { id: number; nama: string };
   departemen?: { id: number; nama: string };
   peninjau?: { id: number; nama: string } | null;
@@ -92,6 +96,56 @@ export function barisKosong(kolom: KolomTemplate[]): NilaiBaris {
   }
 
   return baris;
+}
+
+interface BagianDenganKolom {
+  template: { kolom?: KolomTemplate[] };
+  baris: NilaiBaris[];
+}
+
+/**
+ * Mengisi sel tanggal WAJIB yang masih kosong dengan tanggal laporan.
+ *
+ * Pada laporan harian, tanggal tiap baris (mis. "Tanggal Produksi") memang
+ * tanggal laporannya; memaksa pengisi mengetiknya ulang per baris hanya
+ * menyisakan sel wajib kosong lalu memicu galat "Periksa kembali isian Anda."
+ * Hanya sel kosong yang diisi — nilai yang sudah diketik sendiri tak ditimpa —
+ * dan bila tak ada yang berubah, referensi yang sama dikembalikan supaya tidak
+ * memicu render ulang.
+ */
+export function lengkapiTanggalWajib<T extends BagianDenganKolom>(
+  bagian: T[],
+  tanggal: string | null,
+): T[] {
+  if (!tanggal) return bagian;
+
+  let berubah = false;
+
+  const hasil = bagian.map((b) => {
+    const kolomTanggalWajib = (b.template.kolom ?? []).filter(
+      (k) => k.tipe === 'date' && k.wajib,
+    );
+    if (kolomTanggalWajib.length === 0) return b;
+
+    let bagianBerubah = false;
+    const baris = b.baris.map((satu) => {
+      let r = satu;
+      for (const kolom of kolomTanggalWajib) {
+        if (!r[kolom.kunci]) {
+          r = { ...r, [kolom.kunci]: tanggal };
+          bagianBerubah = true;
+        }
+      }
+
+      return r;
+    });
+
+    if (bagianBerubah) berubah = true;
+
+    return bagianBerubah ? { ...b, baris } : b;
+  });
+
+  return berubah ? hasil : bagian;
 }
 
 /**
@@ -175,6 +229,20 @@ export function hitungPratinjau(rumus: string, nilai: NilaiBaris): number | null
   if (tumpukan.length !== 1 || !Number.isFinite(tumpukan[0])) return null;
 
   return Math.round(tumpukan[0] * 1000) / 1000;
+}
+
+/**
+ * Jumlah satu kolom ke bawah, untuk baris Total (kolom bertanda `total`).
+ *
+ * Menerima angka desimal apa adanya. Kolom rumus dijumlahkan dari hasil
+ * hitungannya per baris, bukan dari nilai tersimpan (rumus tak menyimpan nilai).
+ */
+export function totalKolom(kolom: KolomTemplate, baris: NilaiBaris[]): number {
+  return baris.reduce((jumlah, satu) => {
+    const nilai = kolom.rumus ? hitungPratinjau(kolom.rumus, satu) : satu[kolom.kunci];
+
+    return jumlah + (typeof nilai === 'number' ? nilai : Number(nilai) || 0);
+  }, 0);
 }
 
 /**

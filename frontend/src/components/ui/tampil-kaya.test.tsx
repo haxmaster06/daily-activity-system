@@ -1,7 +1,30 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-import { TampilKaya, berupaHtml, hanyaTagAman } from './tampil-kaya';
+import { TampilKaya, berupaHtml, hanyaTagAman, htmlKeTeks } from './tampil-kaya';
+
+/*
+ * Ringkasan satu baris (mode Per Baris) menampilkan teks polos, bukan HTML.
+ * Tanpa ini `<p>Meeting</p>` mentah bocor ke layar — bug yang dilaporkan.
+ */
+describe('htmlKeTeks', () => {
+    it('membuang tag dan menyisakan teksnya', () => {
+        expect(htmlKeTeks('<p>Meeting / demo dengan pak Yosep</p>')).toBe(
+            'Meeting / demo dengan pak Yosep',
+        );
+    });
+
+    it('batas blok dan <br> menjadi spasi', () => {
+        expect(htmlKeTeks('<p>satu</p><p>dua</p>')).toBe('satu dua');
+        expect(htmlKeTeks('<ul><li>a</li><li>b</li></ul>')).toBe('a b');
+        expect(htmlKeTeks('<p>satu<br>dua</p>')).toBe('satu dua');
+    });
+
+    it('mengembalikan entitas dasar tanpa ganda-dekode', () => {
+        expect(htmlKeTeks('<p>suhu &lt; 10 &amp; naik</p>')).toBe('suhu < 10 & naik');
+        expect(htmlKeTeks('<p>A &amp;lt; B</p>')).toBe('A &lt; B');
+    });
+});
 
 /*
  * Gerbang di depan dangerouslySetInnerHTML. Yang dituntut bukan kerapian

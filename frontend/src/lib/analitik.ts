@@ -31,6 +31,60 @@ export interface KartuKpi {
   keterangan: string;
 }
 
+/** Proses Produksi — ringkasan per stasiun + pemenuhan order + satu tren. */
+export type PeriodeProduksi = 'harian' | 'mingguan' | 'bulanan' | 'tahunan';
+
+export interface FieldStasiun {
+  label: string;
+  satuan: string;
+  nilai: number;
+  peran: 'target' | 'masuk' | 'keluar' | 'lain';
+}
+
+export interface StasiunProduksi {
+  nama: string;
+  urut: number;
+  /** Keluar/target × 100, atau null bila salah satunya tak ada. */
+  tercapai: number | null;
+  field: FieldStasiun[];
+}
+
+export interface OrderProduksi {
+  butuh_pouch: number;
+  selesai_pouch: number;
+  kurang_pouch: number;
+  butuh_box: number;
+  selesai_box: number;
+  kurang_box: number;
+  spk: number;
+  terjadwal: number;
+  tepat_kirim: number;
+}
+
+export interface TrenProduksi {
+  satuan: string;
+  label: string;
+  titik: { label: string; nilai: number }[];
+}
+
+export interface PelaporProduksi {
+  id: number;
+  nama: string;
+}
+
+export interface DataProduksi {
+  periode: PeriodeProduksi;
+  periode_label: string;
+  rentang: { dari: string; sampai: string };
+  /** Pelapor yang sedang disaring, atau null berarti seluruh pelapor. */
+  pengguna_id: number | null;
+  pelapor: PelaporProduksi[];
+  kpi: KartuKpi[];
+  stasiun: StasiunProduksi[];
+  order: OrderProduksi | null;
+  tren: TrenProduksi | null;
+}
+
 export interface Sorotan {
   jenis: 'baik' | 'perhatian';
   teks: string;
@@ -53,21 +107,11 @@ export interface BarisSebaranStatus {
   persen: number;
 }
 
-export interface BarisStatusDepartemen {
-  departemen_id: number;
-  departemen: string;
-  belum_mulai: number;
-  dalam_proses: number;
-  selesai: number;
-  total: number;
-}
-
 export interface DataRingkasan {
   rentang: RentangAnalitik;
   kartu: KartuKpi[];
   tren_kepatuhan: BarisKepatuhanHarian[];
   sebaran_status_baris: BarisSebaranStatus[];
-  status_per_departemen: BarisStatusDepartemen[];
   sorotan: Sorotan[];
 }
 
@@ -131,55 +175,6 @@ export interface DataProduktivitas {
       tertinggi: { tanggal: string; nilai: number } | null;
     };
   } | null;
-}
-
-/* ------------------------------------------------------------------ Progres */
-
-export interface BarisBeban {
-  id: number | null;
-  nama: string;
-  berjalan: number;
-  selesai: number;
-  telat: number;
-}
-
-export interface BarisLewatTarget {
-  id: number;
-  judul: string;
-  status: string;
-  label_status: string;
-  departemen: string;
-  penanggung_jawab_id: number | null;
-  penanggung_jawab: string;
-  target_selesai: string | null;
-  telat_hari: number;
-}
-
-export interface BarisUmurKartu {
-  id: number;
-  judul: string;
-  status: string;
-  label_status: string;
-  departemen: string;
-  penanggung_jawab_id: number | null;
-  penanggung_jawab: string;
-  umur_hari: number;
-}
-
-export interface DataProgres {
-  rentang: RentangAnalitik;
-  status_per_departemen: BarisStatusDepartemen[];
-  sebaran_status_baris: BarisSebaranStatus[];
-  beban_penanggung_jawab: BarisBeban[];
-  lewat_target: BarisLewatTarget[];
-  umur_kartu: BarisUmurKartu[];
-  ringkasan: {
-    total: number;
-    berjalan: number;
-    selesai: number;
-    telat: number;
-    tanpa_penanggung_jawab: number;
-  };
 }
 
 export interface OpsiAnalitik {

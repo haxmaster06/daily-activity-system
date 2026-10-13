@@ -319,3 +319,37 @@ it('menolak angka di belakang koma pada kolom yang bukan desimal', function (): 
     expect($response->json('errors')['fields.0.desimal'][0])
         ->toBe('Angka di belakang koma hanya berlaku untuk kolom angka desimal.');
 });
+
+/*
+ * Kode duplikat.
+ *
+ * Nama salinan berakhiran "(Salinan)", dan menurunkan kode dari nama itu
+ * menghasilkan TEMPLATE_UJI_SALINAN — penanda teknis yang memikul kata tak
+ * berarti selamanya, sebab kode tidak pernah berubah lagi setelah dibuat.
+ */
+it('menurunkan kode duplikat dari kode sumbernya, dibedakan nomor', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $sumber = $this->postJson('/api/template', muatanTemplate())->assertCreated()->json('data');
+
+    $salinan = $this->postJson('/api/template', [
+        ...muatanTemplate(),
+        'name' => 'Template Uji (Salinan)',
+        'salin_dari' => $sumber['id'],
+    ])->assertCreated()->json('data');
+
+    expect($sumber['kode'])->toBe('TEMPLATE_UJI')
+        ->and($salinan['kode'])->toBe('TEMPLATE_UJI_2')
+        ->and($salinan['kode'])->not->toContain('SALINAN');
+});
+
+it('tetap menurunkan kode dari nama bila bukan duplikat', function (): void {
+    Sanctum::actingAs(User::factory()->administrator()->create());
+
+    $hasil = $this->postJson('/api/template', [
+        ...muatanTemplate(),
+        'name' => 'Laporan Harian Gudang',
+    ])->assertCreated()->json('data');
+
+    expect($hasil['kode'])->toBe('LAPORAN_HARIAN_GUDANG');
+});

@@ -321,7 +321,10 @@ export function IsianKolom({
         <input
           id={id}
           type="text"
-          value={typeof isi === 'string' ? isi : ''}
+          // Angka ikut ditampilkan: kolom penanda (mis. LOT) yang dulu bertipe
+          // `integer` meninggalkan baris lama berisi number — tanpa ini isinya
+          // tampil kosong saat laporan lama disunting.
+          value={typeof isi === 'string' ? isi : typeof isi === 'number' ? String(isi) : ''}
           onChange={(e) => onUbah(kolom.kunci, e.target.value || null)}
           placeholder={kolom.placeholder ?? undefined}
           aria-label={kolom.label}

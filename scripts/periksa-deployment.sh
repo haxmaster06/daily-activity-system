@@ -103,19 +103,26 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Pintu tunggal
 # ---------------------------------------------------------------------------
-# Hanya port pintu yang boleh mendengarkan di seluruh antarmuka. MySQL dan
-# Redis yang terbuka ke internet melanggar non-fungsional §13.
-mulai 'Hanya port pintu yang terbuka ke luar'
+# TIDAK SATU PUN port DAMS boleh mendengarkan di seluruh antarmuka.
+#
+# Sejak naik ke daily.hbmnet.co.id, satu-satunya jalan masuk adalah Apache2 di
+# host — yang mengakhiri TLS lalu meneruskan ke 127.0.0.1:13001. Membiarkan
+# 13001 terbuka berarti aplikasinya tetap dapat dicapai lewat http polos di
+# alamat IP, melewati Cloudflare sekaligus Apache: tanpa enkripsi, dan tanpa
+# satu pun header X-Forwarded-Proto sehingga cookie ber-flag Secure dibuang
+# peramban tanpa pesan galat. MySQL dan Redis yang terbuka melanggar
+# non-fungsional §13.
+mulai 'Tidak ada port DAMS yang terbuka ke luar'
 BOCOR=''
-for p in 13002 13003 13306 13379; do
+for p in 13001 13002 13003 13306 13379; do
     if ss -tln 2>/dev/null | grep -qE "0\.0\.0\.0:$p|\[::\]:$p"; then
         BOCOR="$BOCOR $p"
     fi
 done
-if ss -tln 2>/dev/null | grep -q '0.0.0.0:13001' && [ -z "$BOCOR" ]; then
-    lolos "13001 publik; 13002/13003/13306/13379 hanya 127.0.0.1"
+if [ -z "$BOCOR" ]; then
+    lolos "13001/13002/13003/13306/13379 hanya 127.0.0.1; masuk lewat Apache"
 else
-    gagal "port terbuka ke seluruh antarmuka:$BOCOR"
+    gagal "port terbuka ke seluruh antarmuka:$BOCOR — seharusnya lewat Apache saja"
 fi
 
 # ---------------------------------------------------------------------------

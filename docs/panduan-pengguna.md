@@ -124,31 +124,6 @@ Yang perlu diketahui:
 
 ---
 
-## Papan progres harian
-
-**Progres.** Untuk pekerjaan yang berjalan lebih dari sehari — tidak
-menggantikan laporan harian.
-
-Tiga kolom: **Belum Mulai**, **Dalam Proses**, **Selesai**.
-
-**Tiga cara memindahkan kartu**, semuanya sama sahnya:
-
-| Cara | Langkahnya |
-|---|---|
-| Tetikus | Seret dari pegangan di kiri judul kartu |
-| Menu | Tombol titik tiga → **Pindahkan ke …** |
-| Papan ketik | Tab ke pegangannya, tekan **Spasi**, panah untuk memilih, **Spasi** lagi untuk menjatuhkan |
-
-Menu adalah cara tercepat bila Anda tidak sedang memegang tetikus.
-
-Kartu dapat ditautkan ke laporan harian sebagai buktinya, lewat **Ubah Tugas →
-Laporan Terkait**. Tautannya bertahan meski laporannya disunting.
-
-Kartu yang melewati **Target Selesai** diberi penanda merah bertuliskan "Lewat
-target" — bukan warna saja.
-
----
-
 ## Melihat laporan tim
 
 **Monitoring** — untuk supervisor ke atas. Siapa yang sudah dan belum mengisi
@@ -193,8 +168,8 @@ berpindah tab.
 
 ### Angkanya memperbarui diri
 
-Halaman ini tidak perlu dimuat ulang. Begitu ada laporan masuk atau kartu
-progres berpindah, angkanya menyesuaikan sendiri dan muncul keterangan singkat
+Halaman ini tidak perlu dimuat ulang. Begitu ada laporan masuk, angkanya
+menyesuaikan sendiri dan muncul keterangan singkat
 *"Angkanya baru saja diperbarui."*
 
 Papan yang dibiarkan terbuka di layar besar karena itu tetap benar sepanjang

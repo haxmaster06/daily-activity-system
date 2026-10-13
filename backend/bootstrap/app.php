@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\EnsureUserIsActive;
+use App\Http\Middleware\ModePemeliharaan;
 use App\Http\Middleware\PastikanBerizin;
 use App\Http\Middleware\PerpanjangSesi;
 use App\Support\ApiResponse;
@@ -36,6 +37,26 @@ return Application::configure(basePath: dirname(__DIR__))
         attributes: ['middleware' => ['auth:sanctum', 'aktif']],
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        /*
+         * Backend selalu dicapai lewat proxy, tidak pernah langsung.
+         *
+         * Deretnya pada produksi: Cloudflare, Apache2 di host yang mengakhiri
+         * TLS, nginx, lalu Route Handler Next.js. Tanpa mempercayai proxy,
+         * `$request->isSecure()` menjawab false walau peramban memakai https —
+         * URL yang dibangkitkan menjadi http, dan pemeriksaan apa pun yang
+         * bersandar pada skema mengambil kesimpulan yang salah.
+         *
+         * `at: '*'` aman di sini justru karena backend tidak terjangkau dari
+         * luar: porta 8000 hanya ada di dalam jaringan Docker, dan satu-satunya
+         * yang menghubunginya adalah nginx dan Next.js.
+         *
+         * Catatan: ini TIDAK memperbaiki alamat IP pada audit trail. Yang
+         * tercatat masih IP container frontend, sebab `frontend/src/lib/api.ts`
+         * belum meneruskan X-Forwarded-For milik pengguna saat memanggil
+         * backend. Pekerjaan itu berdiri sendiri.
+         */
+        $middleware->trustProxies(at: '*');
+
         $middleware->api(prepend: [
             HandleCors::class,
         ]);
@@ -44,6 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'aktif' => EnsureUserIsActive::class,
             'perpanjang-sesi' => PerpanjangSesi::class,
             'izin' => PastikanBerizin::class,
+            'pemeliharaan' => ModePemeliharaan::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

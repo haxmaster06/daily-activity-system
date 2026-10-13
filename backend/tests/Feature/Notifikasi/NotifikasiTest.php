@@ -152,30 +152,32 @@ it('melarang Staff mengirim pengingat', function (): void {
     $lain = User::factory()->staff()->create(['department_id' => $tim['produksi']->id]);
 
     Sanctum::actingAs($tim['staff']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $lain->id])
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$lain->id]])
         ->assertStatus(403);
 
     expect($lain->fresh()->notifications()->count())->toBe(0);
 });
 
-it('melarang Supervisor mengingatkan anggota departemen lain', function (): void {
+it('melewati anggota departemen lain, tanpa mengirim', function (): void {
     $tim = siapkanTim();
     $orangQc = User::factory()->staff()->create(['department_id' => $tim['qc']->id]);
 
     Sanctum::actingAs($tim['atasan']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $orangQc->id])
-        ->assertStatus(403);
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$orangQc->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 0);
 
     expect($orangQc->fresh()->notifications()->count())->toBe(0);
 });
 
-it('menolak pengingat bila anggotanya sudah melapor', function (): void {
+it('melewati anggota yang sudah melapor, tanpa mengirim', function (): void {
     $tim = siapkanTim();
     laporanSiapKirim($tim['staff']);
 
     Sanctum::actingAs($tim['atasan']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['staff']->id])
-        ->assertStatus(422);
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$tim['staff']->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 0);
 
     expect($tim['staff']->fresh()->notifications()->count())->toBe(0);
 });
@@ -184,8 +186,9 @@ it('mengirim pengingat dan mencatatnya di jejak audit', function (): void {
     $tim = siapkanTim();
 
     Sanctum::actingAs($tim['atasan']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['staff']->id])
-        ->assertOk();
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$tim['staff']->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 1);
 
     $isi = $tim['staff']->fresh()->notifications()->first();
     expect($isi->type)->toBe(PengingatLaporan::class)
@@ -194,26 +197,48 @@ it('mengirim pengingat dan mencatatnya di jejak audit', function (): void {
     expect(AuditLog::latest('id')->first()->action)->toBe('pengingat_dikirim');
 });
 
-it('menolak pengingat kedua pada hari yang sama', function (): void {
+it('melewati pengingat kedua pada hari yang sama', function (): void {
     $tim = siapkanTim();
 
     Sanctum::actingAs($tim['atasan']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['staff']->id])
-        ->assertOk();
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$tim['staff']->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 1);
 
     // Anggota tidak boleh dihujani pengingat yang sama oleh beberapa atasan.
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['staff']->id])
-        ->assertStatus(422);
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$tim['staff']->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 0);
 
     expect($tim['staff']->fresh()->notifications()->count())->toBe(1);
 });
 
-it('menolak pengingat untuk diri sendiri', function (): void {
+it('melewati pengingat untuk diri sendiri', function (): void {
     $tim = siapkanTim();
 
     Sanctum::actingAs($tim['atasan']);
-    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => $tim['atasan']->id])
-        ->assertStatus(422);
+    $this->postJson('/api/monitoring/pengingat', ['pengguna_id' => [$tim['atasan']->id]])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 0);
+
+    expect($tim['atasan']->fresh()->notifications()->count())->toBe(0);
+});
+
+it('mengirim ke beberapa anggota sekaligus, melewati yang tak bisa', function (): void {
+    $tim = siapkanTim();
+    $lain = User::factory()->staff()->create(['department_id' => $tim['produksi']->id]);
+    laporanSiapKirim($tim['staff']); // sudah melapor → dilewati
+
+    Sanctum::actingAs($tim['atasan']);
+    $this->postJson('/api/monitoring/pengingat', [
+        'pengguna_id' => [$tim['staff']->id, $lain->id, $tim['atasan']->id],
+    ])
+        ->assertOk()
+        ->assertJsonPath('data.terkirim', 1); // hanya $lain
+
+    expect($lain->fresh()->notifications()->count())->toBe(1)
+        ->and($tim['staff']->fresh()->notifications()->count())->toBe(0)
+        ->and($tim['atasan']->fresh()->notifications()->count())->toBe(0);
 });
 
 /**

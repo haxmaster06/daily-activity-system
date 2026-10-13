@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\MasterData;
 use App\Models\MasterType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -34,7 +35,7 @@ class MasterTypeResource extends JsonResource
                     ->map(fn ($satu) => ['id' => $satu->id, 'nama' => $satu->name])
                     ->values(),
             ),
-            'boleh_kelola_isi' => $request->user()?->can('create', [\App\Models\MasterData::class, $this->resource]) ?? false,
+            'boleh_kelola_isi' => $request->user()?->can('create', [MasterData::class, $this->resource]) ?? false,
             'induk' => $this->whenLoaded(
                 'induk',
                 fn () => $this->induk === null

@@ -172,7 +172,7 @@ class ReportTemplateSeeder extends Seeder
                 'urutan' => 2,
                 'kolom' => [
                     ['kunci' => 'tanggal_produksi', 'label' => 'Tanggal Produksi', 'tipe' => 'date', 'wajib' => true],
-                    ['kunci' => 'lot', 'label' => 'LOT#', 'tipe' => 'integer', 'wajib' => true, 'sumber' => 'lot'],
+                    ['kunci' => 'lot', 'label' => 'LOT#', 'tipe' => 'text', 'wajib' => true, 'sumber' => 'lot'],
 
                     ['kunci' => 'oven_target', 'label' => 'Target Per Hari', 'grup' => 'Oven', 'tipe' => 'decimal', 'satuan' => 'kg'],
                     ['kunci' => 'oven_masuk', 'label' => 'QTY Masuk', 'grup' => 'Oven', 'tipe' => 'decimal', 'satuan' => 'kg'],
@@ -213,7 +213,7 @@ class ReportTemplateSeeder extends Seeder
                 'departemen' => 'QC',
                 'urutan' => 1,
                 'kolom' => [
-                    ['kunci' => 'lot', 'label' => 'Lot Product', 'tipe' => 'integer', 'wajib' => true, 'sumber' => 'lot'],
+                    ['kunci' => 'lot', 'label' => 'Lot Product', 'tipe' => 'text', 'wajib' => true, 'sumber' => 'lot'],
                     ['kunci' => 'qty_masuk', 'label' => 'QTY Masuk', 'tipe' => 'decimal', 'satuan' => 'kg'],
                     ['kunci' => 'qty_halus', 'label' => 'QTY Halus', 'tipe' => 'decimal', 'satuan' => 'kg'],
                     ['kunci' => 'brontol', 'label' => 'Brontol', 'tipe' => 'decimal', 'satuan' => 'kg'],
@@ -234,7 +234,7 @@ class ReportTemplateSeeder extends Seeder
                 'departemen' => 'QC',
                 'urutan' => 2,
                 'kolom' => [
-                    ['kunci' => 'lot', 'label' => 'Lot Product', 'tipe' => 'integer', 'wajib' => true, 'sumber' => 'lot'],
+                    ['kunci' => 'lot', 'label' => 'Lot Product', 'tipe' => 'text', 'wajib' => true, 'sumber' => 'lot'],
                     ['kunci' => 'qty_masuk', 'label' => 'QTY Masuk', 'tipe' => 'decimal', 'satuan' => 'kg'],
                     ['kunci' => 'qty_halus', 'label' => 'QTY Halus', 'tipe' => 'decimal', 'satuan' => 'kg'],
                     ['kunci' => 'brontol', 'label' => 'Brontol', 'tipe' => 'decimal', 'satuan' => 'kg'],
@@ -256,7 +256,7 @@ class ReportTemplateSeeder extends Seeder
                 'urutan' => 3,
                 'kolom' => [
                     ['kunci' => 'supplier', 'label' => 'Supplier', 'tipe' => 'text', 'wajib' => true, 'sumber' => 'supplier'],
-                    ['kunci' => 'lot', 'label' => 'LOT', 'tipe' => 'integer', 'sumber' => 'lot'],
+                    ['kunci' => 'lot', 'label' => 'LOT', 'tipe' => 'text', 'sumber' => 'lot'],
                     ['kunci' => 'gluten', 'label' => 'Gluten', 'tipe' => 'text', 'bantuan' => 'Isi nd bila tidak terdeteksi'],
                     ['kunci' => 'sulvit', 'label' => 'Sulvit', 'tipe' => 'text', 'bantuan' => 'Isi nd bila tidak terdeteksi'],
                     ['kunci' => 'refinasi', 'label' => 'Refinasi', 'tipe' => 'text', 'bantuan' => 'Isi nd bila tidak terdeteksi'],

@@ -73,7 +73,6 @@ class PenggunaSeeder extends Seeder
             ->all();
     }
 
-
     /**
      * Departemen DB sumber yang tidak ada di antara departemen milik sistem ini.
      *

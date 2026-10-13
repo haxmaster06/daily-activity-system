@@ -4,7 +4,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Search, X } from 'lucide-react';
 
+import { DatePicker } from '@/components/ui/date-picker';
 import { Select } from '@/components/ui/select';
+import { hariIniApi } from '@/lib/format';
 
 /**
  * Radix Select tidak menerima string kosong sebagai nilai item, sehingga
@@ -23,6 +25,8 @@ interface FilterBarProps {
   /** Placeholder kolom pencarian teks pada kolom identitas baris. */
   placeholderCari: string;
   pilihan?: PilihanFilter[];
+  /** Menampilkan rentang tanggal (parameter `dari` dan `sampai`). */
+  rentangTanggal?: boolean;
 }
 
 /**
@@ -31,7 +35,11 @@ interface FilterBarProps {
  * Keadaan filter disimpan pada URL sehingga terlihat, dapat dibagikan, dan
  * dapat dikosongkan sekaligus. Penyaringan sesungguhnya dikerjakan server.
  */
-export function FilterBar({ placeholderCari, pilihan = [] }: FilterBarProps) {
+export function FilterBar({
+  placeholderCari,
+  pilihan = [],
+  rentangTanggal = false,
+}: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -54,8 +62,13 @@ export function FilterBar({ placeholderCari, pilihan = [] }: FilterBarProps) {
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
+  const dari = searchParams.get('dari');
+  const sampai = searchParams.get('sampai');
+
   const adaFilterAktif =
     Boolean(searchParams.get('cari')) ||
+    Boolean(dari) ||
+    Boolean(sampai) ||
     pilihan.some((item) => Boolean(searchParams.get(item.kunci)));
 
   return (
@@ -84,6 +97,42 @@ export function FilterBar({ placeholderCari, pilihan = [] }: FilterBarProps) {
           className="field field-sm pl-8"
         />
       </form>
+
+      {rentangTanggal && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-caption text-ink-muted">Tanggal</span>
+          <DatePicker
+            label="Dari tanggal"
+            tanpaLabel
+            ukuran="sm"
+            nilai={dari}
+            maksimal={sampai ?? hariIniApi()}
+            onUbah={(nilai) =>
+              terapkan((params) => {
+                if (nilai) params.set('dari', nilai);
+                else params.delete('dari');
+              })
+            }
+          />
+          <span aria-hidden="true" className="text-caption text-ink-soft">
+            –
+          </span>
+          <DatePicker
+            label="Sampai tanggal"
+            tanpaLabel
+            ukuran="sm"
+            nilai={sampai}
+            minimal={dari ?? undefined}
+            maksimal={hariIniApi()}
+            onUbah={(nilai) =>
+              terapkan((params) => {
+                if (nilai) params.set('sampai', nilai);
+                else params.delete('sampai');
+              })
+            }
+          />
+        </div>
+      )}
 
       {pilihan.map((item) => (
         <Select

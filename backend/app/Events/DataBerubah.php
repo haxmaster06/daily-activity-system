@@ -39,11 +39,9 @@ class DataBerubah implements ShouldBroadcast, ShouldDispatchAfterCommit
 
     public const LAPORAN = 'laporan';
 
-    public const TUGAS = 'tugas';
-
     public function __construct(
         public readonly int $departemenId,
-        /** `laporan` atau `tugas`. */
+        /** Sejauh ini selalu `laporan`. */
         public readonly string $jenis,
     ) {}
 

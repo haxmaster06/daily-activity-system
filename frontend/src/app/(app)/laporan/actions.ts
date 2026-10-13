@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { panggilApi } from '@/lib/api';
 import { hasilBerhasil, hasilGalat, type HasilAksi } from '@/lib/aksi';
+import type { IsiDraf } from '@/lib/draf-laporan';
 import type { NilaiBaris } from '@/lib/laporan';
 
 const HALAMAN = '/laporan';
@@ -21,29 +22,31 @@ export interface KiriLaporan {
 /** Hasil aksi yang perlu menyertakan id laporan yang baru dibuat. */
 export interface HasilSimpan extends HasilAksi {
   id?: number;
+  /** Pemberitahuan non-galat: LOT+tanggal juga dicatat pengguna lain. */
+  peringatan?: string[];
 }
 
 export async function simpanLaporanBaru(data: KiriLaporan): Promise<HasilSimpan> {
   try {
-    const { message, data: laporan } = await panggilApi<{ id: number }>('/laporan', {
+    const { message, data: laporan, peringatan } = await panggilApi<{ id: number }>('/laporan', {
       method: 'POST',
       body: data,
     });
     revalidatePath(HALAMAN);
 
-    return { ...hasilBerhasil(message || 'Laporan tersimpan.'), id: laporan.id };
+    return { ...hasilBerhasil(message || 'Laporan tersimpan.'), id: laporan.id, peringatan };
   } catch (galat) {
     return hasilGalat(galat);
   }
 }
 
-export async function perbaruiLaporan(id: number, data: KiriLaporan): Promise<HasilAksi> {
+export async function perbaruiLaporan(id: number, data: KiriLaporan): Promise<HasilSimpan> {
   try {
-    const { message } = await panggilApi(`/laporan/${id}`, { method: 'PUT', body: data });
+    const { message, peringatan } = await panggilApi(`/laporan/${id}`, { method: 'PUT', body: data });
     revalidatePath(HALAMAN);
     revalidatePath(`${HALAMAN}/${id}`);
 
-    return hasilBerhasil(message || 'Laporan berhasil diperbarui.');
+    return { ...hasilBerhasil(message || 'Laporan berhasil diperbarui.'), id, peringatan };
   } catch (galat) {
     return hasilGalat(galat);
   }
@@ -103,14 +106,85 @@ export async function tinjauLaporan(id: number, catatan: string): Promise<HasilA
   }
 }
 
-export async function hapusDrafLaporan(id: number): Promise<HasilAksi> {
+/**
+ * Menandai beberapa laporan sudah ditinjau sekaligus.
+ *
+ * Catatan tinjauan bersifat per laporan, jadi jalur massal ini tidak
+ * menyertakannya — yang tak memenuhi syarat dilewati di server, bukan
+ * menggagalkan seluruh permintaan.
+ */
+export async function tinjauMassal(
+  ids: number[],
+): Promise<HasilAksi & { ditinjau: number; dilewati: number }> {
+  try {
+    const { message, data } = await panggilApi<{
+      ditinjau: number;
+      dilewati: { tanggal: string; penyusun: string | null; alasan: string }[];
+    }>('/laporan/tinjau-massal', { method: 'POST', body: { laporan_id: ids } });
+    revalidatePath(HALAMAN);
+
+    return {
+      ...hasilBerhasil(message || 'Laporan ditandai sudah ditinjau.'),
+      ditinjau: data?.ditinjau ?? 0,
+      dilewati: data?.dilewati?.length ?? 0,
+    };
+  } catch (galat) {
+    return { ...hasilGalat(galat), ditinjau: 0, dilewati: 0 };
+  }
+}
+
+export async function hapusLaporan(id: number): Promise<HasilAksi> {
   try {
     const { message } = await panggilApi(`/laporan/${id}`, { method: 'DELETE' });
     revalidatePath(HALAMAN);
 
-    return hasilBerhasil(message || 'Draf laporan berhasil dihapus.');
+    return hasilBerhasil(message || 'Laporan berhasil dihapus.');
   } catch (galat) {
     return hasilGalat(galat);
+  }
+}
+
+/* --------------------------------------------------- Auto-save draf ke server
+ *
+ * Jaring pemulihan lintas perangkat. Terpisah dari simpan laporan resmi karena
+ * tak divalidasi per sel — form setengah jadi pun tersimpan. Kegagalan ditelan
+ * diam-diam: auto-save latar tak boleh menampilkan galat atau memicu banner
+ * versi. Tak ada revalidatePath — form tak boleh ikut ter-refresh.
+ */
+
+export type PayloadDrafServer = Omit<IsiDraf, 'disimpanPada'>;
+
+export interface DrafServer {
+  payload: PayloadDrafServer;
+  disimpanPada: string;
+}
+
+export async function bacaDrafServer(kunci: string): Promise<DrafServer | null> {
+  try {
+    const { data } = await panggilApi<{
+      payload: PayloadDrafServer;
+      disimpan_pada: string;
+    } | null>(`/draf-laporan/${kunci}`);
+
+    return data ? { payload: data.payload, disimpanPada: data.disimpan_pada } : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function simpanDrafServer(kunci: string, payload: PayloadDrafServer): Promise<void> {
+  try {
+    await panggilApi(`/draf-laporan/${kunci}`, { method: 'PUT', body: { payload } });
+  } catch {
+    // Diam-diam disengaja.
+  }
+}
+
+export async function hapusDrafServer(kunci: string): Promise<void> {
+  try {
+    await panggilApi(`/draf-laporan/${kunci}`, { method: 'DELETE' });
+  } catch {
+    // Diam-diam disengaja.
   }
 }
 

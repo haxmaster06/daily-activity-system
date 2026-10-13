@@ -5,11 +5,13 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DailyReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DrafLaporanController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ImportLaporanController;
 use App\Http\Controllers\ImportMasterController;
 use App\Http\Controllers\LampiranController;
+use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\MasterDataController;
 use App\Http\Controllers\MasterTypeController;
 use App\Http\Controllers\MonitoringController;
@@ -18,7 +20,6 @@ use App\Http\Controllers\PengingatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportTemplateController;
 use App\Http\Controllers\RoleController;
-use App\Http\Controllers\TugasController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,9 +40,16 @@ Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:login')
     ->name('login');
 
-Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])->group(function (): void {
+// Publik dan di luar penjaga pemeliharaan: halaman pemeliharaan harus tetap
+// dapat membaca statusnya walau modenya sedang aktif.
+Route::get('/pemeliharaan', [MaintenanceController::class, 'show'])->name('pemeliharaan.show');
+
+Route::middleware(['auth:sanctum', 'aktif', 'pemeliharaan', 'perpanjang-sesi', 'throttle:api'])->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/me', [AuthController::class, 'me'])->name('me');
+    Route::put('/pemeliharaan', [MaintenanceController::class, 'update'])
+        ->middleware('izin:sistem.maintenance')
+        ->name('pemeliharaan.update');
 
     /*
      * Ringkasan. Angkanya dibatasi DailyReport::scopeVisibleTo() — pengguna
@@ -119,17 +127,6 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('departemen.destroy');
 
     /*
-     * Papan progres harian. Kartunya berumur lintas hari, sehingga tidak
-     * berpagination — papan yang menyembunyikan sebagian kartunya berhenti
-     * menjadi papan. Jangkauan datanya dijaga `Tugas::scopeVisibleTo()`.
-     */
-    Route::get('/tugas', [TugasController::class, 'index'])->name('tugas.index');
-    Route::post('/tugas', [TugasController::class, 'store'])->name('tugas.store');
-    Route::put('/tugas/{tugas}', [TugasController::class, 'update'])->name('tugas.update');
-    Route::patch('/tugas/{tugas}/geser', [TugasController::class, 'geser'])->name('tugas.geser');
-    Route::delete('/tugas/{tugas}', [TugasController::class, 'destroy'])->name('tugas.destroy');
-
-    /*
      * Executive Analytics. Seluruh angkanya dikirim sekaligus — yang membukanya
      * membaca satu halaman, bukan menunggu enam permintaan.
      *
@@ -142,7 +139,7 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         Route::get('/ringkasan', [AnalitikController::class, 'ringkasan'])->name('analitik.ringkasan');
         Route::get('/produktivitas', [AnalitikController::class, 'produktivitas'])
             ->name('analitik.produktivitas');
-        Route::get('/progres', [AnalitikController::class, 'progres'])->name('analitik.progres');
+        Route::get('/produksi', [AnalitikController::class, 'produksi'])->name('analitik.produksi');
     });
 
     /*
@@ -266,6 +263,25 @@ Route::middleware(['auth:sanctum', 'aktif', 'perpanjang-sesi', 'throttle:api'])-
         ->name('laporan.kirim');
     Route::post('/laporan/{laporan}/tinjau', [DailyReportController::class, 'tinjau'])
         ->name('laporan.tinjau');
+    // Tandai beberapa laporan ditinjau sekaligus. Digerbang izin di sini; tiap
+    // laporan tetap diperiksa Policy di controller (deny by default).
+    Route::post('/laporan/tinjau-massal', [DailyReportController::class, 'tinjauMassal'])
+        ->middleware('izin:laporan.tinjau')
+        ->name('laporan.tinjau-massal');
+
+    /*
+     * Auto-save draf isian di latar. Jalur terpisah dari laporan resmi karena
+     * tak memvalidasi isi sel — lihat DrafLaporanController. Kunci `baru` atau
+     * `ubah-<id>`, dijaga per pemilik. Simpan dibatasi lebih longgar karena
+     * dipanggil berkala saat mengetik.
+     */
+    Route::get('/draf-laporan/{kunci}', [DrafLaporanController::class, 'show'])
+        ->name('draf-laporan.show');
+    Route::put('/draf-laporan/{kunci}', [DrafLaporanController::class, 'simpan'])
+        ->middleware('throttle:120,1')
+        ->name('draf-laporan.simpan');
+    Route::delete('/draf-laporan/{kunci}', [DrafLaporanController::class, 'destroy'])
+        ->name('draf-laporan.destroy');
 
     /*
      * Lampiran. Izinnya mengikuti laporannya lewat AttachmentPolicy.

@@ -6,12 +6,15 @@ import { useEffect, useRef, useState } from 'react';
 import { IsianKolom } from '@/components/laporan/isian-kolom';
 import { PanelBaris } from '@/components/laporan/panel-baris';
 import { ButtonGroup } from '@/components/ui/button-group';
+import { berupaHtml, htmlKeTeks } from '@/components/ui/tampil-kaya';
 import { cn } from '@/lib/cn';
 import { useLebarLayar, LAYAR_SEMPIT } from '@/lib/use-lebar-layar';
+import { formatAngka } from '@/lib/format';
 import {
   barisKosong,
   hitungPratinjau,
   susunGrup,
+  totalKolom,
   type NilaiBaris,
   type NilaiSel,
 } from '@/lib/laporan';
@@ -251,10 +254,21 @@ export function TabelIsian({
      * Kontrol yang menangani tombolnya sendiri dibiarkan sepenuhnya. Tanpa
      * penjaga ini, panah tidak lagi memindahkan pilihan di dalam Select dan
      * Enter tidak lagi memilih isi Combobox.
+     *
+     * `[contenteditable="true"]` menangkap editor teks kaya. Daftar ini semula
+     * menyebut `textarea`, dan itu benar sampai kolom teks panjang diganti
+     * Tiptap — yang merender `<div contenteditable>`, bukan textarea. Sejak itu
+     * tidak ada satu pun selektor yang cocok, sehingga Enter di dalam editor
+     * lolos ke bawah: barisan baru di editor dibatalkan, lalu pada baris
+     * terakhir malah menambah baris isian yang tidak diminta siapa pun.
+     *
+     * Disebut lewat `contenteditable`, bukan kelas milik Tiptap: apa pun yang
+     * dapat disunting langsung memang menangani tombolnya sendiri, dan
+     * penjaganya tidak ikut rusak saat librarynya suatu saat diganti.
      */
     const sasaran = event.target as HTMLElement;
     const kontrolSendiri = sasaran.closest(
-      '[role="combobox"], [role="listbox"], [role="group"], textarea',
+      '[role="combobox"], [role="listbox"], [role="group"], textarea, [contenteditable="true"]',
     );
 
     const denganAlt = event.altKey;
@@ -576,6 +590,41 @@ export function TabelIsian({
               );
             })}
           </tbody>
+
+          {kolom.some((k) => k.total) && (
+            <tfoot className="border-t-2 border-line bg-surface-muted">
+              <tr>
+                <td
+                  className="sticky left-0 z-10 bg-surface-muted px-2 py-1.5 text-center text-caption font-medium text-ink-soft"
+                  style={{ width: LEBAR_NOMOR }}
+                >
+                  Total
+                </td>
+                {grup.map((g, gi) =>
+                  g.kolom.map((item, ki) => {
+                    const beku = gayaBeku(item.kunci);
+
+                    return (
+                      <td
+                        key={item.kunci}
+                        style={beku}
+                        className={cn(
+                          'px-2 py-1.5 text-right tabular-nums font-medium text-ink',
+                          ki === 0 && g.nama && gi > 0 && 'border-l border-line',
+                          beku && 'sticky z-10 bg-surface-muted',
+                        )}
+                      >
+                        {item.total
+                          ? `${formatAngka(totalKolom(item, baris), item.tipe === 'integer' ? 0 : (item.desimal ?? 2))}${item.satuan ? ` ${item.satuan}` : ''}`
+                          : ''}
+                      </td>
+                    );
+                  }),
+                )}
+                {!terkunci && <td />}
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
 
@@ -621,5 +670,9 @@ function ringkasNilai(isi: NilaiSel | undefined): string {
   if (typeof isi === 'boolean') return isi ? 'Ya' : 'Tidak';
   if (typeof isi === 'object' && 'nama' in isi) return isi.nama;
 
-  return String(isi);
+  // Kolom teks kaya menyimpan HTML (`<p>…</p>`). Di ringkasan satu baris ini
+  // ditampilkan sebagai teks polos — bukan dirender — supaya tagnya tak bocor.
+  const teks = String(isi);
+
+  return berupaHtml(teks) ? htmlKeTeks(teks) : teks;
 }
